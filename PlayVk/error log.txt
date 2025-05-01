@@ -1,0 +1,16 @@
+validation layer: loader_get_json: Failed to open JSON file C:\Program Files (x86)\Epic Games\Epic Online Services\managedArtifacts\98bc04bc842e4906993fd6d6644ffb8d\EOSOverlayVkLayer-Win64.json
+validation layer: loader_get_json: Failed to open JSON file C:\Program Files (x86)\Epic Games\Epic Online Services\managedArtifacts\98bc04bc842e4906993fd6d6644ffb8d\EOSOverlayVkLayer-Win64.json
+validation layer: loader_get_json: Failed to open JSON file D:\programs\epic games\Epic Games\Launcher\Portal\Extras\Overlay\EOSOverlayVkLayer-Win32.json
+validation layer: loader_get_json: Failed to open JSON file D:\programs\epic games\Epic Games\Launcher\Portal\Extras\Overlay\EOSOverlayVkLayer-Win32.json
+validation layer: loader_get_json: Failed to open JSON file D:\programs\epic games\Epic Games\Launcher\Portal\Extras\Overlay\EOSOverlayVkLayer-Win64.json
+validation layer: loader_get_json: Failed to open JSON file D:\programs\epic games\Epic Games\Launcher\Portal\Extras\Overlay\EOSOverlayVkLayer-Win64.json
+validation layer: windows_get_device_registry_files: GUID for 25 is not SoftwareComponent skipping
+validation layer: windows_get_device_registry_files: GUID for 26 is not SoftwareComponent skipping
+validation layer: Searching for ICD drivers named .\nvoglv64.dll
+validation layer: Loading layer library D:\VulkanSDK\1.3.290.0\Bin\.\VkLayer_khronos_validation.dll
+validation layer: Loading layer library D:\RivaTuner Statistics Server\Vulkan\.\RTSSVkLayer64.dll
+validation layer: Loading layer library C:\Windows\System32\DriverStore\FileRepository\nvlti.inf_amd64_524a1f08cfa14687\.\nvoglv64.dll
+validation layer: Validation Error: [ VUID-VkShaderModuleCreateInfo-pCode-07912 ] | MessageID = 0x3a6800f8 | vkCreateShaderModule(): pCreateInfo->pCode doesn't point to a SPIR-V module (The first dword is not the SPIR-V MagicNumber 0x07230203). The Vulkan spec states: If the VK_NV_glsl_shader extension is not enabled, pCode must be a pointer to SPIR-V code (https://vulkan.lunarg.com/doc/view/1.3.290.0/windows/1.3-extensions/vkspec.html#VUID-VkShaderModuleCreateInfo-pCode-07912)
+validation layer: Validation Error: [ VUID-VkShaderModuleCreateInfo-pCode-07912 ] | MessageID = 0x3a6800f8 | vkCreateShaderModule(): pCreateInfo->pCode doesn't point to a SPIR-V module (The first dword is not the SPIR-V MagicNumber 0x07230203). The Vulkan spec states: If the VK_NV_glsl_shader extension is not enabled, pCode must be a pointer to SPIR-V code (https://vulkan.lunarg.com/doc/view/1.3.290.0/windows/1.3-extensions/vkspec.html#VUID-VkShaderModuleCreateInfo-pCode-07912)
+
+

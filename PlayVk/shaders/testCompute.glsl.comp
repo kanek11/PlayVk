@@ -1,0 +1,42 @@
+#version 460 
+ 
+
+struct Particle {
+	vec3 position;
+    float padding;
+    vec3 velocity;
+    float padding2;
+};
+
+layout (set = 0 , binding = 0) uniform SystemParameters {
+    float deltaTime;
+} ubo;
+
+layout(set = 0, binding = 1 ,std430) readonly buffer ParticleIn_t {
+   Particle particlesIn[ ];
+} ParticleIn;
+
+layout(set = 0, binding = 2, std430) buffer ParticleOut_t {
+   Particle particlesOut[ ];
+} ParticleOut;
+
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in; 
+void main() 
+{
+    uint index = gl_GlobalInvocationID.x;  
+   
+
+    Particle particleIn = ParticleIn.particlesIn[index];
+     
+    ParticleOut.particlesOut[index].position = particleIn.position + particleIn.velocity * ubo.deltaTime;  
+     //ParticleOut.particlesOut[index].position = vec3(0.1, 0.1, 0.1) * index; 
+
+   // Flip movement at window border
+    if ((ParticleOut.particlesOut[index].position.x <= -0.5) || (ParticleOut.particlesOut[index].position.x >= 0.5)) {
+        ParticleOut.particlesOut[index].velocity.x = -ParticleOut.particlesOut[index].velocity.x;
+    }
+    if ((ParticleOut.particlesOut[index].position.y <= -0.5) || (ParticleOut.particlesOut[index].position.y >= 0.5)) {
+        ParticleOut.particlesOut[index].velocity.y = -ParticleOut.particlesOut[index].velocity.y;
+    }
+}

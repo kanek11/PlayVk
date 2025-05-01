@@ -1,0 +1,33 @@
+@echo off
+
+:: prompt to set environment variable
+if "%VK_SDK_PATH%"=="" (
+    echo Please set the VK_SDK_PATH environment variable to point to your Vulkan SDK installation.
+    pause
+    exit /b
+)
+
+set GLSLC=%VK_SDK_PATH%\Bin\glslc.exe
+set SHADER_DIR=shaders
+
+:: if success
+if not exist "%GLSLC%" (
+    echo glslc.exe not found at %GLSLC%. Please check your Vulkan SDK path or ensure the compiler is available.
+    pause
+    exit /b
+)
+
+:: compile 
+for /r %SHADER_DIR% %%f in (*.vert) do (
+    "%GLSLC%" %%f -o %SHADER_DIR%\bin\%%~nf.spv
+)
+for /r %SHADER_DIR% %%f in (*.frag) do (
+    "%GLSLC%" %%f -o %SHADER_DIR%\bin\%%~nf.spv
+) 
+
+for /r %SHADER_DIR% %%f in (*.comp) do (
+    "%GLSLC%" %%f -o %SHADER_DIR%\bin\%%~nf.spv
+) 
+
+echo Shader compilation complete.
+::pause
