@@ -13,6 +13,11 @@
 #include "Texture.h"
  
 
+
+using namespace VulkanSettings;
+
+
+
 namespace ParticleSystem
 {
     inline const uint32_t PARTICLE_COUNT = 1;

@@ -13,7 +13,7 @@
 #include <algorithm>
 
 #include "Base.h"
-#include "VkHandle.h"
+#include "VkBase.h"
 
 //todo
 // update buffer is a bit verbose;
@@ -25,13 +25,17 @@
 //todo framebuffer
 
 
+
+
+
+
 namespace VulkanSettings
 {
 
 	inline constexpr bool FIFO_MODE{ false };
 
 	//double buffering
-	inline constexpr int MAX_FRAMES_IN_FLIGHT{ 2 };
+	inline constexpr int MAX_FRAMES_IN_FLIGHT{ 3 };
 
 	//fixed for now;
 	inline constexpr uint32_t WIDTH{ 1000 };
@@ -56,19 +60,14 @@ namespace VulkanSettings
 
 	inline std::vector<const char*> instanceExtensions;
 
-	//1.0 core features are in this struct£»
-	inline VkPhysicalDeviceFeatures enabledDeviceFeatures{};
+	//1.0 core features ,not used.
+	//inline VkPhysicalDeviceFeatures enabledDeviceFeatures{};
+	
+	//
 	//note pNext chain is not copy, so the struct has to be in the same scope
 	inline VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures{}; 
-	inline VkPhysicalDeviceFeatures2 enabledDeviceFeatures2{};
-
-
-	//device features  
+	inline VkPhysicalDeviceFeatures2 enabledDeviceFeatures2{}; 
 }
-
-using namespace VulkanSettings;
-
-
 
 /*
 */
@@ -142,15 +141,15 @@ public:
 
 
 private:
-	[[nodiscard]] std::optional<VkPhysicalDevice> choosePhysicalDevice() const;
+	[[nodiscard]] std::optional<VkPhysicalDevice> selectPhysicalDevice() const;
 
 	[[nodiscard]] std::optional<VkDevice> createLogicalDevice() const; 
 
 public: 
 	//todo: make it populate method
-	SwapChainSupportDetails queryDeviceSwapChainSupport(VkPhysicalDevice device) const;
+	SwapChainSupportDetails getDeviceSwapChainSupport(VkPhysicalDevice device) const;
 	 
-	QueueFamilyIndices queryQueueFamilies(VkPhysicalDevice device) const;
+	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device) const;
 	 
 	//graphics, present queue;  swapchain
 	[[nodiscard]] bool isDeviceSuitable(VkPhysicalDevice device) const;
@@ -304,23 +303,20 @@ public:
 	explicit GVulkanRHI(WeakPtr<FVkWindow> window);
 
 private: 
-	bool populateInstanceExtensions(std::vector<const char*>&);
 
 	[[nodiscard]] std::optional<VkInstance> createInstance() const ;
 	[[nodiscard]] std::optional<VkDebugUtilsMessengerEXT> createDebugMessenger() const noexcept; 
+	  
+	void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+	 
+	//utils 
+	bool populateInstanceExtensions(std::vector<const char*>&);
 
-	//utils
 	bool queryCoreValidationLayerSupport() const;
 	 
 	VkDebugUtilsMessengerCreateInfoEXT m_debugMsgerCreateInfo{};
 	void populateDebugMessengerCreateInfo();
-
-	void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-		if (func != nullptr) {
-			func(instance, debugMessenger, pAllocator);
-		}
-	} 
+	
 
 public:
 	VkInstance vkInstance{ VK_NULL_HANDLE };

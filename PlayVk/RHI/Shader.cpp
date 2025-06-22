@@ -240,6 +240,7 @@ void FVkShaderMap::createDescriptorPool() {
 	auto& device = deviceRef.lock()->vkDevice;
 
 	std::vector<VkDescriptorPoolSize> poolSizes{
+		{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 },
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
 		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
 		{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 } ,
@@ -451,7 +452,7 @@ void FVkShaderMap::reflectShaderParameters()
 					layoutBindings[thisSet.set].push_back(layoutBinding);
 
 
-					std::cout << "Sampler - dSet: " << thisSet.set
+					std::cout << "Combined Image Sampler - dSet: " << thisSet.set
 						<< ", Binding: " << binding.binding
 						<< ",name: " << binding.name 
 						<< '\n';
@@ -486,7 +487,7 @@ void FVkShaderMap::reflectShaderParameters()
 
 					//others
 				default:
-					std::cerr << "we haven't consider the shader input yet." << '\n';
+					std::cerr << "unrecognized shader resource." << '\n';
 				}
 
 			}//bindings
@@ -573,7 +574,7 @@ void FVkShaderMap::reflectShaderParameters()
 
 
 	auto& device = deviceRef.lock()->vkDevice; 
-	descriptorSetLayouts.resize(layoutBindings.size()); //
+	descriptorSetLayouts.resize(layoutBindings.size()); 
 	// 
 	uint32_t set = 0;
 	for (auto& bindings : layoutBindings)
@@ -583,15 +584,15 @@ void FVkShaderMap::reflectShaderParameters()
 		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
 		layoutInfo.pBindings = bindings.data();
 
-		VkDescriptorSetLayout descriptorSetLayout;
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		VkDescriptorSetLayout _descriptorSetLayout;
+		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &_descriptorSetLayout) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create descriptor set layout!");
 		}
 
 		std::cout << "dset layout created for set:" << set << '\n';
 		std::cout << "bingings num : " << bindings.size() << '\n'; 
 		 
-		descriptorSetLayouts[set] = descriptorSetLayout;
+		descriptorSetLayouts[set] = _descriptorSetLayout;
 
 		set++;
 	}

@@ -17,19 +17,19 @@
   <ItemGroup>
     <None Include="shaders\vert.glsl" />
     <None Include="shaders\frag.glsl" />
-    <None Include="shaders\takeInput.glsl.vert" />
-    <None Include="shaders\frag.glsl.frag" />
-    <None Include="shaders\hardCode.glsl.vert" />
-    <None Include="shaders\hardCode_rotate.glsl.vert" />
-    <None Include="shaders\particleVert.glsl.vert" />
-    <None Include="shaders\sampleFrag.glsl.frag" />
-    <None Include="shaders\testCompute.glsl.comp" />
-    <None Include="shaders\staticVert.glsl.vert" />
+    <None Include="shaders\legacy\takeInput.glsl.vert" />
+    <None Include="shaders\legacy\frag.glsl.frag" />
+    <None Include="shaders\legacy\hardCode.glsl.vert" />
+    <None Include="shaders\legacy\hardCode_rotate.glsl.vert" />
+    <None Include="shaders\legacy\particleVert.glsl.vert" />
+    <None Include="shaders\legacy\sampleFrag.glsl.frag" />
+    <None Include="shaders\legacy\testCompute.glsl.comp" />
+    <None Include="shaders\legacy\staticVert.glsl.vert" />
+    <None Include="HLSL2SPV.bat">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\VulkanSDK\1.3.296.0\Source\SPIRV-Reflect\spirv_reflect.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="RHI\Buffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -52,6 +52,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RHI\Pipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\VulkanSDK\1.4.313.2\Source\SPIRV-Reflect\spirv_reflect.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -86,7 +89,7 @@
     <ClInclude Include="RHI\Timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\VkHandle.h">
+    <ClInclude Include="RHI\VkBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,6 +4,11 @@
 
 #include "Buffer.h"
 
+
+using namespace VulkanSettings; 
+
+
+
 GVulkanRHI::~GVulkanRHI()
 { 
 
@@ -31,8 +36,7 @@ GVulkanRHI::GVulkanRHI(WeakPtr<FVkWindow> window)
 	:windowRef(window)
 {
 	 
-	populateInstanceExtensions(instanceExtensions); 
-	 
+	populateInstanceExtensions(instanceExtensions);  
 	std::cout << "\tCreateInstance: required instance extensions:" << '\n';
 	for (const auto& extension : instanceExtensions) {
 		std::cout << '\t' << extension << '\n';
@@ -57,8 +61,7 @@ GVulkanRHI::GVulkanRHI(WeakPtr<FVkWindow> window)
 		throw std::runtime_error("Failed to create debug messenger!");
 	}
 #endif 
-  
-
+   
 	this->surfaceRef = CreateShared<FVkSurface>(vkInstance, windowRef);
 	this->deviceRef = CreateShared<FVkDevice>(vkInstance, surfaceRef);
 	this->swapChainRef = CreateShared<FVkSwapChain>(deviceRef, windowRef, surfaceRef);
@@ -222,7 +225,7 @@ bool FVkSwapChain::createSwapChain()
 
 
 	//SwapChainSupportDetails swapChainSupport = queryDeviceSwapChainSupport(_physicalDevice);
-	auto swapChainSupport = deviceRef.lock()->queryDeviceSwapChainSupport(physicalDevice);
+	auto swapChainSupport = deviceRef.lock()->getDeviceSwapChainSupport(physicalDevice);
 
 
 	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -245,7 +248,7 @@ bool FVkSwapChain::createSwapChain()
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	//QueueFamilyIndices indices = queryQueueFamilies(_physicalDevice);
-	auto indices = deviceRef.lock()->queryQueueFamilies(physicalDevice);
+	auto indices = deviceRef.lock()->getQueueFamilies(physicalDevice);
 
 	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
@@ -274,10 +277,13 @@ bool FVkSwapChain::createSwapChain()
 	swapChainImages.resize(imageCount);
 	vkGetSwapchainImagesKHR(device, vkSwapChain, &imageCount, swapChainImages.data());
 
+	//MAX_FRAMES_IN_FLIGHT = imageCount; //set the max frames in flight to the swapchain image count
+
 	this->swapChainImageFormat = surfaceFormat.format;
 	this->swapChainExtent = extent;
 
 	std::cout << "\tapp: swapchain created!" << '\n';
+	std::cout << "\tapp: swapchain image count: " << swapChainImages.size() << '\n';
 
 	return true;
 
@@ -289,8 +295,6 @@ bool FVkSwapChain::createSCImageViews()
 { 
 	const auto& device = deviceRef.lock()->vkDevice;
 
-	/*
-	*/
 	swapChainImageViews.resize(swapChainImages.size());
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
@@ -326,8 +330,7 @@ bool FVkSwapChain::createSCImageViews()
 
 /*
 * an extension is not loaded automatically like "core" Vulkan functions,
-* we must load it manually using vkGetInstanceProcAddr and serve as a validation if the extension is available.
-* then we return the X()  like normal binding workflow.
+* we must load it manually using vkGetInstanceProcAddr and also serve as a validation that whether the extension is available.
 */
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
 	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -358,12 +361,11 @@ std::optional<VkInstance> GVulkanRHI::createInstance() const
 		 .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 		 .pEngineName = "No Engine",
 		 .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-		 .apiVersion = VK_API_VERSION_1_3,
+		 .apiVersion = VK_API_VERSION_1_4,
 	};
 
 	VkInstanceCreateInfo _createInfo{ .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO }; 
-	_createInfo.pApplicationInfo = &_appInfo;
-
+	_createInfo.pApplicationInfo = &_appInfo; 
 
 	_createInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.size());
 	_createInfo.ppEnabledExtensionNames = instanceExtensions.data();
@@ -419,6 +421,14 @@ std::optional<VkDebugUtilsMessengerEXT> GVulkanRHI::createDebugMessenger() const
 		}
 	 
 }
+
+void GVulkanRHI::destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+{
+	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+	if (func != nullptr) {
+		func(instance, debugMessenger, pAllocator);
+	}
+} 
 
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
@@ -481,57 +491,57 @@ bool GVulkanRHI::populateInstanceExtensions(std::vector<const char*>& instanceEx
 
 	return true;
 }
+ 
 
 
 
-
-std::optional<VkPhysicalDevice> FVkDevice::choosePhysicalDevice() const 
+std::optional<VkPhysicalDevice> FVkDevice::selectPhysicalDevice() const 
 {
 	auto instance = instanceRef;  
 
-	uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-	if (deviceCount == 0) {
-		throw std::runtime_error("failed to find GPUs with Vulkan support!");
-	}
+	auto devices = EnumerateVector<VkPhysicalDevice>(
+		[&](uint32_t* count, VkPhysicalDevice* data) {
+			return vkEnumeratePhysicalDevices(instance, count, data);
+		});
 
-	std::vector<VkPhysicalDevice> devices(deviceCount);
-	vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+	if (devices.empty()) {
+		std::cout << "No physical devices found!" << '\n';
+		return std::nullopt;
+	}
 
 
 	VkPhysicalDevice _physicalDevice{ VK_NULL_HANDLE };
 
 	for (const auto& device : devices) {
-		if (isDeviceSuitable(device)) {
-
-			VkPhysicalDeviceProperties deviceProperties;
-			vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-			if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-				_physicalDevice = device;
-				std::cout << "\tapp: pick discrete GPU: " << deviceProperties.deviceName << '\n';
-				break;
-			}
-			else
-			{
-				std::cout << "\tapp: skip integrated GPU: " << deviceProperties.deviceName << '\n';
-			}
+		if (!isDeviceSuitable(device)) {
+			std::cout << "\tapp: skip unsuitable device" << '\n';
+			continue;
 		}
+
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+			_physicalDevice = device;
+			std::cout << "\tapp: pick discrete GPU: " << deviceProperties.deviceName << '\n';
+			break;
+		}
+		else
+		{
+			std::cout << "\tapp: skip integrated GPU: " << deviceProperties.deviceName << '\n';
+		}
+	 
 	}
 
 	if (_physicalDevice == VK_NULL_HANDLE ) {
 		return std::nullopt;
 	}
 	 
-	//new: 1.1 chains
-	enabledDeviceFeatures2 = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-	enabledDeviceFeatures2.features.samplerAnisotropy = VK_TRUE;  //enable anisotropy
-
+	//query features capabilities of the physical device
 	dynamicRenderingFeatures = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
-	//dynamicRenderingFeatures.dynamicRendering = VK_TRUE; // 手动启用动态渲染特性
+	//dynamicRenderingFeatures.dynamicRendering = VK_TRUE; 
+	 
 
-	enabledDeviceFeatures2.pNext = &dynamicRenderingFeatures;  
-	
 	VkPhysicalDeviceFeatures2 deviceFeatures2 = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 	deviceFeatures2.pNext = &dynamicRenderingFeatures;  //let query populate it
 	vkGetPhysicalDeviceFeatures2(_physicalDevice, &deviceFeatures2);
@@ -541,13 +551,19 @@ std::optional<VkPhysicalDevice> FVkDevice::choosePhysicalDevice() const
 		std::cout << "Feature not supported!" << '\n';
 		return std::nullopt;
 	}  
+
+	//if actually capable, enable the feature;
+	enabledDeviceFeatures2 = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+	enabledDeviceFeatures2.features.samplerAnisotropy = VK_TRUE; 
+	enabledDeviceFeatures2.pNext = &dynamicRenderingFeatures;
+
 	
 	return _physicalDevice;
 }
 
  
 
-SwapChainSupportDetails FVkDevice::queryDeviceSwapChainSupport(VkPhysicalDevice device) const {
+SwapChainSupportDetails FVkDevice::getDeviceSwapChainSupport(VkPhysicalDevice device) const {
 	SwapChainSupportDetails details;
 
 	auto surface = surfaceRef.lock()->vkSurface;
@@ -575,7 +591,7 @@ SwapChainSupportDetails FVkDevice::queryDeviceSwapChainSupport(VkPhysicalDevice 
 
 
 
-QueueFamilyIndices FVkDevice::queryQueueFamilies(VkPhysicalDevice device) const {
+QueueFamilyIndices FVkDevice::getQueueFamilies(VkPhysicalDevice device) const {
 
 	auto surface = surfaceRef.lock()->vkSurface;
 
@@ -628,14 +644,13 @@ QueueFamilyIndices FVkDevice::queryQueueFamilies(VkPhysicalDevice device) const 
 
 
 bool FVkDevice::isDeviceSuitable(VkPhysicalDevice device) const {
-	QueueFamilyIndices indices = queryQueueFamilies(device);
+	QueueFamilyIndices indices = getQueueFamilies(device);
 
 	bool extensionsSupported = checkDeviceExtensionSupport(device);
 
-	bool swapChainAdequate = false;
-
+	bool swapChainAdequate = false; 
 	if (extensionsSupported) {
-		SwapChainSupportDetails swapChainSupportDetails = queryDeviceSwapChainSupport(device);
+		SwapChainSupportDetails swapChainSupportDetails = getDeviceSwapChainSupport(device);
 		swapChainAdequate = !swapChainSupportDetails.formats.empty() && !swapChainSupportDetails.presentModes.empty();
 	}
 
@@ -643,6 +658,7 @@ bool FVkDevice::isDeviceSuitable(VkPhysicalDevice device) const {
 }
 
 bool FVkDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) const {
+
 	uint32_t extensionCount;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -653,8 +669,8 @@ bool FVkDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) const {
 
 	for (const auto& extension : availableExtensions) {
 		requiredExtensions.erase(extension.extensionName);
-		if(strcmp(extension.extensionName, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
-			std::cout << "\tapp: device support dynamic rendering" << '\n';
+		//if(strcmp(extension.extensionName, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
+		//	std::cout << "\tapp: device support dynamic rendering" << '\n';
 	}
 
 	return requiredExtensions.empty();
@@ -696,7 +712,7 @@ std::optional<VkDevice> FVkDevice::createLogicalDevice() const
 	createInfo.ppEnabledExtensionNames = deviceExtensions.data();  
 
 
-	createInfo.pEnabledFeatures = nullptr;// &enabledDeviceFeatures;
+	createInfo.pEnabledFeatures = nullptr;// unused. use features2 instead
 	createInfo.pNext = &enabledDeviceFeatures2; 
 	
 
@@ -881,7 +897,7 @@ FVkDevice::FVkDevice(const VkInstance& instance, const WeakPtr<FVkSurface> surfa
 	:instanceRef(instance), surfaceRef(surface)
 {
 	//
-	if (auto resultOpt = choosePhysicalDevice(); resultOpt.has_value()) {
+	if (auto resultOpt = selectPhysicalDevice(); resultOpt.has_value()) {
 		this->vkPhysicalDevice = *resultOpt;
 		std::cout << "\tapp: physical device selected!" << '\n';
 	}
@@ -890,7 +906,7 @@ FVkDevice::FVkDevice(const VkInstance& instance, const WeakPtr<FVkSurface> surfa
 	} 
 
 	//
-	this->queueIndices = queryQueueFamilies(this->vkPhysicalDevice);
+	this->queueIndices = getQueueFamilies(this->vkPhysicalDevice);
 
 	//
 	if (auto resultOpt = createLogicalDevice(); resultOpt.has_value()) {

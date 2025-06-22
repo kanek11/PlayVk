@@ -55,7 +55,7 @@ public:
 	FVkTexture(FVkTexture&&) = delete;
 	FVkTexture& operator=(FVkTexture&&) = delete;
 
-	//factorys
+	//factories
 	void createTexture(ImageDesc imageInfo, ImageHandle dataHandle);
 	void createFBDepthTexture(uint32_t width, uint32_t height, VkFormat format);
 	void createStorageImage(uint32_t width, uint32_t height);

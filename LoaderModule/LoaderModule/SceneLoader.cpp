@@ -231,13 +231,13 @@ namespace Loader {
 
 	static void processBones(aiMesh* mesh, MeshData& meshData)
 	{  
-		meshData.vertexGroups = [&] { 
-			std::vector<VertexGroup> vertexGroups{};
+		meshData.boneModifiers = [&] { 
+			std::vector<BoneModifier> vertexGroups{};
 			for (uint32_t i = 0; i < mesh->mNumBones; ++i)
 			{
 				aiBone* bone = mesh->mBones[i];
 
-				VertexGroup _vertexGroup{};
+				BoneModifier _vertexGroup{};
 				_vertexGroup.boneName = bone->mName.C_Str();
 				_vertexGroup.offsetMatrix = Utils::Mat4_AssimpToGLM(bone->mOffsetMatrix);
 

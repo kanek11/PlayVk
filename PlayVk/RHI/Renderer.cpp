@@ -14,6 +14,7 @@ FVkRenderer::FVkRenderer()
 	auto rhi = new GVulkanRHI(window);
 	Global::vulkanRHI = rhi;
 
+
 	this->deviceRef = rhi->deviceRef;
 	this->commandContextRef = rhi->commandContextRef;
 	this->heapManagerRef = rhi->heapManagerRef;
@@ -68,7 +69,7 @@ void  FVkRenderer::render() noexcept
 
 	uint32_t imageIndex{};
 	VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
+	//std::cout << "acquire image index: " << imageIndex << '\n';
 	/*	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			recreateSwapChain();
 			return;
@@ -440,8 +441,10 @@ void  FVkRenderer::createSceneResources()
 	auto testShaderMapBuilder = FVkShaderMapBuilder(deviceRef);
 	this->shaderManager = testShaderMapBuilder
 		//.SetVertexShader("shaders/bin/particleVert.glsl.spv")
-		.SetVertexShader("shaders/bin/staticVert.glsl.spv")
-		.SetFragmentShader("shaders/bin/sampleFrag.glsl.spv")
+		//.SetVertexShader("shaders/bin/staticVert.glsl.spv")
+		//.SetFragmentShader("shaders/bin/sampleFrag.glsl.spv")
+		 .SetVertexShader("shaders/bin/staticModel_VS.spv")
+		 .SetFragmentShader("shaders/bin/staticModel_PS.spv")
 		.Build();
 
 	shaderManager->reflectShaderParameters(); 
@@ -449,24 +452,24 @@ void  FVkRenderer::createSceneResources()
 	//new:
  
 	using namespace Loader; 
-    if(true)
-	{
-		this->modelDir = "D:/CG_resources/dae/vampire";
-		this->modelName = "dancing_vampire.dae"; 
-		this->scale = 0.01f;
-	}
-	if(false)
-	{
-		this->modelDir = "D:/CG_resources/my";
-		this->modelName = "A2.dae";  
-		this->scale = 1.0f;
-		 
-	}
-	if (false)
+ //   if(true)
+	//{
+	//	this->modelDir = "D:/CG_resources/dae/vampire";
+	//	this->modelName = "dancing_vampire.dae"; 
+	//	this->scale = 0.01f;
+	//}
+	//if(false)
+	//{
+	//	this->modelDir = "D:/CG_resources/my";
+	//	this->modelName = "A2.dae";  
+	//	this->scale = 1.0f;
+	//	 
+	//}
+	if (true)
 	{
 		this->modelDir = "D:/CG_resources/classic/cube";
 		this->modelName = "cube.obj"; 
-		this->scale = 1.0f;
+		this->scale = 0.5f;
 	}
 
  

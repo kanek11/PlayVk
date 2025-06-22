@@ -29,3 +29,15 @@ std::shared_ptr<VkHandle<Handle_t>> CreateSharedVkHandle(
 
 template <typename Handle_t>
 using SharedVkHandle = std::shared_ptr<VkHandle<Handle_t>>;
+
+
+
+template<typename T, typename F>
+std::vector<T> EnumerateVector(F&& enumerate) {
+	uint32_t count = 0;
+	enumerate(&count, nullptr);
+	std::vector<T> result(count);
+	enumerate(&count, result.data());
+	return result;
+}
+

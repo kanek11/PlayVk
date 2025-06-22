@@ -136,8 +136,8 @@ public:
 	//glm::vec3 eulerAngles{ glm::radians(180.0f), glm::radians(0.0f), glm::radians(0.0f) }; // Rotate 90 degrees around Y-axis
     //glm::vec3 translation{ 0.0f, 1.0f, 0.0f };
 	glm::vec3 eulerAngles{ glm::radians(0.0f), glm::radians(0.0f), glm::radians(0.0f) }; 
-	glm::vec3 translation{ 0.0f, -1.0f, 0.0f };
-
+	/*glm::vec3 translation{ 0.0f, -1.0f, 0.0f };*/
+	glm::vec3 translation{ 0.0f, 0.0f, 0.0f };
 
 	glm::mat4 initPose = glm::mat4(1.0f);
 

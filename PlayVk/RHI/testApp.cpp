@@ -19,12 +19,12 @@ int main()
 	std::cout << "Set Current working directory" << std::filesystem::current_path() << '\n';
 
 
-	//new: precompile shaders
-	std::cout << "\tapp:precompile shaders: " << '\n';
-	if (system("vkCompileAll.bat") != 0)
-	{
-		throw std::runtime_error("failed to compile shader£¡");
-	} 
+	////new: precompile shaders
+	//std::cout << "\tapp:precompile shaders: " << '\n';
+	//if (system("vkCompileAll.bat") != 0)
+	//{
+	//	throw std::runtime_error("failed to compile shader£¡");
+	//} 
 
 	if (test)
 	{

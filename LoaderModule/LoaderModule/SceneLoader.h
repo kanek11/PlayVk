@@ -47,7 +47,7 @@ using namespace std;
 
 namespace Loader { 
 	  
-struct VertexGroup
+struct BoneModifier
 {
 	struct Weight
 	{
@@ -76,7 +76,7 @@ struct MeshData
 
 	std::vector<uint32_t> indices;
 
-	std::vector<VertexGroup> vertexGroups;
+	std::vector<BoneModifier> boneModifiers;
 };
 
 
@@ -117,7 +117,7 @@ struct Node
 
 	uint32_t parentIndex;
 	std::vector<uint32_t> childrenIndices;
-	glm::mat4 localTransform; //rest, bind pose;
+	glm::mat4 localTransform; //bind pose;
 };
 
 

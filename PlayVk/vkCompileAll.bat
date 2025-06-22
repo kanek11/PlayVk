@@ -20,14 +20,22 @@ if not exist "%GLSLC%" (
 
 :: compile 
 for /r %SHADER_DIR% %%f in (*.vert) do (
-    "%GLSLC%" %%f -I %INCLUDE_DIR% -o %SHADER_DIR%\bin\%%~nf.spv
+    "%GLSLC%" %%f -I %INCLUDE_DIR% -o %SHADER_DIR%\bin\%%~nf.spv || goto :CompileError
 )
 for /r %SHADER_DIR% %%f in (*.frag) do (
-    "%GLSLC%" %%f -I %INCLUDE_DIR% -o %SHADER_DIR%\bin\%%~nf.spv
+    "%GLSLC%" %%f -I %INCLUDE_DIR% -o %SHADER_DIR%\bin\%%~nf.spv || goto :CompileError
 ) 
 for /r %SHADER_DIR% %%f in (*.comp) do (
-    "%GLSLC%" %%f -I %INCLUDE_DIR% -o %SHADER_DIR%\bin\%%~nf.spv
+    "%GLSLC%" %%f -I %INCLUDE_DIR% -o %SHADER_DIR%\bin\%%~nf.spv || goto :CompileError
 ) 
-
-echo Shader compilation complete.
-::pause
+ 
+echo Shader compilation complete. 
+goto :EOF
+ 
+:CompileError
+echo(
+echo ************************************************************
+echo *  Shader compilation FAILED. Scroll up for diagnostics.  *
+echo ************************************************************
+pause
+exit /b 1
