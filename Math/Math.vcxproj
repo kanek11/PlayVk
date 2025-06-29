@@ -159,7 +159,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\AShared\Timer.h" />
     <ClInclude Include="Matrix.h" />
-    <ClInclude Include="Matrix_Space.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

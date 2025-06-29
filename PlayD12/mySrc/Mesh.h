@@ -1,0 +1,121 @@
+#pragma once
+#include "PCH.h"
+#include "Base.h"
+
+//abstract of mesh; only consider static mesh for now;
+ 
+
+using namespace DirectX;
+
+using FLOAT3 = XMFLOAT3;
+using FLOAT2 = XMFLOAT2;
+using FLOAT4 = XMFLOAT4;
+
+using INDEX_FORMAT = uint16_t;  
+
+
+struct D3D12InputDesc {
+	std::string semanticName;
+	uint32_t semanticIndex = 0;
+	DXGI_FORMAT format;
+	uint32_t alignedByteOffset;
+	uint32_t byteSize;
+	uint32_t paddedSize;
+};
+
+ 
+struct StaticMeshVertex
+{
+	FLOAT3 position;
+	FLOAT3 normal;
+	FLOAT3 tangent;  
+	FLOAT4 color;
+	FLOAT2 texCoord0;
+};
+
+
+struct StaticMeshInputDesc
+{ 
+	static const std::vector<D3D12InputDesc>& GetInputDescs()
+	{
+		static const std::vector<D3D12InputDesc> table =
+		{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, position), sizeof(FLOAT3), 16 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, normal), sizeof(FLOAT3), 16 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, tangent), sizeof(FLOAT3), 16 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(StaticMeshVertex, color), sizeof(FLOAT4), 16 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(StaticMeshVertex, texCoord0), sizeof(FLOAT2), 16 }
+		};
+
+		return table;
+	}
+};
+ 
+ 
+
+struct StaticMeshData
+{ 
+	std::vector<FLOAT3> positions;
+	std::vector<FLOAT2> UVs;
+	std::vector<FLOAT3> normals; 
+	std::vector<FLOAT3> tangents;  
+	std::vector<FLOAT4> colors;  
+
+	std::vector<INDEX_FORMAT> indices; // Use 16-bit indices for smaller memory footprint 
+
+	std::vector<StaticMeshVertex> vertices;
+
+	std::vector<StaticMeshVertex> ConsolidateVertexData() const
+	{
+		std::vector<StaticMeshVertex> consolidatedVertices;
+		consolidatedVertices.reserve(positions.size()); 
+
+		for (size_t i = 0; i < positions.size(); ++i) {
+			StaticMeshVertex vertex;
+			vertex.position = positions[i];
+			if (i < UVs.size()) vertex.texCoord0 = UVs[i];
+			if (i < normals.size()) vertex.normal =normals[i];
+			if (i < tangents.size()) vertex.tangent =tangents[i];
+			if (i < colors.size()) vertex.color = colors[i];
+			consolidatedVertices.push_back(vertex); 
+		}
+		return consolidatedVertices;  //the copy behavior is left to RVO
+	}
+};
+
+
+class UStaticMesh {
+public:
+	UStaticMesh() = default;
+	virtual ~UStaticMesh() = default;
+
+	virtual const std::vector<StaticMeshVertex>& GetVertices() const {
+		return m_meshData.vertices;
+	}
+	virtual const std::vector<INDEX_FORMAT>& GetIndices() const {
+		return m_meshData.indices;
+	}
+
+	size_t GetVertexCount() const
+	{
+		return static_cast<int>(m_meshData.vertices.size());
+	}
+
+	size_t GetIndexCount() const
+	{
+		return static_cast<int>(m_meshData.indices.size());
+	} 
+ 
+
+protected:
+	StaticMeshData m_meshData;  
+};
+
+
+class CubeMesh : public UStaticMesh {
+public:
+	CubeMesh();
+	virtual ~CubeMesh() = default;
+
+	void CreateMeshData(); 
+};

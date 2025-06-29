@@ -97,9 +97,9 @@ int main()
 	{ 
 		try {
 			auto renderer = CreateShared<FVkRenderer>();
-			renderer->init();
-			renderer->update();
-			renderer->shutdown();
+			renderer->OnInit();
+			renderer->OnUpdate();
+			renderer->OnShutDown();
 		}
 		catch (const std::runtime_error& e) {
 			std::cerr << "captured error:" << e.what() << '\n';

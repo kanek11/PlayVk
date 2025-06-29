@@ -118,9 +118,7 @@ public:
 	using SamplerMap = std::unordered_map<std::string, FVkShaderResTextureInfo>;
 	using StorageImageMap = std::unordered_map<std::string, FVkShaderResTextureInfo>;
 
-	using PushConstantMap = std::unordered_map<std::string, FVkShaderResPushConstantInfo>;
-
-
+	using PushConstantMap = std::unordered_map<std::string, FVkShaderResPushConstantInfo>; 
 
 	// API for the reflection process , use const char* to be compatible with SPIR-V reflection
 public:

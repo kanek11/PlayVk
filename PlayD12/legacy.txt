@@ -1,0 +1,23 @@
+﻿
+    //// 4. 若想直接拿 root signature（如果 HLSL 有 RS 宏）——
+    ////    优先取 Part 1.1，否则 Part 1.0
+    //ComPtr<IDxcBlob> rsBlob;
+    //if (SUCCEEDED(utils->GetBlobPart(
+    //    m_shaderBlob.Get(),
+    //    DXC_PART_RS_1_1,
+    //    0, &rsBlob)))
+    //{
+    //    ComPtr<ID3D12VersionedRootSignatureDeserializer> deser;
+    //    ThrowIfFailed(D3D12CreateVersionedRootSignatureDeserializer(
+    //        rsBlob->GetBufferPointer(),
+    //        rsBlob->GetBufferSize(),
+    //        IID_PPV_ARGS(&deser)));
+
+    //    const auto* rsDesc = deser->GetRootSignatureDesc();
+    //    // 你可以根据 rsDesc->Version == 1_1 做进一步解析
+    //}
+
+    //// 5. 也可以用 shader hash 作为 PSO 缓存键
+    //DxcShaderHash hash{};
+    //utils->GetShaderHash(m_shaderBlob.Get(), &hash);
+    //m_shaderHash = hash.HashDigest;  // 16 bytes

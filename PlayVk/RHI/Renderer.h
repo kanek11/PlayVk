@@ -59,11 +59,17 @@ public:
 	FVkRenderer();
 	~FVkRenderer();
 
-	void init();
-	void shutdown();
-	void update() noexcept; 
+	void OnInit();
+	void OnShutDown();
+	void OnUpdate() noexcept; 
 	void render() noexcept;
-	void recordRenderCommand(VkCommandBuffer graphicsCmdBuffer, uint32_t imageIndex) noexcept;
+	void recordCommand(VkCommandBuffer graphicsCmdBuffer, uint32_t imageIndex) noexcept;
+
+	//the infra
+	void loadPipeline();
+
+	//the how, and what to render
+	void loadAssets();
 
 
 	void createCommandBuffers();
@@ -75,54 +81,53 @@ public:
 	void createSceneResources();
 	void initBindings();
 
-	//system managed
-	//===========================
+	//system  
 	SharedPtr<FVkWindow> window;
+
+	//pipeline objects
 	WeakPtr<FVkDevice> deviceRef;
 	WeakPtr<FVkCommandContext> commandContextRef;
 	WeakPtr<FVkHeapManager> heapManagerRef;
-
-	// 
+ 
 	WeakPtr<FVkSwapChain> swapChainRef; 
 
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 	SharedPtr<FVkTexture> FBDepthTexture;
+	 
+	std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> graphicsCommandBuffers;
+	 
 
-	//depend on application  
-    //scene  
+	//engine-level assets
+	SharedPtr<FVkGraphicsPipeline> graphicsPipeline;
+	//SharedPtr<FVkComputePipeline> computePipeline;
+	   
+	SharedPtr<FVkShaderMap> shaderManager;  
+	SharedPtr<FVkTexture> debugTexture; 
 
-	//object level
+	//app/scene 
 	std::vector<SharedPtr<UStaticMesh>> meshes;
 	std::vector<FStaticMeshObjProxy> meshProxies; 
 	 
 	std::vector<SharedPtr<FVkTexture>> textures;
 
-	//pipeline level
-	SharedPtr<FVkShaderMap> shaderManager; 
+	SharedPtr<FVkBuffer> cameraUBO;
 
-	//system level 
-	SharedPtr<FVkTexture> debugTexture;
-	SharedPtr<FVkBuffer> cameraUBO; 
-
-
-	//render pipeline specific
-	std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> graphicsCommandBuffers;
-
+	
+	  
+	//sync objects
 	std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores;
 	std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderFinishedSemaphores;
 	std::array<VkFence, MAX_FRAMES_IN_FLIGHT> renderInFlightFences; 
 
-	 
-	SharedPtr<FVkGraphicsPipeline> graphicsPipeline;
-	//SharedPtr<FVkComputePipeline> computePipeline;
+	uint32_t currentFrame{ 0 };
+	  
+
 	//std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> computeFinishedSemaphores;
 
-
-    uint32_t currentFrame{ 0 };
 	//new:
-	double deltaTime{}; 
+	double deltaTime{0.0f}; 
 
-	//tweaks
+	//tweaks 
 	//A2
 	//glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -2.0f);
 	//glm::vec3 up = glm::vec3(0.0f, -1.0f, 0.0f);

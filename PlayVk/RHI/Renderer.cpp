@@ -9,6 +9,25 @@
 
 FVkRenderer::FVkRenderer()
 {
+}
+
+FVkRenderer::~FVkRenderer()
+{
+}
+
+
+
+void  FVkRenderer::OnInit()
+{
+	this->loadPipeline(); 
+	
+	this->loadAssets();
+
+}
+
+
+void FVkRenderer::loadPipeline()
+{
 	//system setup
 	this->window = CreateShared<FVkWindow>();
 	auto rhi = new GVulkanRHI(window);
@@ -18,16 +37,82 @@ FVkRenderer::FVkRenderer()
 	this->deviceRef = rhi->deviceRef;
 	this->commandContextRef = rhi->commandContextRef;
 	this->heapManagerRef = rhi->heapManagerRef;
-	this->swapChainRef = rhi->swapChainRef; 
+	this->swapChainRef = rhi->swapChainRef;
 }
 
-FVkRenderer::~FVkRenderer()
+void FVkRenderer::loadAssets()
 {
+
+	createCommandBuffers();
+
+	createSyncObjects();
+
+	//app specific:   
+	createSceneResources();
+
+	initBindings();
+
+	if (!shaderManager->validateBindings()) {
+		throw std::runtime_error("failed to validate descriptor sets!");
+	}
+
+	//after scene, depend on shader reflection;
+	this->graphicsPipeline = CreateShared<FVkGraphicsPipeline>(deviceRef, shaderManager);
+
+	//after renderpass
+	auto swapChainExtent = swapChainRef.lock()->swapChainExtent.value();
+	auto depthFormat = swapChainRef.lock()->depthFormat.value();
+
+	this->FBDepthTexture = CreateShared<FVkTexture>(deviceRef);
+	this->FBDepthTexture->createFBDepthTexture(swapChainExtent.width, swapChainExtent.height, depthFormat);
+
+	createSCFramebuffers();
+}
+
+
+
+
+void  FVkRenderer::OnShutDown()
+{
+	const auto& device = deviceRef.lock()->vkDevice;
+
+	//computePipeline.reset();
+	graphicsPipeline.reset();
+
+	FBDepthTexture.reset();
+
+	for (auto& framebuffer : swapChainFramebuffers) {
+		vkDestroyFramebuffer(device, framebuffer, nullptr);
+	}
+
+	for (auto& mesh : meshes) {
+		//std::cout << " " << mesh.use_count() << '\n';
+		mesh.reset();
+	}
+	for (auto& tex : textures) {
+		tex.reset();
+	}
+	debugTexture.reset();
+
+	//new£»
+	cameraUBO.reset();
+
+	shaderManager.reset();
+
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+		vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
+		vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
+		//vkDestroySemaphore(device, computeFinishedSemaphores[i], nullptr);
+		vkDestroyFence(device, renderInFlightFences[i], nullptr);
+	}
+
 	delete Global::vulkanRHI;
 }
 
 
-void  FVkRenderer::update() noexcept
+
+void  FVkRenderer::OnUpdate() noexcept
 {
 	auto& window = this->window->pGLFWWindow;
 	auto& device = deviceRef.lock()->vkDevice;
@@ -62,26 +147,23 @@ void  FVkRenderer::render() noexcept
 	 
 
 	vkWaitForFences(device, 1, &renderInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-	//any application update
-	{
-	}
+	 
 
 	uint32_t imageIndex{};
 	VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 	//std::cout << "acquire image index: " << imageIndex << '\n';
-	/*	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			recreateSwapChain();
-			return;
-		}
-		else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-			throw std::runtime_error("failed to acquire swap chain image!");
-		}*/
+	 //if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+		//	recreateSwapChain();
+		//	return;
+		//}
+		//else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+		//	throw std::runtime_error("failed to acquire swap chain image!");
+		//}*/
 
 
 	vkResetCommandBuffer(graphicsCommandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
 	 
-    recordRenderCommand(graphicsCommandBuffers[currentFrame], imageIndex); 
+    recordCommand(graphicsCommandBuffers[currentFrame], imageIndex); 
 
 
 	VkSubmitInfo submitInfo{ .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -139,7 +221,7 @@ void  FVkRenderer::render() noexcept
 
 
 
-void FVkRenderer::recordRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex) noexcept
+void FVkRenderer::recordCommand(VkCommandBuffer cmdBuffer, uint32_t imageIndex) noexcept
 { 
 	auto swapChainExtent = *(swapChainRef.lock()->swapChainExtent);
 
@@ -225,7 +307,7 @@ void FVkRenderer::recordRenderCommand(VkCommandBuffer cmdBuffer, uint32_t imageI
 	}
 
 }
- 
+
 
 
 //todo: only graphics for now ; maybe delegate to context;
@@ -307,82 +389,9 @@ void FVkRenderer::createSCFramebuffers()
 
 }
 
+ 
 
 
-
-
-
-
-
-
-void  FVkRenderer::init()
-{ 
-	 
-	//pipeline common
-	createCommandBuffers();
-
-	createSyncObjects();  
-
-	//app specific:   
-	createSceneResources(); 
-	 
-	initBindings(); 
-
-	if (!shaderManager->validateBindings()) {
-		throw std::runtime_error("failed to validate descriptor sets!");
-	}
-
-	//after scene, depend on shader reflection;
-	this->graphicsPipeline = CreateShared<FVkGraphicsPipeline>(deviceRef, shaderManager);  
-
-	//after renderpass
-	auto swapChainExtent = swapChainRef.lock()->swapChainExtent.value();
-	auto depthFormat = swapChainRef.lock()->depthFormat.value();
-
-	this->FBDepthTexture = CreateShared<FVkTexture>(deviceRef);
-	this->FBDepthTexture->createFBDepthTexture(swapChainExtent.width, swapChainExtent.height, depthFormat);
-
-	createSCFramebuffers();  
-
-
-}
-
-
-void  FVkRenderer::shutdown()
-{
-	const auto& device = deviceRef.lock()->vkDevice;
-
-	//computePipeline.reset();
-	graphicsPipeline.reset();
-
-	FBDepthTexture.reset();
-
-	for (auto& framebuffer : swapChainFramebuffers) {
-		vkDestroyFramebuffer(device, framebuffer, nullptr);
-	}
-
-	for (auto& mesh : meshes) {
-		//std::cout << " " << mesh.use_count() << '\n';
-		mesh.reset();
-	}
-	for (auto& tex : textures) {
-		tex.reset();
-	} 
-	debugTexture.reset();
-
-	//new£»
-	cameraUBO.reset();
-
-	shaderManager.reset(); 
-
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
-		vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-		//vkDestroySemaphore(device, computeFinishedSemaphores[i], nullptr);
-		vkDestroyFence(device, renderInFlightFences[i], nullptr);
-	}
-}
 
 
 //todo: more granular

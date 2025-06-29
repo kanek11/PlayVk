@@ -57,7 +57,6 @@ struct StaticMeshVertexDesc {
 	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 	static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
 
-
 };
  
 

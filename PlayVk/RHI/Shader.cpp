@@ -55,8 +55,7 @@ void FVkShaderMap::bindStorageBuffer(const std::string& name, const FVkBufferRTI
 }
 
 void FVkShaderMap::bindTexture(const std::string& name, const FVkTextureRTInfo& rtInfo)
-{ 
-
+{  
 	// Check if the storage buffer is present in the map
 	auto& samplerMap = parameterMap->samplerMap;
 	if (!samplerMap.contains(name))
