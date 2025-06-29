@@ -325,7 +325,7 @@ void FD3D12GraphicsShaderManager::CreateRootSignature()
 	ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
 }
 
-void FD3D12GraphicsShaderManager::bindTexture(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc)
+void FD3D12GraphicsShaderManager::SetSRV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc)
 {
 	if (auto offset = m_pixelShader->GetHeapOffsetSRV("baseMap"); offset.has_value())
 	{
@@ -356,7 +356,7 @@ void FD3D12GraphicsShaderManager::bindStaticSampler(const std::string& name, con
 }
 
 
-void FD3D12GraphicsShaderManager::bindConstantBuffer(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc)
+void FD3D12GraphicsShaderManager::SetCBV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc)
 {
 	std::optional<uint32_t> offset;
 	if (offset = m_vertexShader->GetHeapOffsetCBV(name); offset.has_value())
@@ -383,14 +383,14 @@ void FD3D12GraphicsShaderManager::bindConstantBuffer(const std::string& name, Co
 
 
 
-void FD3D12GraphicsShaderManager::BindDescriptorHeap(ComPtr<ID3D12GraphicsCommandList> commandList) const
+void FD3D12GraphicsShaderManager::SetDescriptorHeap(ComPtr<ID3D12GraphicsCommandList> commandList) const
 {
 	std::vector<ID3D12DescriptorHeap*> ppHeaps = { this->GetDescriptorHeap().Get() };
 	commandList->SetDescriptorHeaps(UINT(ppHeaps.size()), ppHeaps.data());
 
 }
 
-void FD3D12GraphicsShaderManager::BindAllDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList) const
+void FD3D12GraphicsShaderManager::SetAllDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList) const
 {
 
 	//m_commandList->SetGraphicsRootDescriptorTable(0, m_cbv_srv_heap->GetGPUDescriptorHandleForHeapStart());

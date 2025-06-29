@@ -223,14 +223,14 @@ public:
 	void CreateRootSignature();
 
 	//  
-	void bindTexture(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& textureDesc);
-	void bindConstantBuffer(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc);
-	void bindUnorderedAccessView(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc);
+	void SetSRV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& textureDesc);
+	void SetCBV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc);
+	void SetUAV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc);
 	
 	void bindStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc);
 
-	void BindDescriptorHeap(ComPtr<ID3D12GraphicsCommandList> commandList) const;
-	void BindAllDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList) const;
+	void SetDescriptorHeap(ComPtr<ID3D12GraphicsCommandList> commandList) const;
+	void SetAllDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList) const;
 
  
 	//getter:

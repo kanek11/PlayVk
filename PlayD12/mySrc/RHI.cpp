@@ -613,7 +613,7 @@ void D3D12HelloTriangle2::LoadAssets()
   //      auto offset = m_shaderManager->m_vertexShader->GetHeapOffsetCBV("SceneConstantBuffer");
 		//auto cpuHandle = m_shaderManager->m_rangeHeapAllocator->GetCPUHandle(*offset);
 		//m_device->CreateConstantBufferView(&cbvDesc, cpuHandle);
-		m_shaderManager->bindConstantBuffer("SceneConstantBuffer", m_constantBuffer, cbvDesc);
+		m_shaderManager->SetCBV("SceneConstantBuffer", m_constantBuffer, cbvDesc);
 
 
         // Map and initialize the constant buffer. We don't unmap this until the
@@ -692,7 +692,7 @@ void D3D12HelloTriangle2::LoadAssets()
 		//auto offset = m_shaderManager->m_pixelShader->GetHeapOffsetSRV("baseMap");
 		//auto cpuHandle = m_shaderManager->m_rangeHeapAllocator->GetCPUHandle(offset); 
 		//m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, cpuHandle);
-		m_shaderManager->bindTexture("baseMap", m_texture, srvDesc);
+		m_shaderManager->SetSRV("baseMap", m_texture, srvDesc);
 
 
 
@@ -833,8 +833,8 @@ void D3D12HelloTriangle2::PopulateCommandList()
 	//m_commandList->SetGraphicsRootDescriptorTable(0, VSGPUHandle);
 	//m_commandList->SetGraphicsRootDescriptorTable(1, PSGPUHandle);
 	
-	m_shaderManager->BindDescriptorHeap(m_commandList);
-    m_shaderManager->BindAllDescriptorTables(m_commandList);
+	m_shaderManager->SetDescriptorHeap(m_commandList);
+    m_shaderManager->SetAllDescriptorTables(m_commandList);
 
 
     m_commandList->RSSetViewports(1, &m_viewport);
