@@ -2,32 +2,29 @@
 
 #include <format>
 
-void FD3D12ShaderModule::CreateDescriptorTable(SharedPtr<FDescriptorHeapAllocator> allocator)
-{ 
-	uint32_t heapStartOffset = allocator->GetCurrentOffset(); 
-
-	uint32_t localOffset = 0;
+void FD3D12ShaderModule::CreateDescriptorTable(uint32_t heapStartOffset)
+{  
+	uint32_t heapOffset = heapStartOffset;
 	//---------------------
 	std::unordered_map<std::string, uint32_t> SRVMemberOffsets;
 	for (const auto& [name, bind] : this->parameterMap.srvMap)
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 range{};
 		range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bind.BindPoint, bind.Space,
-			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, localOffset);
+			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, heapOffset - heapStartOffset);
 		ranges.push_back(range); 
 
-		SRVMemberOffsets[name] = localOffset; 
-		std::cout << "Register SRV member: " << name << " local offset: " << localOffset << std::endl;
+		SRVMemberOffsets[name] = heapOffset; 
+		std::cout << "Register SRV member: " << name << " local offset: " << heapOffset << std::endl;
 
-		localOffset += 1;
+		heapOffset += 1;
 	}
 
 	FD3D12BindingLayout srvLayout{};
 	srvLayout.type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	srvLayout.numDescriptors = (UINT)parameterMap.srvMap.size();
 	srvLayout.baseRegister = 0;
-	srvLayout.heapOffset = allocator->Allocate(srvLayout.numDescriptors); 
-
+	srvLayout.heapLocalOffset = heapOffset; 
 	std::cout << "SRV Descriptor number : " << srvLayout.numDescriptors << std::endl; //debug output
 
 
@@ -37,20 +34,20 @@ void FD3D12ShaderModule::CreateDescriptorTable(SharedPtr<FDescriptorHeapAllocato
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 range{};
 		range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bind.BindPoint, bind.Space,
-			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, localOffset);
+			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, heapOffset - heapStartOffset);
 		ranges.push_back(range);  
 
-		CBVMemberOffsets[name] = localOffset;
-		std::cout << "Register CBV member: " << name << " local offset: " << localOffset << std::endl; //debug output
+		CBVMemberOffsets[name] = heapOffset;
+		std::cout << "Register CBV member: " << name << " local offset: " << heapOffset << std::endl; //debug output
 		 
-		localOffset += 1;
+		heapOffset += 1;
 	}
 
 	FD3D12BindingLayout cbvLayout{};
 	cbvLayout.type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	cbvLayout.numDescriptors = (UINT)parameterMap.cbvMap.size();
 	cbvLayout.baseRegister = 0;
-	cbvLayout.heapOffset = allocator->Allocate(cbvLayout.numDescriptors);
+	cbvLayout.heapLocalOffset = heapOffset; // local offset in the heap, not the global offset
 	std::cout << "CBV Descriptor number : " << cbvLayout.numDescriptors << std::endl; //debug output
 
 
@@ -60,13 +57,13 @@ void FD3D12ShaderModule::CreateDescriptorTable(SharedPtr<FDescriptorHeapAllocato
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 range{};
 		range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, bind.BindPoint, bind.Space,
-			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, localOffset);
+			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, heapOffset - heapStartOffset);
 		ranges.push_back(range);   
 
-		UAVMemberOffsets[name] = localOffset;
-		std::cout << "Register UAV member: " << name << " local offset: " << localOffset << std::endl; //debug output
+		UAVMemberOffsets[name] = heapOffset;
+		std::cout << "Register UAV member: " << name << " local offset: " << heapOffset << std::endl; //debug output
 
-		localOffset += 1;
+		heapOffset += 1;
 	}
 
 
@@ -74,7 +71,7 @@ void FD3D12ShaderModule::CreateDescriptorTable(SharedPtr<FDescriptorHeapAllocato
 	uavLayout.type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 	uavLayout.numDescriptors = (UINT)parameterMap.uavMap.size();
 	uavLayout.baseRegister = 0;
-	uavLayout.heapOffset = allocator->Allocate(uavLayout.numDescriptors);
+	uavLayout.heapLocalOffset = heapOffset; // local offset in the heap, not the global offset
 	std::cout << "UAV Descriptor number : " << uavLayout.numDescriptors << std::endl; //debug output
 	
 	//---------------------
@@ -101,12 +98,11 @@ void FD3D12ShaderModule::CreateDescriptorTable(SharedPtr<FDescriptorHeapAllocato
 	);
 
 	std::cout << "Create Combined Descriptor Table of size: " << 
-		std::format("heap offset: {}, table size: {}", heapStartOffset, localOffset) << std::endl; // debug output
+		std::format("table size: {}", heapOffset) << std::endl; // debug output
 
 	this->descriptorTable = combinedTable;  
-	 
-	this->tableLayout.heapOffset = heapStartOffset; 
-	this->tableLayout.tableSize = localOffset;  
+	  
+	this->tableLayout.tableSize = heapOffset - heapStartOffset; // total size of the descriptor table  
 
 	this->tableLayout.SRVLayout = srvLayout;
 	this->tableLayout.SRVMemberOffsets = SRVMemberOffsets;
@@ -249,18 +245,32 @@ void FD3D12GraphicsShaderManager::PrepareRootSignature()
 	auto VSParameterCount = m_vertexShader->GetParameterCount();
 	auto PSParameterCount = m_pixelShader->GetParameterCount();
 
-	auto totalCount = VSParameterCount + PSParameterCount;
+	auto numDescriptors = VSParameterCount + PSParameterCount;
 
+	auto poolSize = 10;
 	//create heap by the count:
 	m_rangeHeapAllocator = CreateShared<FDescriptorHeapAllocator>(
-		m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, totalCount
+		m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, numDescriptors * poolSize
 	);
 
-	std::cout << "Created range heap of size: " << totalCount << std::endl; // debug output
+	std::cout << "Created range heap of size: " << numDescriptors << std::endl;
 	 
 	//create the descriptor tables:
-	m_vertexShader->CreateDescriptorTable(m_rangeHeapAllocator);
-	m_pixelShader->CreateDescriptorTable(m_rangeHeapAllocator);
+	m_vertexShader->CreateDescriptorTable(0);
+	auto vsTableSize = m_vertexShader->tableLayout.tableSize;  
+
+	m_pixelShader->CreateDescriptorTable(vsTableSize);
+	auto psTableSize = m_pixelShader->tableLayout.tableSize;  
+	 
+	m_rootSignatureLayout.vsTableHeapOffset = 0;
+	m_rootSignatureLayout.psTableHeapOffset = m_vertexShader->tableLayout.tableSize;
+
+
+	std::cout << "Vertex Shader Descriptor Table Heap Offset: " << m_rootSignatureLayout.vsTableHeapOffset << std::endl;
+	std::cout << "Pixel Shader Descriptor Table Heap Offset: " << m_rootSignatureLayout.psTableHeapOffset << std::endl;
+
+
+	m_rootSignatureLayout.numDescriptors = numDescriptors;  
 
 	m_rootSignatureLayout.numTables = 2; // Two descriptor tables: one for vertex shader, one for pixel shader
 	m_rootSignatureLayout.tableIndexMap[EShaderStage::VERTEX] = 0; // Vertex Shader Table Index
@@ -325,12 +335,12 @@ void FD3D12GraphicsShaderManager::CreateRootSignature()
 	ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
 }
 
-void FD3D12GraphicsShaderManager::SetSRV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc)
+void FD3D12GraphicsShaderManager::SetSRV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc, uint32_t baseOffset)
 {
 	if (auto offset = m_pixelShader->GetHeapOffsetSRV("baseMap"); offset.has_value())
 	{
 		std::cout << "find texture: " << name << " at offset: " << *offset << std::endl; // debug output
-		auto cpuHandle = m_rangeHeapAllocator->GetCPUHandle(*offset);
+		auto cpuHandle = m_rangeHeapAllocator->GetCPUHandle(*offset + baseOffset);
 		m_device->CreateShaderResourceView(resource.Get(), &srvDesc, cpuHandle);
 	}
 	else
@@ -341,7 +351,7 @@ void FD3D12GraphicsShaderManager::SetSRV(const std::string& name, ComPtr<ID3D12R
 
 }
 
-void FD3D12GraphicsShaderManager::bindStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc)
+void FD3D12GraphicsShaderManager::SetStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc)
 {
 	if (m_pixelShader->HasSampler(name))
 	{
@@ -356,22 +366,22 @@ void FD3D12GraphicsShaderManager::bindStaticSampler(const std::string& name, con
 }
 
 
-void FD3D12GraphicsShaderManager::SetCBV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc)
+void FD3D12GraphicsShaderManager::SetCBV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset)
 {
-	std::optional<uint32_t> offset;
-	if (offset = m_vertexShader->GetHeapOffsetCBV(name); offset.has_value())
+	std::optional<uint32_t> localOffset;
+	if (localOffset = m_vertexShader->GetHeapOffsetCBV(name); localOffset.has_value())
 	{
-		std::cout << "find constant buffer visible to VS: " << name << " at offset: " << *offset << std::endl; // debug output
+		std::cout << "find constant buffer visible to VS: " << name << " at offset: " << *localOffset << std::endl; // debug output
 
 	}
-	else if (offset = m_pixelShader->GetHeapOffsetCBV(name); offset.has_value())
+	else if (localOffset = m_pixelShader->GetHeapOffsetCBV(name); localOffset.has_value())
 	{
-		std::cout << "find constant buffer visible to PS: " << name << " at offset: " << *offset << std::endl; // debug output
+		std::cout << "find constant buffer visible to PS: " << name << " at offset: " << *localOffset << std::endl; // debug output
 	}
 
-	if (offset.has_value())
+	if (localOffset.has_value())
 	{
-		auto cpuHandle = m_rangeHeapAllocator->GetCPUHandle(*offset);
+		auto cpuHandle = m_rangeHeapAllocator->GetCPUHandle(*localOffset + baseOffset);
 		m_device->CreateConstantBufferView(&cbvDesc, cpuHandle);
 	}
 	else
@@ -387,15 +397,14 @@ void FD3D12GraphicsShaderManager::SetDescriptorHeap(ComPtr<ID3D12GraphicsCommand
 {
 	std::vector<ID3D12DescriptorHeap*> ppHeaps = { this->GetDescriptorHeap().Get() };
 	commandList->SetDescriptorHeaps(UINT(ppHeaps.size()), ppHeaps.data());
-
 }
 
-void FD3D12GraphicsShaderManager::SetAllDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList) const
+void FD3D12GraphicsShaderManager::SetDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList, uint32_t baseOffset) const
 {
 
 	//m_commandList->SetGraphicsRootDescriptorTable(0, m_cbv_srv_heap->GetGPUDescriptorHandleForHeapStart());
-	auto vsTableHeapOffset = m_vertexShader->GetHeapStartOffset();
-	auto psTableHeapOffset = m_pixelShader->GetHeapStartOffset();
+	auto vsTableHeapOffset = m_rootSignatureLayout.vsTableHeapOffset + baseOffset;
+	auto psTableHeapOffset = m_rootSignatureLayout.psTableHeapOffset + baseOffset; 
 
 	auto VSGPUHandle = m_rangeHeapAllocator->GetGPUHandle(vsTableHeapOffset);
 	auto PSGPUHandle = m_rangeHeapAllocator->GetGPUHandle(psTableHeapOffset);

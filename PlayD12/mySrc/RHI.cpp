@@ -252,11 +252,11 @@ void D3D12HelloTriangle2::LoadAssets()
 		m_shaderManager->LoadShaders(assetPathVS, assetPathPS);
 		m_shaderManager->PrepareRootSignature();
          
-        m_shaderManager->bindStaticSampler("baseMapSampler", sampler);
+        m_shaderManager->SetStaticSampler("baseMapSampler", sampler);
          
         m_shaderManager->CreateRootSignature();
 
-
+        cubeHeapStartOffset = m_shaderManager->RequestAllocationOnHeap();
         //to wide string:
         //auto widePath = std::wstring(assetPath.begin(), assetPath.end());
 
@@ -613,7 +613,7 @@ void D3D12HelloTriangle2::LoadAssets()
   //      auto offset = m_shaderManager->m_vertexShader->GetHeapOffsetCBV("SceneConstantBuffer");
 		//auto cpuHandle = m_shaderManager->m_rangeHeapAllocator->GetCPUHandle(*offset);
 		//m_device->CreateConstantBufferView(&cbvDesc, cpuHandle);
-		m_shaderManager->SetCBV("SceneConstantBuffer", m_constantBuffer, cbvDesc);
+		m_shaderManager->SetCBV("SceneConstantBuffer", m_constantBuffer, cbvDesc,  cubeHeapStartOffset);
 
 
         // Map and initialize the constant buffer. We don't unmap this until the
@@ -692,9 +692,8 @@ void D3D12HelloTriangle2::LoadAssets()
 		//auto offset = m_shaderManager->m_pixelShader->GetHeapOffsetSRV("baseMap");
 		//auto cpuHandle = m_shaderManager->m_rangeHeapAllocator->GetCPUHandle(offset); 
 		//m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, cpuHandle);
-		m_shaderManager->SetSRV("baseMap", m_texture, srvDesc);
-
-
+		m_shaderManager->SetSRV("baseMap", m_texture, srvDesc, cubeHeapStartOffset);
+         
 
     }
 
@@ -834,7 +833,7 @@ void D3D12HelloTriangle2::PopulateCommandList()
 	//m_commandList->SetGraphicsRootDescriptorTable(1, PSGPUHandle);
 	
 	m_shaderManager->SetDescriptorHeap(m_commandList);
-    m_shaderManager->SetAllDescriptorTables(m_commandList);
+    m_shaderManager->SetDescriptorTables(m_commandList, cubeHeapStartOffset);
 
 
     m_commandList->RSSetViewports(1, &m_viewport);

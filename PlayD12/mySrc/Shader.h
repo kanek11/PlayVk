@@ -37,12 +37,11 @@ struct FD3D12BindingLayout {
 	D3D12_DESCRIPTOR_RANGE_TYPE type;  
 	UINT numDescriptors;
 	UINT baseRegister;
-	UINT heapOffset;
+	UINT heapLocalOffset;
 };
 
 
 struct FShaderDescriptorLayout { 
-	uint32_t heapOffset;  
 	uint32_t tableSize;  
 	//UINT rootParameterIndex;
 
@@ -74,7 +73,7 @@ public:
 	}
 
 
-	UINT Allocate(UINT numDescriptors) { 
+    [[nodiscard]] UINT Allocate(UINT numDescriptors) { 
 		if (m_currentIndex + numDescriptors > m_numDescriptors) {
 			throw std::runtime_error("allocator: Descriptor heap out of space");
 		}
@@ -84,14 +83,14 @@ public:
 	}
 
 	
-	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT slot) {
+	[[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT slot) {
 		
 		auto handle = m_heap->GetCPUDescriptorHandleForHeapStart();
 		handle.ptr += slot * m_device->GetDescriptorHandleIncrementSize(m_type); 
 		return handle;
 	}
 	 
-	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT slot) { 
+	[[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT slot) {
 		auto handle = m_heap->GetGPUDescriptorHandleForHeapStart();
 		handle.ptr += slot * m_device->GetDescriptorHandleIncrementSize(m_type); 
 		return handle;
@@ -143,28 +142,24 @@ public:
 			//+ this->parameterMap.samplerMap.size());
 	}
 
-
-	uint32_t GetHeapStartOffset() const {
-		return this->tableLayout.heapOffset;
-	}
-
+	 
 	std::optional<uint32_t> GetHeapOffsetCBV(const std::string& name) const { 
 		if (this->tableLayout.CBVMemberOffsets.contains(name)) {
-			return this->tableLayout.CBVLayout.heapOffset;
+			return this->tableLayout.CBVMemberOffsets.at(name);
 		}
 		return std::nullopt;  
 	}
 
 	std::optional<uint32_t> GetHeapOffsetSRV(const std::string& name) const {
 		if (this->tableLayout.SRVMemberOffsets.contains(name)) {
-		 	return this->tableLayout.SRVLayout.heapOffset;
+			return this->tableLayout.SRVMemberOffsets.at(name);
 		} 
 		return std::nullopt;
 	}
 
 	std::optional<uint32_t> GetHeapOffsetUAV(const std::string& name) const {
 		if (this->tableLayout.UAVMemberOffsets.contains(name)) {
- 			return this->tableLayout.UAVLayout.heapOffset;
+			return this->tableLayout.UAVMemberOffsets.at(name);
 		} 
 		return std::nullopt;
 	}
@@ -175,7 +170,7 @@ public:
 
 public:
 	void Reflect(IDxcUtils* utils); 
-	void CreateDescriptorTable(SharedPtr<FDescriptorHeapAllocator> allocator); 
+	void CreateDescriptorTable(uint32_t tableStartOffset); 
 
 	std::unordered_map<std::string, D3D12_SIGNATURE_PARAMETER_DESC> inputParameterMap;
 	FShaderParameterMap parameterMap; 
@@ -201,6 +196,10 @@ enum class EShaderStage {
 struct FRootSignatureLayout { 
 	uint32_t numTables = 0; // Number of descriptor tables
 	std::unordered_map<EShaderStage, UINT> tableIndexMap;
+
+	uint32_t numDescriptors;
+	uint32_t vsTableHeapOffset; 
+	uint32_t psTableHeapOffset; 
 };
 
 
@@ -223,14 +222,14 @@ public:
 	void CreateRootSignature();
 
 	//  
-	void SetSRV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& textureDesc);
-	void SetCBV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc);
-	void SetUAV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc);
+	void SetSRV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& textureDesc, uint32_t baseOffset);
+	void SetCBV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset);
+	void SetUAV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc, uint32_t baseOffset);
 	
-	void bindStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc);
+	void SetStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc);
 
 	void SetDescriptorHeap(ComPtr<ID3D12GraphicsCommandList> commandList) const;
-	void SetAllDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList) const;
+	void SetDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList, uint32_t baseOffset) const;
 
  
 	//getter:
@@ -252,6 +251,10 @@ public:
 	//get descriptor heap:
 	ComPtr<ID3D12DescriptorHeap> GetDescriptorHeap() const {
 		return m_rangeHeapAllocator->GetHeap();
+	}
+
+	uint32_t RequestAllocationOnHeap() {
+		return m_rangeHeapAllocator->Allocate(this->m_rootSignatureLayout.numDescriptors);
 	}
 
 //utilis

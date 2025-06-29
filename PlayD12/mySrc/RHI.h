@@ -114,14 +114,7 @@ private:
     //new:
 	SharedPtr<WindowBase> m_mainWindow; 
       
-    ComPtr<ID3D12Resource> m_vertexBuffer;
-    D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
-    //new: add index buffer:
-	ComPtr<ID3D12Resource> m_indexBuffer;
-	D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
-
-    CubeMesh m_cubeMesh = CubeMesh(); 
 
 
     //new: instancing:
@@ -152,7 +145,15 @@ private:
     std::vector<UINT8> GenerateTextureData();
 
 
+    ComPtr<ID3D12Resource> m_vertexBuffer;
+    D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
+    //new: add index buffer:
+    ComPtr<ID3D12Resource> m_indexBuffer;
+    D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
+
+    CubeMesh m_cubeMesh = CubeMesh();
+	uint32_t cubeHeapStartOffset = 0;
 
     //ComPtr<ID3D12RootSignature> m_rootSignature;
 
