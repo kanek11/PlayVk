@@ -1,14 +1,4 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
- 
+
 #include "RHI.h" 
 
 #include "Application.h"
@@ -141,40 +131,9 @@ void D3D12HelloTriangle2::LoadPipeline()
         ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
         
         m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+         
 
-
-        //new: 6.26
-        // Describe and create a constant buffer view (CBV) descriptor heap.
-        // Flags indicate that this descriptor heap can be bound to the pipeline 
-        // and that descriptors contained in it can be referenced by a root table.
-        //D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {};
-        //cbvHeapDesc.NumDescriptors = 1;
-        //cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        //cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        //ThrowIfFailed(m_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&m_cbvHeap)));
-    
-
-        ////new: 6.27
-        //// Describe and create a shader resource view (SRV) heap for the texture.
-        //D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-        //srvHeapDesc.NumDescriptors = 1;
-        //srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        //srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        //ThrowIfFailed(m_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_srvHeap)));
-
- 
-		// Describe and create a combined CBV/SRV/UAV descriptor heap.
-		//D3D12_DESCRIPTOR_HEAP_DESC cbvSrvHeapDesc = {};
-		//cbvSrvHeapDesc.NumDescriptors = 2; // 1 CBV + 1 SRV
-		//cbvSrvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		//cbvSrvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; // This heap will be visible to shaders.
-		//ThrowIfFailed(m_device->CreateDescriptorHeap(&cbvSrvHeapDesc, IID_PPV_ARGS(&m_cbv_srv_heap)));
-  //   
-  //      //m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-		//m_cbvSrvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-		//this->m_rangeHeapAllocator = CreateShared<FDescriptorHeapAllocator>(
-		//	m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 2); // 1 CBV + 1 SRV
+		//this->m_rangeHeapAllocator = CreateShared<FDescriptorHeapAllocator>( 
     }
 
     // Create frame resources.
@@ -199,35 +158,7 @@ void D3D12HelloTriangle2::LoadAssets()
    
 
     // Create the pipeline state, which includes compiling and loading shaders.
-    {
-        //DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils));
-        //DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler));
-
-        //ComPtr<IDxcBlobEncoding> vertexShader;
-        //ComPtr<IDxcBlobEncoding> pixelShader;
-
-
-//        ComPtr<ID3DBlob> vertexShader;
-//        ComPtr<ID3DBlob> pixelShader;
-//
-//#if defined(_DEBUG)
-//        // Enable better shader debugging with the graphics debugging tools.
-//        UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-//#else
-//        UINT compileFlags = 0;
-//#endif
-
-        //new:
-        //ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-        //ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
-
-        //auto assetPath = GameApplication::GetInstance()->GetAssetFullPath("shaders/hello_shader.hlsl");
-        //auto assetPath = GameApplication::GetInstance()->GetAssetFullPath("shaders/const_buffer.hlsl");
-        //auto assetPath = GameApplication::GetInstance()->GetAssetFullPath("shaders/hello_3D.hlsl");
-        //auto assetPath = GameApplication::GetInstance()->GetAssetFullPath("shaders/hello_instance.hlsl");
-        //auto assetPath = GameApplication::GetInstance()->GetAssetFullPath("shaders/hello_lighting.hlsl");
-
-
+    { 
 
         D3D12_STATIC_SAMPLER_DESC sampler = {};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -256,48 +187,11 @@ void D3D12HelloTriangle2::LoadAssets()
          
         m_shaderManager->CreateRootSignature();
 
-        cubeHeapStartOffset = m_shaderManager->RequestAllocationOnHeap();
-        //to wide string:
-        //auto widePath = std::wstring(assetPath.begin(), assetPath.end());
-
-        //auto widePathVS = std::wstring(assetPathVS.begin(), assetPathVS.end());
-        //auto widePathPS = std::wstring(assetPathPS.begin(), assetPathPS.end());
-
-        //ThrowIfFailed(D3DCompileFromFile(widePath.c_str(), nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-        //ThrowIfFailed(D3DCompileFromFile(widePath.c_str(), nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
-
-        //read cso:
-        //ThrowIfFailed(D3DReadFileToBlob(widePathVS.c_str(), &vertexShader));
-        //ThrowIfFailed(D3DReadFileToBlob(widePathPS.c_str(), &pixelShader));
-
-
-        //new: use dxc:
-        //dxcUtils->LoadFile(widePathVS.c_str(), nullptr, &vertexShader);
-        //dxcUtils->LoadFile(widePathPS.c_str(), nullptr, &pixelShader);
-
-        //m_vertexShader = CreateShared<FD3D12ShaderModule>(dxcUtils.Get(), m_rangeHeapAllocator, assetPathVS);
-        //m_pixelShader = CreateShared<FD3D12ShaderModule>(dxcUtils.Get(), m_rangeHeapAllocator, assetPathPS);
-
-
-        // Define the vertex input layout.
-        //D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-        //{
-        //    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        //    { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-        //};
-
-        //D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-        //{
-        //    { "POSITION",        0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0,   D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,   0 },
-        //    { "COLOR",           0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,   0 },
-        //    { "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,   D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
-        //};
+        cubeHeapStartOffset = m_shaderManager->RequestAllocationOnHeap(); 
+         
     }
 
-    //// Create root signature. 
-    { 
-    }
-
+    // Create root signature.  
     {
 		auto& inputElementDescs = StaticMeshInputDesc::GetInputDescs(); 
 
@@ -319,22 +213,7 @@ void D3D12HelloTriangle2::LoadAssets()
         };
 
 		inputDescs.push_back({ "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 });
-
-   //     D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-   //     {
-   //         // Per-vertex data (from vertex buffer 0)
-   //         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,0, offsetof(StaticMeshVertex, position),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			//{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,offsetof(StaticMeshVertex, normal), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			//{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(StaticMeshVertex, tangent),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			//{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(StaticMeshVertex, color),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			//{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(StaticMeshVertex, texCoord0),D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-
-   //         // Per-instance data (from vertex buffer 1)
-   //         { "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
-   //     };
-
-
-
+ 
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         //psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
@@ -372,40 +251,9 @@ void D3D12HelloTriangle2::LoadAssets()
         ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState))); 
     }
 
-    // Create the command list.
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
- 
-    // Command lists are created in the recording state, but there is nothing
-    // to record yet. The main loop expects it to be closed, so close it now.
-    //ThrowIfFailed(m_commandList->Close());
 
     // Create the vertex buffer.
-    {
-        //// Define the geometry for a triangle.
-        //Vertex triangleVertices[] =
-        //{
-        //    { { 0.0f, 0.25f , 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-        //    { { 0.25f, -0.25f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-        //    { { -0.25f, -0.25f , 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
-        //};
-
-        //const UINT vertexBufferSize = sizeof(triangleVertices);
-        //Vertex cubeVertices[] =
-        //{
-        //    // Front face
-        //    { { -0.5f, -0.5f, -0.5f }, { 1, 0, 0, 1 } },
-        //    { { -0.5f,  0.5f, -0.5f }, { 0, 1, 0, 1 } },
-        //    { {  0.5f,  0.5f, -0.5f }, { 0, 0, 1, 1 } },
-        //    { {  0.5f, -0.5f, -0.5f }, { 1, 1, 0, 1 } },
-
-        //    // Back face
-        //    { { -0.5f, -0.5f,  0.5f }, { 1, 0, 1, 1 } },
-        //    { { -0.5f,  0.5f,  0.5f }, { 0, 1, 1, 1 } },
-        //    { {  0.5f,  0.5f,  0.5f }, { 1, 1, 1, 1 } },
-        //    { {  0.5f, -0.5f,  0.5f }, { 0, 0, 0, 1 } },
-        //};
-
-        //const UINT vertexBufferSize = sizeof(cubeVertices);
+    { 
 
 		auto& vertices = m_cubeMesh.GetVertices();
 		const UINT vertexBufferSize = static_cast<UINT>( m_cubeMesh.GetVertexCount() * sizeof(StaticMeshVertex));
@@ -439,38 +287,7 @@ void D3D12HelloTriangle2::LoadAssets()
 
 
     //new: create the index buffer
-    {
-		//uint16_t indices[] = { 0, 1, 2 }; // Indices for the triangle vertices
-		//const UINT indexBufferSize = sizeof(indices);
-        //uint16_t cubeIndices[] =
-        //{
-        //    // Front face
-        //        0, 1, 2,
-        //        0, 2, 3,
-
-        //        // Right face
-        //        3, 2, 6,
-        //        3, 6, 7,
-
-        //        // Back face
-        //        7, 6, 5,
-        //        7, 5, 4,
-
-        //        // Left face
-        //        4, 5, 1,
-        //        4, 1, 0,
-
-        //        // Top face
-        //        1, 5, 6,
-        //        1, 6, 2,
-
-        //        // Bottom face
-        //        4, 0, 3,
-        //        4, 3, 7,
-        //};
-
-        //const UINT indexBufferSize = sizeof(cubeIndices);
-
+    { 
         auto& indices = m_cubeMesh.GetIndices();
 		const UINT indexBufferSize = static_cast<UINT>(m_cubeMesh.GetIndexCount() * sizeof(uint16_t)); // Use uint16_t for 16-bit indices
 
@@ -602,6 +419,14 @@ void D3D12HelloTriangle2::LoadAssets()
             nullptr,
             IID_PPV_ARGS(&m_constantBuffer)));
 
+         
+        // Map and initialize the constant buffer. We don't unmap this until the
+        // app closes. Keeping things mapped for the lifetime of the resource is okay.
+        CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+        ThrowIfFailed(m_constantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pCbvDataBegin)));
+        memcpy(m_pCbvDataBegin, &m_constantBufferData, sizeof(m_constantBufferData));
+
+
         // Describe and create a constant buffer view.
         D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
         cbvDesc.BufferLocation = m_constantBuffer->GetGPUVirtualAddress();
@@ -615,15 +440,13 @@ void D3D12HelloTriangle2::LoadAssets()
 		//m_device->CreateConstantBufferView(&cbvDesc, cpuHandle);
 		m_shaderManager->SetCBV("SceneConstantBuffer", m_constantBuffer, cbvDesc,  cubeHeapStartOffset);
 
-
-        // Map and initialize the constant buffer. We don't unmap this until the
-        // app closes. Keeping things mapped for the lifetime of the resource is okay.
-        CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
-        ThrowIfFailed(m_constantBuffer->Map(0, &readRange, reinterpret_cast<void**>(&m_pCbvDataBegin)));
-        memcpy(m_pCbvDataBegin, &m_constantBufferData, sizeof(m_constantBufferData));
     }
 
 
+    // Create the command list.
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
+
+     
     //teturing:
      // Note: ComPtr's are CPU objects but this resource needs to stay in scope until
     // the command list that references it has finished executing on the GPU.
@@ -804,33 +627,7 @@ void D3D12HelloTriangle2::PopulateCommandList()
     ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), m_pipelineState.Get()));
 
     // Set necessary state.
-	m_commandList->SetGraphicsRootSignature(m_shaderManager->GetRootSignature().Get());
-
-    //new: 6.26
-    //ID3D12DescriptorHeap* ppHeaps[] = { m_cbvHeap.Get() };
-    //m_commandList->SetDescriptorDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-    //m_commandList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
-
-    // Bind both the CBV heap and SRV heap if you use both in the shader
-    //ID3D12DescriptorHeap* ppHeaps[] = { m_cbvHeap.Get(), m_srvHeap.Get() };
-    //m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
-    // Set root descriptor table for CBV (slot 0)
-    //m_commandList->SetGraphicsRootDescriptorTable(0, m_cbvHeap->GetGPUDescriptorHandleForHeapStart());
-
-	// Set root descriptor table for CBV/SRV heap (slot 0)
-	//ID3D12DescriptorHeap* ppHeaps[] = { m_cbv_srv_heap.Get() };
-	//ID3D12DescriptorHeap* ppHeaps[] = { m_shaderManager->GetDescriptorHeap().Get()};
-	//m_commandList->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-
-	////m_commandList->SetGraphicsRootDescriptorTable(0, m_cbv_srv_heap->GetGPUDescriptorHandleForHeapStart());
-	//auto vsTableHeapOffset = m_shaderManager->m_vertexShader->GetHeapStartOffset();
-	//auto psTableHeapOffset = m_shaderManager->m_pixelShader->GetHeapStartOffset();
-
-	//auto VSGPUHandle = m_shaderManager->m_rangeHeapAllocator->GetGPUHandle(vsTableHeapOffset);
-	//auto PSGPUHandle = m_shaderManager->m_rangeHeapAllocator->GetGPUHandle(psTableHeapOffset);
-	//m_commandList->SetGraphicsRootDescriptorTable(0, VSGPUHandle);
-	//m_commandList->SetGraphicsRootDescriptorTable(1, PSGPUHandle);
+	m_commandList->SetGraphicsRootSignature(m_shaderManager->GetRootSignature().Get()); 
 	
 	m_shaderManager->SetDescriptorHeap(m_commandList);
     m_shaderManager->SetDescriptorTables(m_commandList, cubeHeapStartOffset);
