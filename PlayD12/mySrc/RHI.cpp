@@ -274,13 +274,11 @@ void D3D12HelloTriangle2::LoadAssets()
         UINT8* pVertexDataBegin;
         CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
         ThrowIfFailed(m_vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-        //memcpy(pVertexDataBegin, cubeVertices, sizeof(cubeVertices));
 		memcpy(pVertexDataBegin, vertices.data(), vertexBufferSize);
         m_vertexBuffer->Unmap(0, nullptr);
 
         // Initialize the vertex buffer view.
         m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-        //m_vertexBufferView.StrideInBytes = sizeof(Vertex);
         m_vertexBufferView.StrideInBytes = sizeof(StaticMeshVertex);
         m_vertexBufferView.SizeInBytes = vertexBufferSize;
     }

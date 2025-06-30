@@ -48,7 +48,7 @@
     <ClInclude Include="mySrc\Vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Texture.h">
+    <ClInclude Include="mySrc\Buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mySrc\Shader.h">
