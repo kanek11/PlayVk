@@ -18,8 +18,28 @@
 #include <shellapi.h>
 
 #include <vector>	
+#include <array>
 #include <string>
-#include <iostream>
 
 #include <unordered_map>
+#include <map> 
+
+#include <iostream>
+#include <sstream>
+#include <fstream> 
+
+#include <functional> //event system
+#include <memory>     //smart pointers 
+#include <algorithm>
+#include <utility> 
+#include <random>
+
+// C++17 above 
+#include <filesystem>
+#include <source_location>
+
+#include <variant>
 #include <optional>
+ 
+#include <format>
+ 

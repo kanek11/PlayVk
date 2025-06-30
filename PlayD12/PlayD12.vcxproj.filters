@@ -30,10 +30,7 @@
     <ClInclude Include="mySrc\PCH.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\RHI.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="mySrc\RHIHelper.h">
+    <ClInclude Include="mySrc\D12Helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mySrc\Delegate.h">
@@ -48,10 +45,13 @@
     <ClInclude Include="mySrc\Vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Buffer.h">
+    <ClInclude Include="mySrc\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Shader.h">
+    <ClInclude Include="mySrc\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mySrc\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -65,13 +65,19 @@
     <ClCompile Include="mySrc\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mySrc\RHI.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="mySrc\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mySrc\Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mySrc\Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mySrc\Resource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mySrc\PCH.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

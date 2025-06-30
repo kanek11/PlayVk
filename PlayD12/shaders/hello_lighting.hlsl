@@ -3,9 +3,9 @@
 
 cbuffer SceneConstantBuffer : register(b0)
 {
-    float4 offset; // 16 bytes
+    float4x4 modelMatrix; // 64 bytes
     float4x4 vpMatrix; // 64 bytes
-    float4 padding[11]; // 176 bytes
+    float4 padding[6]; // Padding to align to 256 bytes
 };
 // Total: 256 bytes
 
@@ -38,7 +38,7 @@ PSInput VSMain(VSInput input)
     PSInput result;
 
     float4 worldPosition = float4(input.position.xyz + input.instanceOffset, 1.0f);
-    result.position = mul(vpMatrix, worldPosition);
+    result.position = mul(vpMatrix, mul(modelMatrix, worldPosition));
     result.color = input.color;
 
     //result.normal = normalize(mul((float3x3) vpMatrix, input.normal.xyz));

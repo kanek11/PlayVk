@@ -77,6 +77,8 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -93,6 +95,8 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,6 +113,8 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,6 +131,8 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,18 +157,25 @@
     <ClInclude Include="mySrc\InputSystem.h" />
     <ClInclude Include="mySrc\Mesh.h" />
     <ClInclude Include="mySrc\PCH.h" />
-    <ClInclude Include="mySrc\RHI.h" />
-    <ClInclude Include="mySrc\RHIHelper.h" />
+    <ClInclude Include="mySrc\Renderer.h" />
+    <ClInclude Include="mySrc\Resource.h" />
+    <ClInclude Include="mySrc\D12Helper.h" />
     <ClInclude Include="mySrc\Shader.h" />
     <ClInclude Include="mySrc\Vector.h" />
     <ClInclude Include="mySrc\Window.h" />
-    <ClInclude Include="mySrc\Buffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mySrc\Application.cpp" />
     <ClCompile Include="mySrc\Entry.cpp" />
     <ClCompile Include="mySrc\Mesh.cpp" />
-    <ClCompile Include="mySrc\RHI.cpp" />
+    <ClCompile Include="mySrc\PCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="mySrc\Renderer.cpp" />
+    <ClCompile Include="mySrc\Resource.cpp" />
     <ClCompile Include="mySrc\Shader.cpp" />
     <ClCompile Include="mySrc\Window.cpp" />
   </ItemGroup>

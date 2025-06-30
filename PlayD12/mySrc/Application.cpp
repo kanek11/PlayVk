@@ -33,7 +33,7 @@ void GameApplication::onInit()
 
 	auto wideTitle = std::wstring(m_title.begin(), m_title.end());
 
-	m_rhi = new D3D12HelloTriangle2(m_width, m_height, wideTitle.c_str(), m_mainWindow);
+	m_rhi = new D3D12HelloRenderer(m_width, m_height, wideTitle.c_str(), m_mainWindow);
 	m_rhi->OnInit();
 }
 

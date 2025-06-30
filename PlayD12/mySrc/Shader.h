@@ -1,13 +1,11 @@
-#pragma once
-
+#pragma once 
 #include "PCH.h" 
 
 #include "Base.h"
-#include "RHIHelper.h"
+#include "D12Helper.h"
 
 #include <dxcapi.h>  // DXC headers
-#include <d3d12shader.h> // for ID3D12ShaderReflection
-
+#include <d3d12shader.h> // for ID3D12ShaderReflection 
 
 
 //struct FD3D12ShaderBindings { 
@@ -20,11 +18,11 @@
 
 //the information of shader parameters,
 struct FShaderParameterMap {
-	using SRVMap = std::unordered_map<std::string, D3D12_SHADER_INPUT_BIND_DESC>; 
+	using SRVMap = std::unordered_map<std::string, D3D12_SHADER_INPUT_BIND_DESC>;
 	using CBVMap = std::unordered_map<std::string, D3D12_SHADER_INPUT_BIND_DESC>;
 	using UAVMap = std::unordered_map<std::string, D3D12_SHADER_INPUT_BIND_DESC>;
 	using SamplerMap = std::unordered_map<std::string, D3D12_SHADER_INPUT_BIND_DESC>; //dynamic sampler;
-	  
+
 
 	SRVMap srvMap; // Shader Resource Views
 	CBVMap cbvMap; // Constant Buffer Views
@@ -32,33 +30,33 @@ struct FShaderParameterMap {
 	SamplerMap samplerMap; // Samplers
 };
 
- 
+
 struct FD3D12BindingLayout {
-	D3D12_DESCRIPTOR_RANGE_TYPE type;  
+	D3D12_DESCRIPTOR_RANGE_TYPE type;
 	UINT numDescriptors;
 	UINT baseRegister;
 	UINT heapLocalOffset;
 };
 
 
-struct FShaderDescriptorLayout { 
-	uint32_t tableSize;  
+struct FShaderDescriptorLayout {
+	uint32_t tableSize;
 	//UINT rootParameterIndex;
 
 	FD3D12BindingLayout CBVLayout;
 	std::unordered_map<std::string, uint32_t> CBVMemberOffsets; // offsets for each member in the CBV
 
 	FD3D12BindingLayout SRVLayout;
-	std::unordered_map<std::string, uint32_t> SRVMemberOffsets;  
+	std::unordered_map<std::string, uint32_t> SRVMemberOffsets;
 
 	FD3D12BindingLayout UAVLayout;
-	std::unordered_map<std::string, uint32_t> UAVMemberOffsets;  
+	std::unordered_map<std::string, uint32_t> UAVMemberOffsets;
 
 	//FD3D12BindingLayout samplerLayout;
 	//std::unordered_map<std::string, uint32_t> samplerMemberOffsets; 
 };
 
- 
+
 class FDescriptorHeapAllocator {
 
 public:
@@ -73,26 +71,26 @@ public:
 	}
 
 
-    [[nodiscard]] UINT Allocate(UINT numDescriptors) { 
+	[[nodiscard]] UINT Allocate(UINT numDescriptors) {
 		if (m_currentIndex + numDescriptors > m_numDescriptors) {
 			throw std::runtime_error("allocator: Descriptor heap out of space");
 		}
 		UINT startIndex = m_currentIndex;
 		m_currentIndex += numDescriptors;
-		return startIndex; 
+		return startIndex;
 	}
 
-	
+
 	[[nodiscard]] D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(UINT slot) {
-		
+
 		auto handle = m_heap->GetCPUDescriptorHandleForHeapStart();
-		handle.ptr += slot * m_device->GetDescriptorHandleIncrementSize(m_type); 
+		handle.ptr += slot * m_device->GetDescriptorHandleIncrementSize(m_type);
 		return handle;
 	}
-	 
+
 	[[nodiscard]] D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(UINT slot) {
 		auto handle = m_heap->GetGPUDescriptorHandleForHeapStart();
-		handle.ptr += slot * m_device->GetDescriptorHandleIncrementSize(m_type); 
+		handle.ptr += slot * m_device->GetDescriptorHandleIncrementSize(m_type);
 		return handle;
 	}
 
@@ -102,7 +100,7 @@ public:
 
 	UINT GetCurrentOffset() const {
 		return m_currentIndex;
-	} 
+	}
 
 	void Reset() {
 		m_currentIndex = 0;
@@ -113,7 +111,7 @@ private:
 	ComPtr<ID3D12DescriptorHeap> m_heap;
 	D3D12_DESCRIPTOR_HEAP_TYPE m_type;
 	UINT m_numDescriptors;
-	UINT m_currentIndex = 0; 
+	UINT m_currentIndex = 0;
 };
 
 
@@ -139,28 +137,28 @@ public:
 		return static_cast<uint32_t>(this->parameterMap.srvMap.size() +
 			this->parameterMap.cbvMap.size() +
 			this->parameterMap.uavMap.size());
-			//+ this->parameterMap.samplerMap.size());
+		//+ this->parameterMap.samplerMap.size());
 	}
 
-	 
-	std::optional<uint32_t> GetHeapOffsetCBV(const std::string& name) const { 
+
+	std::optional<uint32_t> GetHeapOffsetCBV(const std::string& name) const {
 		if (this->tableLayout.CBVMemberOffsets.contains(name)) {
 			return this->tableLayout.CBVMemberOffsets.at(name);
 		}
-		return std::nullopt;  
+		return std::nullopt;
 	}
 
 	std::optional<uint32_t> GetHeapOffsetSRV(const std::string& name) const {
 		if (this->tableLayout.SRVMemberOffsets.contains(name)) {
 			return this->tableLayout.SRVMemberOffsets.at(name);
-		} 
+		}
 		return std::nullopt;
 	}
 
 	std::optional<uint32_t> GetHeapOffsetUAV(const std::string& name) const {
 		if (this->tableLayout.UAVMemberOffsets.contains(name)) {
 			return this->tableLayout.UAVMemberOffsets.at(name);
-		} 
+		}
 		return std::nullopt;
 	}
 
@@ -169,11 +167,11 @@ public:
 	}
 
 public:
-	void Reflect(IDxcUtils* utils); 
-	void CreateDescriptorTable(uint32_t tableStartOffset); 
+	void Reflect(IDxcUtils* utils);
+	void CreateDescriptorTable(uint32_t tableStartOffset);
 
 	std::unordered_map<std::string, D3D12_SIGNATURE_PARAMETER_DESC> inputParameterMap;
-	FShaderParameterMap parameterMap; 
+	FShaderParameterMap parameterMap;
 	D3D12_SHADER_VISIBILITY shaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 public:
 	//similar to VkDescriptorSetLayout, retrieved by reflection; 
@@ -189,24 +187,26 @@ private:
 enum class EShaderStage {
 	VERTEX,
 	PIXEL,
-	COMPUTE, 
+	COMPUTE,
 };
 
 
-struct FRootSignatureLayout { 
+struct FRootSignatureLayout {
 	uint32_t numTables = 0; // Number of descriptor tables
 	std::unordered_map<EShaderStage, UINT> tableIndexMap;
 
 	uint32_t numDescriptors;
-	uint32_t vsTableHeapOffset; 
-	uint32_t psTableHeapOffset; 
+	uint32_t vsTableHeapOffset;
+	uint32_t psTableHeapOffset;
 };
 
 
 class FD3D12GraphicsShaderManager {
 public:
-	FD3D12GraphicsShaderManager(ComPtr<ID3D12Device> device)
-		:m_device(device)
+	FD3D12GraphicsShaderManager(ComPtr<ID3D12Device> device,
+		SharedPtr<FDescriptorHeapAllocator> m_rangeHeapAllocator
+	)
+		:m_device(device) , m_rangeHeapAllocator(m_rangeHeapAllocator)
 	{
 		this->Init();
 	}
@@ -218,20 +218,20 @@ public:
 		m_pixelShader = CreateShared<FD3D12ShaderModule>(dxcUtils.Get(), assetPathPS);
 	}
 
-	void PrepareRootSignature(); 
+	void PrepareRootSignature();
 	void CreateRootSignature();
 
 	//  
 	void SetSRV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& textureDesc, uint32_t baseOffset);
 	void SetCBV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset);
 	void SetUAV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc, uint32_t baseOffset);
-	
+
 	void SetStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc);
 
 	void SetDescriptorHeap(ComPtr<ID3D12GraphicsCommandList> commandList) const;
 	void SetDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList, uint32_t baseOffset) const;
 
- 
+
 	//getter:
 	ComPtr<ID3D12RootSignature> GetRootSignature() const {
 		return m_rootSignature;
@@ -257,21 +257,21 @@ public:
 		return m_rangeHeapAllocator->Allocate(this->m_rootSignatureLayout.numDescriptors);
 	}
 
-//utilis
+	//utilis
 public:
 	ComPtr<IDxcUtils> dxcUtils;
-	ComPtr<IDxcCompiler3> dxcCompiler;   
+	ComPtr<IDxcCompiler3> dxcCompiler;
 
 	SharedPtr<FDescriptorHeapAllocator> m_rangeHeapAllocator;
 	std::vector<D3D12_STATIC_SAMPLER_DESC> m_staticSamplers; // static samplers for the root signature
 
 	//resources
-public: 
+public:
 	SharedPtr<FD3D12ShaderModule> m_vertexShader;
-	SharedPtr<FD3D12ShaderModule> m_pixelShader; 
+	SharedPtr<FD3D12ShaderModule> m_pixelShader;
 
-	ComPtr<ID3D12RootSignature> m_rootSignature; 
-	FRootSignatureLayout m_rootSignatureLayout; 
+	ComPtr<ID3D12RootSignature> m_rootSignature;
+	FRootSignatureLayout m_rootSignatureLayout;
 
 	//owner
 public:

@@ -1,17 +1,16 @@
-
-#include "Application.h"
-
-#include <array>
-
+#include "PCH.h"
+#include "Application.h" 
 
 #include "Vector.h"
 #define TESTMATH 0
 #define RunApplication 1
 
-/*
+
 void TestMath()
-{ 
-	using namespace MMath; 
+{  
+	using FLOAT2 = MMath::FLOAT2;
+	using FLOAT3 = MMath::FLOAT3;
+	using FLOAT4 = MMath::FLOAT4;
 
 	//init:
 	{
@@ -78,21 +77,33 @@ void TestMath()
 
 	}
 
+	//normalize and length
+
+	{
+		FLOAT3 v1 = { 3.f, 4.f, 0.f };
+		auto length = Length(v1);
+		assert(length == 5.f);  
+
+		auto normalized = Normalize(v1); 
+		assert((Length(normalized) - 1.0f) < 1e-6f); // Check if normalized length is close to 1
+
+	}
+
 
 	std::cout << "Math tests passed!" << std::endl; 
 } 
 
-*/
+
 
 
 int main(int argc, char** argv)
 {  
-#if defined(TESTMATH)
-	//TestMath();
+#if TESTMATH
+	TestMath();
 #endif
 
 
-#if defined(RunApplication)
+#if RunApplication
 	auto app = std::make_shared<GameApplication>();
 
 	try {

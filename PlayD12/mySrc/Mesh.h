@@ -2,16 +2,24 @@
 #include "PCH.h"
 #include "Base.h"
 
+#include "Resource.h"
+
+#include "Vector.h"
+
 //abstract of mesh; only consider static mesh for now;
- 
+
 
 using namespace DirectX;
 
-using FLOAT3 = XMFLOAT3;
-using FLOAT2 = XMFLOAT2;
-using FLOAT4 = XMFLOAT4;
+//using FLOAT3 = XMFLOAT3;
+//using FLOAT2 = XMFLOAT2;
+//using FLOAT4 = XMFLOAT4;
 
-using INDEX_FORMAT = uint16_t;  
+using FLOAT3 = MMath::FLOAT3;
+using FLOAT2 = MMath::FLOAT2;
+using FLOAT4 = MMath::FLOAT4;
+
+using INDEX_FORMAT = uint16_t;
 
 
 struct D3D12InputDesc {
@@ -23,19 +31,19 @@ struct D3D12InputDesc {
 	uint32_t paddedSize;
 };
 
- 
+
 struct StaticMeshVertex
 {
 	FLOAT3 position;
 	FLOAT3 normal;
-	FLOAT3 tangent;  
+	FLOAT3 tangent;
 	FLOAT4 color;
 	FLOAT2 texCoord0;
 };
 
 
 struct StaticMeshInputDesc
-{ 
+{
 	static const std::vector<D3D12InputDesc>& GetInputDescs()
 	{
 		static const std::vector<D3D12InputDesc> table =
@@ -50,16 +58,16 @@ struct StaticMeshInputDesc
 		return table;
 	}
 };
- 
- 
+
+
 
 struct StaticMeshData
-{ 
+{
 	std::vector<FLOAT3> positions;
 	std::vector<FLOAT2> UVs;
-	std::vector<FLOAT3> normals; 
-	std::vector<FLOAT3> tangents;  
-	std::vector<FLOAT4> colors;  
+	std::vector<FLOAT3> normals;
+	std::vector<FLOAT3> tangents;
+	std::vector<FLOAT4> colors;
 
 	std::vector<INDEX_FORMAT> indices; // Use 16-bit indices for smaller memory footprint 
 
@@ -68,27 +76,63 @@ struct StaticMeshData
 	std::vector<StaticMeshVertex> ConsolidateVertexData() const
 	{
 		std::vector<StaticMeshVertex> consolidatedVertices;
-		consolidatedVertices.reserve(positions.size()); 
+		consolidatedVertices.reserve(positions.size());
 
 		for (size_t i = 0; i < positions.size(); ++i) {
 			StaticMeshVertex vertex;
 			vertex.position = positions[i];
 			if (i < UVs.size()) vertex.texCoord0 = UVs[i];
-			if (i < normals.size()) vertex.normal =normals[i];
-			if (i < tangents.size()) vertex.tangent =tangents[i];
+			if (i < normals.size()) vertex.normal = normals[i];
+			if (i < tangents.size()) vertex.tangent = tangents[i];
 			if (i < colors.size()) vertex.color = colors[i];
-			consolidatedVertices.push_back(vertex); 
+			consolidatedVertices.push_back(vertex);
 		}
 		return consolidatedVertices;  //the copy behavior is left to RVO
 	}
+
+
+
+	D3D_PRIMITIVE_TOPOLOGY topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 };
 
 
-class UStaticMesh {
-public:
-	UStaticMesh() = default;
-	virtual ~UStaticMesh() = default;
+class FD3D12MeshResource {
+public: 
+	virtual ~FD3D12MeshResource() = default;
+	FD3D12MeshResource(ID3D12Device* device, const StaticMeshData& meshData):
+		m_device(device),
+		m_meshData(meshData) 
+	{ 
+		CreateResources();
+	}
 
+	void CreateResources(); 
+	
+
+public:
+	const StaticMeshData& m_meshData; // Reference to the mesh data
+	SharedPtr<FD3D12Buffer> m_vertexBuffer{ nullptr };
+	SharedPtr<FD3D12Buffer> m_indexBuffer{ nullptr };
+
+private:
+	ID3D12Device* m_device = nullptr; // Device for resource creation
+};
+
+
+
+class UStaticMesh {
+public: 
+	virtual ~UStaticMesh() = default;
+	UStaticMesh() = default; 
+
+public:
+	virtual void CreateMeshData() = 0;
+
+public:
+	void CreateGPUResource(ID3D12Device* device) ; 
+
+public:
+	//getters:
 	virtual const std::vector<StaticMeshVertex>& GetVertices() const {
 		return m_meshData.vertices;
 	}
@@ -104,18 +148,51 @@ public:
 	size_t GetIndexCount() const
 	{
 		return static_cast<int>(m_meshData.indices.size());
-	} 
- 
+	}
 
-protected:
-	StaticMeshData m_meshData;  
+	SharedPtr<FD3D12Buffer> GetVertexBuffer() const
+	{
+		return m_GPUResource ? m_GPUResource->m_vertexBuffer : nullptr;
+	}
+
+	SharedPtr<FD3D12Buffer> GetIndexBuffer() const
+	{
+		return m_GPUResource ? m_GPUResource->m_indexBuffer : nullptr;
+	}
+
+	D3D_PRIMITIVE_TOPOLOGY GetTopology() const
+	{
+		return m_meshData.topology;
+	}
+
+
+public: 
+	StaticMeshData m_meshData;
+
+	SharedPtr<FD3D12MeshResource> m_GPUResource; 
 };
 
 
 class CubeMesh : public UStaticMesh {
 public:
+	virtual ~CubeMesh() = default; 
 	CubeMesh();
-	virtual ~CubeMesh() = default;
 
-	void CreateMeshData(); 
+	void CreateMeshData() override;
+};
+
+
+class PlaneMesh : public UStaticMesh {
+public:
+	virtual ~PlaneMesh() = default;
+	PlaneMesh();
+	void CreateMeshData() override;
+};
+
+
+class SphereMesh : public UStaticMesh {
+public:
+	virtual ~SphereMesh() = default;
+	SphereMesh();
+	void CreateMeshData() override;
 };

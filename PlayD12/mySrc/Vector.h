@@ -183,7 +183,7 @@ namespace MMath {
 	template <FLOP_t Scalar_t, uint32_t Length>
 	inline Vector<Scalar_t, Length> Normalize(const Vector<Scalar_t, Length>& vector)
 	{ 
-		Scalar_t length = std::sqrt(lengthSq);
+		Scalar_t length = std::sqrt(LengthSq(vector));
 		assert(length > 0 && "Cannot normalize a zero-length vector.");
 		return VectorDivide(vector, length);
 	}

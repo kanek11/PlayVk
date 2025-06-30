@@ -4,7 +4,7 @@
 
 #include "Base.h"
 #include "Window.h"
-#include "RHI.h"
+#include "Renderer.h"
 
 //the frontend of an application is composed of interactive elements.
 //window is usually considered as the top level UI element.  as a container.
@@ -104,5 +104,5 @@ public:
 	std::string GetAssetFullPath(std::string assetName);
 
 private:
-	D3D12HelloTriangle2* m_rhi = nullptr;
+	D3D12HelloRenderer* m_rhi = nullptr;
 };

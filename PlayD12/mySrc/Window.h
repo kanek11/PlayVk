@@ -5,10 +5,7 @@
 //abstraction of window. 
 //wrapper of win32 API by modern C++
 
-
-
-
-
+ 
 struct WindowCreateInfo
 {
 	int width;
