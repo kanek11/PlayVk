@@ -2,8 +2,8 @@
 #include "Application.h" 
 
 #include "Vector.h"
-#define TESTMATH 0
-#define RunApplication 1
+#define TESTMATH 1
+#define RunApplication 0
 
 
 void TestMath()
@@ -23,7 +23,10 @@ void TestMath()
 		//c-array:
 		float c_array[3] = { 1.f, 2.f, 3.f };
 		FLOAT3 v4(c_array);    
- 
+
+
+		FLOAT3 v5( 1.f, 2.f, 3.f ); // uniform initialization)
+		assert(v1[0] == 0.f && v1[1] == 0.f && v1[2] == 0.f); // default init 
 	}
 
 	//access channels
@@ -75,6 +78,14 @@ void TestMath()
 		auto v6 = v1 / 2.f;  // Scalar division
 		assert(v6[0] == 0.5f && v6[1] == 1.f && v6[2] == 1.5f);
 
+
+		//equality:
+		FLOAT3 v7 = { 1.f, 2.f, 3.f };
+		FLOAT3 v8 = { 1.f, 2.f, 3.f };
+		FLOAT3 v9 = { 4.f, 5.f, 6.f };
+		assert(v7 == v8);   
+		assert(!(v7 == v9));  
+
 	}
 
 	//normalize and length
@@ -87,6 +98,35 @@ void TestMath()
 		auto normalized = Normalize(v1); 
 		assert((Length(normalized) - 1.0f) < 1e-6f); // Check if normalized length is close to 1
 
+	}
+
+	//structural binding
+	{ 
+		struct AABB
+		{
+			FLOAT3 min;
+			FLOAT3 max;
+		};
+
+		AABB box = { {1.f, 2.f, 3.f}, {4.f, 5.f, 6.f} };
+		auto [min, max] = box; 
+
+		auto [xMin, yMin, zMin] = min;
+
+		assert(min[0] == 1.f && min[1] == 2.f && min[2] == 3.f);
+		assert(max[0] == 4.f && max[1] == 5.f && max[2] == 6.f);
+		assert(xMin == 1.f && yMin == 2.f && zMin == 3.f); // Check if structured binding works correctly
+
+
+		FLOAT3 v1 = { 1.f, 2.f, 3.f };
+		auto [x, y, z] = v1; 
+		assert(x == 1.f && y == 2.f && z == 3.f); // Check if structured binding works correctly
+
+	} 
+
+	//constexpr:
+	{
+		constexpr FLOAT3 v1(); 
 	}
 
 

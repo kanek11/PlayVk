@@ -19,27 +19,40 @@ namespace MMath {
 	concept FLOP_t = std::is_floating_point_v<T>;
 	 
 	//----------------------------------------------------------
-	template <FLOP_t Scalar_t, uint32_t Length> 
+	template <FLOP_t Scalar_t, std::size_t Length>
 	class Vector
 	{
 	public:
-		static constexpr uint32_t LengthValue = Length; 
-		static constexpr uint32_t SizeInBytes = Length * sizeof(Scalar_t); 
+		static constexpr std::size_t LengthValue = Length; 
+		static constexpr std::size_t SizeInBytes = Length * sizeof(Scalar_t); 
 
 		//constructors: 
 		//explicit Zero init 
-		Vector() noexcept { std::fill(std::begin(m_data), std::end(m_data), Scalar_t{}); }
+		//Vector() noexcept { std::fill(std::begin(m_data), std::end(m_data), Scalar_t{}); } 
+
+		constexpr Vector() noexcept {
+			std::ranges::fill(m_data, Scalar_t{});
+		}
+
 		Vector(std::initializer_list<Scalar_t> values) noexcept
 		{
 			assert(values.size() == Length && "Initializer list size must match vector length.");
-			std::copy(values.begin(), values.end(), m_data);
+			std::copy(values.begin(), values.end(), m_data.begin());
 		}
 		//accepts spans
 		Vector(std::span<Scalar_t, Length> values) noexcept
 		{
 			assert(values.size() == Length && "Span size must match vector length.");
-			std::copy(values.begin(), values.end(), m_data);
+			std::copy(values.begin(), values.end(), m_data.begin());
 		} 
+
+		template <typename... Args>
+			requires (sizeof...(Args) == Length && std::conjunction_v<std::is_convertible<Args, Scalar_t>...>)
+		Vector(Args... args) noexcept
+			: m_data{ static_cast<Scalar_t>(args)... } {
+		}
+
+
 		//the other 4 are defaulted;
 		//Vector(const Vector& other) noexcept = default; 
 		//Vector(Vector&& other) noexcept = default;  
@@ -69,26 +82,67 @@ namespace MMath {
 		}   
 
 		//swizzle is also supported like this;
+		template <std::size_t I>
+		Scalar_t& get()& {
+			static_assert(I < Length);
+			return m_data[I];
+		}
+
+		template <std::size_t I>
+		const Scalar_t& get() const& {
+			static_assert(I < Length);
+			return m_data[I];
+		}
+
+		template <std::size_t I>
+		Scalar_t get() const&& {
+			static_assert(I < Length);
+			return m_data[I];
+		}
+
 
 	private:
-		Scalar_t m_data[Length]; 
+		/*Scalar_t m_data[Length]; */
+		std::array<Scalar_t, Length> m_data; // Using std::array for better safety and performance
 	};
-	 
+ 
+
 
 	//----------------------------------------------------------
+
+	//equality :
+	template <FLOP_t T, std::size_t N>
+	inline bool VectorEqual(const Vector<T, N>& a, const Vector<T, N>& b) {
+		if constexpr (N == 0) {
+			return true; // Both are empty vectors
+		}
+		else {
+			return std::equal(a.data().begin(), a.data().end(), b.data().begin());
+		}
+	}
+
+	template <FLOP_t T, std::size_t N>
+	inline bool operator==(const Vector<T, N>& a, const Vector<T, N>& b) {
+		return VectorEqual(a, b);
+	}
+
+
 	template <FLOP_t Scalar_t, uint32_t Length>
 	inline Vector<Scalar_t, Length> VectorAdd(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
 	{
 		Vector<Scalar_t, Length> result;
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			result[i] = lhs[i] + rhs[i];
-		}
+		//for (uint32_t i = 0; i < Length; ++i)
+		//{
+		//	result[i] = lhs[i] + rhs[i];
+		//} 
+		std::transform(lhs.data().begin(), lhs.data().end(), rhs.data().begin(), result.data().begin(),
+			[](Scalar_t a, Scalar_t b) { return a + b; });
+
 		return result;
 	}
 	 
-	inline Vector<float, 3> operator+(const Vector<float, 3>& lhs, const Vector<float, 3>& rhs)
-	{
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N> operator+(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
 		return VectorAdd(lhs, rhs);
 	}
 
@@ -97,48 +151,68 @@ namespace MMath {
 	inline Vector<Scalar_t, Length> VectorSubtract(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
 	{
 		Vector<Scalar_t, Length> result;
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			result[i] = lhs[i] - rhs[i];
-		}
+		//for (uint32_t i = 0; i < Length; ++i)
+		//{
+		//	result[i] = lhs[i] - rhs[i];
+		//}
+		std::transform(lhs.data().begin(), lhs.data().end(), rhs.data().begin(), result.data().begin(),
+			[](Scalar_t a, Scalar_t b) { return a - b; });
 		return result;
 	}
-	 
-	inline Vector<float, 3> operator-(const Vector<float, 3>& lhs, const Vector<float, 3>& rhs)
-	{
+
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N> operator-(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
 		return VectorSubtract(lhs, rhs);
 	}
-
+	 
+ 
+ 
 	//----------------------------------------------------------
 	template <FLOP_t Scalar_t, uint32_t Length>
 	inline Vector<Scalar_t, Length> VectorMultiply(const Vector<Scalar_t, Length>& vector, Scalar_t multipler)
 	{ 
 		Vector<Scalar_t, Length> result;
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			result[i] = vector[i] * multipler;
-		}
+		//for (uint32_t i = 0; i < Length; ++i)
+		//{
+		//	result[i] = vector[i] * multipler;
+		//}
+		std::transform(vector.data().begin(), vector.data().end(), result.data().begin(),
+			[multipler](Scalar_t a) { return a * multipler; });
 		return result;
 	}
 
 	//facade operator overload:
-	inline Vector<float, 3> operator*(const Vector<float, 3>& vector, float multipler)
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N> operator*(const Vector<T, N>& vector, T multipler)
 	{
 		return VectorMultiply(vector, multipler);
 	}
+ 
 
 	//----------------------------------------------------------
 	template <FLOP_t Scalar_t, uint32_t Length>
 	inline Vector<Scalar_t, Length> VectorDivide(const Vector<Scalar_t, Length>& vector, Scalar_t divisor)
 	{
 		assert(divisor != 0 && "Division by zero is not allowed.");
-		Vector<Scalar_t, Length> result = VectorMultiply(vector, static_cast<Scalar_t>(1/ divisor) );
+		Vector<Scalar_t, Length> result = VectorMultiply(vector, Scalar_t{ 1 } / divisor);
 		return result;
 	}
 	 
-	inline Vector<float, 3> operator/(const Vector<float, 3>& vector, float divisor)
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N> operator/(const Vector<T, N>& vector, T divisor)
 	{
+		assert(divisor != 0 && "Division by zero is not allowed.");
 		return VectorDivide(vector, divisor);
+	}
+ 
+	// HadamardMultiply
+	template <FLOP_t Scalar_t, uint32_t Length>
+	inline Vector<Scalar_t, Length> HadamardMultiply(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
+	{
+		Vector<Scalar_t, Length> result; 
+		std::transform(lhs.data().begin(), lhs.data().end(), rhs.data().begin(), result.data().begin(),
+			[](Scalar_t a, Scalar_t b) { return a * b; });
+		return result;
 	}
 
 
@@ -146,11 +220,13 @@ namespace MMath {
 	template <FLOP_t Scalar_t, uint32_t Length>
 	inline Scalar_t Dot(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
 	{ 
-		Scalar_t result = 0;
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			result += lhs[i] * rhs[i];
-		}
+		//Scalar_t result = 0;
+		//for (uint32_t i = 0; i < Length; ++i)
+		//{
+		//	result += lhs[i] * rhs[i];
+		//}
+		Scalar_t result = std::inner_product(lhs.data().begin(), lhs.data().end(), rhs.data().begin(), Scalar_t{});
+
 		return result;
 	}
 
@@ -160,11 +236,13 @@ namespace MMath {
 	template <FLOP_t Scalar_t, uint32_t Length>
 	inline Scalar_t LengthSq(const Vector<Scalar_t, Length>& vector)
 	{
-		Scalar_t result = 0;
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			result += vector[i] * vector[i];
-		}
+		//Scalar_t result = 0;
+		//for (uint32_t i = 0; i < Length; ++i)
+		//{
+		//	result += vector[i] * vector[i];
+		//}
+		Scalar_t result = std::inner_product(vector.data().begin(), vector.data().end(), vector.data().begin(), Scalar_t{});
+
 		return result;
 	}
 
@@ -187,77 +265,7 @@ namespace MMath {
 		assert(length > 0 && "Cannot normalize a zero-length vector.");
 		return VectorDivide(vector, length);
 	}
-
-	//----------------------------------------------------------
-	//common factory:
-	template <FLOP_t Scalar_t, uint32_t Length>
-	inline Vector<Scalar_t, Length> ZeroVector()
-	{
-		Vector<Scalar_t, Length> result;
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			result[i] = static_cast<Scalar_t>(0);
-		}
-		return result;
-	}
-
-	template <FLOP_t Scalar_t, uint32_t Length>
-	inline Vector<Scalar_t, Length> OneVector()
-	{
-		Vector<Scalar_t, Length> result;
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			result[i] = static_cast<Scalar_t>(1);
-		}
-		return result;
-	}
-
-	//x axis:
-	template <FLOP_t Scalar_t, uint32_t Length>
-	inline Vector<Scalar_t, Length> XUnitVector()
-	{
-		Vector<Scalar_t, Length> result;
-		if constexpr (Length > 0) {
-			result[0] = static_cast<Scalar_t>(1);
-		}
-		for (uint32_t i = 1; i < Length; ++i)
-		{
-			result[i] = static_cast<Scalar_t>(0);
-		}
-		return result;
-	}
-	 
-	template <FLOP_t Scalar_t, uint32_t Length>
-	inline Vector<Scalar_t, Length> YUnitVector()
-	{
-		Vector<Scalar_t, Length> result;
-		if constexpr (Length > 1) {
-			result[1] = static_cast<Scalar_t>(1);
-		}
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			if (i != 1) {
-				result[i] = static_cast<Scalar_t>(0);
-			}
-		}
-		return result;
-	}
-
-	template <FLOP_t Scalar_t, uint32_t Length>
-	inline Vector<Scalar_t, Length> ZUnitVector()
-	{
-		Vector<Scalar_t, Length> result;
-		if constexpr (Length > 2) {
-			result[2] = static_cast<Scalar_t>(1);
-		}
-		for (uint32_t i = 0; i < Length; ++i)
-		{
-			if (i != 2) {
-				result[i] = static_cast<Scalar_t>(0);
-			}
-		}
-		return result;
-	}
+ 
 
 
 	//----------------------------------------------------------
@@ -268,4 +276,29 @@ namespace MMath {
 	using DOUBLE2 = Vector<double, 2>;
 	using DOUBLE3 = Vector<double, 3>;
 	using DOUBLE4 = Vector<double, 4>;
+}
+
+
+// Structured binding customization point (std::get + tuple traits) 
+namespace std {
+	using namespace MMath;
+
+	template <typename T, std::size_t N>
+	struct tuple_size<Vector<T, N>> : std::integral_constant<std::size_t, N> {};
+
+	template <std::size_t I, typename T, std::size_t N>
+	struct tuple_element<I, Vector<T, N>> {
+		static_assert(I < N);
+		using type = T;
+	};
+
+	template <std::size_t I, typename T, std::size_t N>
+	constexpr T& get(Vector<T, N>& v) noexcept {
+		return v.template get<I>();
+	}
+
+	template <std::size_t I, typename T, std::size_t N>
+	constexpr const T& get(const Vector<T, N>& v) noexcept {
+		return v.template get<I>();
+	}
 }
