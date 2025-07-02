@@ -1,11 +1,10 @@
 ﻿#include "PCH.h"
 #include "Application.h" 
 
-#include "Vector.h"
-#include "Matrix.h"
+#include "Math/MMath.h"
 
-#define TESTMATH 1
-#define RunApplication 0
+#define TESTMATH 0
+#define RunApplication 1
 
 
 void TestMath()

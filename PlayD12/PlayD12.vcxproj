@@ -79,6 +79,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(projectDir);$(projectDir)\src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -97,6 +98,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(projectDir);$(projectDir)\src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,6 +117,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(projectDir);$(projectDir)\src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,6 +136,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(projectDir);$(projectDir)\src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,34 +155,39 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="mySrc\Application.h" />
-    <ClInclude Include="mySrc\Base.h" />
-    <ClInclude Include="mySrc\Delegate.h" />
-    <ClInclude Include="mySrc\InputSystem.h" />
-    <ClInclude Include="mySrc\Matrix.h" />
-    <ClInclude Include="mySrc\Mesh.h" />
-    <ClInclude Include="mySrc\PCH.h" />
-    <ClInclude Include="mySrc\Renderer.h" />
-    <ClInclude Include="mySrc\Resource.h" />
-    <ClInclude Include="mySrc\D12Helper.h" />
-    <ClInclude Include="mySrc\Shader.h" />
-    <ClInclude Include="mySrc\Vector.h" />
-    <ClInclude Include="mySrc\Window.h" />
+    <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\Base.h" />
+    <ClInclude Include="src\Delegate.h" />
+    <ClInclude Include="src\InputSystem.h" />
+    <ClInclude Include="src\Math\Matrix.h" />
+    <ClInclude Include="src\Math\MMath.h" />
+    <ClInclude Include="src\physics\Collision.h" />
+    <ClInclude Include="src\physics\PhysicsScene.h" />
+    <ClInclude Include="src\physics\Shape.h" />
+    <ClInclude Include="src\render\Mesh.h" />
+    <ClInclude Include="src\PCH.h" />
+    <ClInclude Include="src\render\Renderer.h" />
+    <ClInclude Include="src\render\Resource.h" />
+    <ClInclude Include="src\D12Helper.h" />
+    <ClInclude Include="src\render\Shader.h" />
+    <ClInclude Include="src\Math\Vector.h" />
+    <ClInclude Include="src\Window.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mySrc\Application.cpp" />
-    <ClCompile Include="mySrc\Entry.cpp" />
-    <ClCompile Include="mySrc\Mesh.cpp" />
-    <ClCompile Include="mySrc\PCH.cpp">
+    <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Entry.cpp" />
+    <ClCompile Include="src\physics\PhysicsScene.cpp" />
+    <ClCompile Include="src\render\Mesh.cpp" />
+    <ClCompile Include="src\PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="mySrc\Renderer.cpp" />
-    <ClCompile Include="mySrc\Resource.cpp" />
-    <ClCompile Include="mySrc\Shader.cpp" />
-    <ClCompile Include="mySrc\Window.cpp" />
+    <ClCompile Include="src\render\Renderer.cpp" />
+    <ClCompile Include="src\render\Resource.cpp" />
+    <ClCompile Include="src\render\Shader.cpp" />
+    <ClCompile Include="src\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="legacy.txt" />

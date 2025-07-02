@@ -64,8 +64,8 @@ namespace MMath {
 		//access
 		// 
 		//fail on execution
-		Scalar_t operator[](uint32_t i) const { assert(i < Length); return m_data[i]; }
-		Scalar_t& operator[](uint32_t i) { assert(i < Length); return m_data[i]; }
+		Scalar_t operator[](size_t i) const { assert(i < Length); return m_data[i]; }
+		Scalar_t& operator[](size_t i) { assert(i < Length); return m_data[i]; }
 
 		std::span<const Scalar_t> data() const { return std::span{ m_data }; }
 		std::span<Scalar_t> data() { return std::span{ m_data }; }
@@ -135,7 +135,7 @@ namespace MMath {
 	}
 
 
-	template <FLOP_t Scalar_t, uint32_t Length>
+	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> VectorAdd(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
 	{
 		Vector<Scalar_t, Length> result;
@@ -154,8 +154,17 @@ namespace MMath {
 		return VectorAdd(lhs, rhs);
 	}
 
+	//+=:
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N>& operator+=(Vector<T, N>& lhs, const Vector<T, N>& rhs) {
+		for (size_t i = 0; i < N; ++i) {
+			lhs[i] += rhs[i];
+		}
+		return lhs;
+	}
+
 	//----------------------------------------------------------
-	template <FLOP_t Scalar_t, uint32_t Length>
+	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> VectorSubtract(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
 	{
 		Vector<Scalar_t, Length> result;
@@ -173,10 +182,19 @@ namespace MMath {
 		return VectorSubtract(lhs, rhs);
 	}
 	 
+
+	//-=:
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N>& operator-=(Vector<T, N>& lhs, const Vector<T, N>& rhs) {
+		for (size_t i = 0; i < N; ++i) {
+			lhs[i] -= rhs[i];
+		}
+		return lhs;
+	}
  
  
 	//----------------------------------------------------------
-	template <FLOP_t Scalar_t, uint32_t Length>
+	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> VectorMultiply(const Vector<Scalar_t, Length>& vector, Scalar_t multipler)
 	{ 
 		Vector<Scalar_t, Length> result;
@@ -195,10 +213,27 @@ namespace MMath {
 	{
 		return VectorMultiply(vector, multipler);
 	}
+
+	//swap order:
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N> operator*(T multipler, const Vector<T, N>& vector)
+	{
+		return VectorMultiply(vector, multipler);
+	}
+
+	//*=:
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N>& operator*=(Vector<T, N>& vector, T multipler)
+	{
+		for (size_t i = 0; i < N; ++i) {
+			vector[i] *= multipler;
+		}
+		return vector;
+	}
  
 
 	//----------------------------------------------------------
-	template <FLOP_t Scalar_t, uint32_t Length>
+	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> VectorDivide(const Vector<Scalar_t, Length>& vector, Scalar_t divisor)
 	{
 		assert(divisor != 0 && "Division by zero is not allowed.");
@@ -214,7 +249,7 @@ namespace MMath {
 	}
  
 	// HadamardMultiply
-	template <FLOP_t Scalar_t, uint32_t Length>
+	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> HadamardMultiply(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
 	{
 		Vector<Scalar_t, Length> result; 
@@ -225,7 +260,7 @@ namespace MMath {
 
 
 	//----------------------------------------------------------
-	template <FLOP_t Scalar_t, uint32_t Length>
+	template <FLOP_t Scalar_t, size_t Length>
 	inline Scalar_t Dot(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
 	{ 
 		//Scalar_t result = 0;

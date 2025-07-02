@@ -9,6 +9,8 @@
 #include "Mesh.h"
 #include "Shader.h"
 
+#include "physics/PhysicsScene.h"
+
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
@@ -17,6 +19,44 @@ struct InstanceData
 {
     MMath::FLOAT3 offset;
 };
+
+struct FInstanceProxy {
+    std::vector<InstanceData> instanceData;
+    SharedPtr<FD3D12Buffer> instanceBuffer;
+};
+
+struct FMaterialProxy {
+    ComPtr<ID3D12Resource> baseMapResource;
+    D3D12_SHADER_RESOURCE_VIEW_DESC baseMapSRV;
+};
+
+//strip out the minimum to render a static mesh:
+struct StaticMeshObjectProxy {
+    FLOAT3 position = { 0.0f, 0.0f, 0.0f };
+    FLOAT3 scale = { 1.0f, 1.0f, 1.0f };
+
+    SharedPtr<UStaticMesh> mesh;
+    uint32_t heapStartOffset = 0;
+
+    //material.
+    SharedPtr<FMaterialProxy> material;
+
+    SharedPtr<FD3D12Buffer> constantBuffer;
+
+    SharedPtr<FInstanceProxy> instanceProxy;
+
+	//new: for physics:
+    RigidBody* rigidBody{ nullptr }; 
+	Collider* collider{ nullptr };
+
+	void SetWorldPosition(const FLOAT3& newPosition) {
+		position = newPosition;
+	}
+};
+
+
+
+
  
 
 class D3D12HelloRenderer
@@ -117,39 +157,15 @@ private:
     std::vector<UINT8> GenerateFallBackTextureData(); 
 
  
-    struct FInstanceProxy {
-        std::vector<InstanceData> instanceData;
-        SharedPtr<FD3D12Buffer> instanceBuffer;
-    };
 
-    struct FMaterialProxy {
-        ComPtr<ID3D12Resource> baseMapResource;
-        D3D12_SHADER_RESOURCE_VIEW_DESC baseMapSRV; 
-    };
-
-	//strip out the minimum to render a static mesh:
-    struct StaticMeshObjectProxy {
-		FLOAT3 position = { 0.0f, 0.0f, 0.0f };  
-		FLOAT3 scale = { 1.0f, 1.0f, 1.0f };
-
-        SharedPtr<UStaticMesh> mesh;
-        uint32_t heapStartOffset = 0; 
-         
-        //material.
-		SharedPtr<FMaterialProxy> material;
-
-        SharedPtr<FD3D12Buffer> constantBuffer; 
-
-		SharedPtr<FInstanceProxy> instanceProxy;  
-    }; 
      
-	std::vector<StaticMeshObjectProxy> m_staticMeshes;   
+	std::vector<StaticMeshObjectProxy*> m_staticMeshes;   
      
 
     void InitMeshAssets();
     void SetMeshDescriptors();
      
-	StaticMeshObjectProxy InitMesh(SharedPtr<UStaticMesh> mesh, FLOAT3 position = { 0.0f, 0.0f, 0.0f }, FLOAT3 scale = { 1.0f, 1.0f, 1.0f });
+	StaticMeshObjectProxy* InitMesh(SharedPtr<UStaticMesh> mesh, FLOAT3 position = { 0.0f, 0.0f, 0.0f }, FLOAT3 scale = { 1.0f, 1.0f, 1.0f });
      
 	std::vector<InstanceData> GenerateInstanceData();  
 };

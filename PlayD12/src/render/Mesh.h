@@ -4,21 +4,13 @@
 
 #include "Resource.h"
 
-#include "Vector.h"
+#include "Math/MMath.h"
 
 //abstract of mesh; only consider static mesh for now;
 
 
-using namespace DirectX;
-
-//using FLOAT3 = XMFLOAT3;
-//using FLOAT2 = XMFLOAT2;
-//using FLOAT4 = XMFLOAT4;
-
-using FLOAT3 = MMath::FLOAT3;
-using FLOAT2 = MMath::FLOAT2;
-using FLOAT4 = MMath::FLOAT4;
-
+using namespace DirectX; 
+ 
 using INDEX_FORMAT = uint16_t;
 
 

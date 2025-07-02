@@ -4,7 +4,8 @@
 
 #include "Base.h"
 #include "Window.h"
-#include "Renderer.h"
+#include "Render/Renderer.h"
+#include "Physics/PhysicsScene.h"
 
 //the frontend of an application is composed of interactive elements.
 //window is usually considered as the top level UI element.  as a container.
@@ -24,10 +25,10 @@ public:
 	LayerBase() = default;
 	virtual ~LayerBase() = default;
 
-	virtual void onInit() = 0;
+	virtual void onInit() = 0; 
 	virtual void onUpdate() = 0;
 	virtual void onDestroy() = 0;
-
+	 
 };
 
 //background for rendering game scene.
@@ -54,10 +55,10 @@ public:
 class ApplicationBase {
 public:
 	ApplicationBase() = default;
-	virtual ~ApplicationBase() = default;
-	virtual void onInit() = 0;
-	virtual void onDestroy() = 0;
-	virtual void run() = 0;
+	virtual ~ApplicationBase() = default; 
+	virtual void onInit() = 0; 
+	virtual void onDestroy() = 0; 
+	virtual void run() = 0;  
 };
 
 
@@ -68,12 +69,13 @@ public:
 	virtual ~GameApplication() = default;
 	virtual void onInit() override;
 	virtual void onDestroy() override;
-	virtual void run() override;
+	virtual void run() override; 
 
 
 	//
 	float getAspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 
+	PhysicalScene* GetPhysicalScene() { return m_physicsScene; }
 
 private:
 	[[nodiscard]] bool initWorkingDirectory();
@@ -86,7 +88,7 @@ protected:
 	SharedPtr<GUILayer> m_guiLayer;
 
 private:
-	static GameApplication* s_instance;
+	static GameApplication* s_instance; 
 public:
 	static GameApplication* GetInstance();
 
@@ -104,5 +106,6 @@ public:
 	std::string GetAssetFullPath(std::string assetName);
 
 private:
-	D3D12HelloRenderer* m_rhi = nullptr;
+	D3D12HelloRenderer* m_renderer{ nullptr };
+	PhysicalScene* m_physicsScene{ nullptr };
 };

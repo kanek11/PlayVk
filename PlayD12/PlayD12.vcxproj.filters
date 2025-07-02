@@ -18,69 +18,84 @@
     <FxCompile Include="legacy\SamplerSample.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="mySrc\Window.h">
+    <ClInclude Include="src\Window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Application.h">
+    <ClInclude Include="src\Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Base.h">
+    <ClInclude Include="src\Base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\PCH.h">
+    <ClInclude Include="src\PCH.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\D12Helper.h">
+    <ClInclude Include="src\D12Helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Delegate.h">
+    <ClInclude Include="src\Delegate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\InputSystem.h">
+    <ClInclude Include="src\InputSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Mesh.h">
+    <ClInclude Include="src\render\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Vector.h">
+    <ClInclude Include="src\Math\Vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Shader.h">
+    <ClInclude Include="src\render\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Resource.h">
+    <ClInclude Include="src\render\Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Renderer.h">
+    <ClInclude Include="src\render\Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mySrc\Matrix.h">
+    <ClInclude Include="src\Math\Matrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Math\MMath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\Shape.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\Collision.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\PhysicsScene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mySrc\Application.cpp">
+    <ClCompile Include="src\Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mySrc\Entry.cpp">
+    <ClCompile Include="src\Entry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mySrc\Window.cpp">
+    <ClCompile Include="src\Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mySrc\Mesh.cpp">
+    <ClCompile Include="src\render\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mySrc\Shader.cpp">
+    <ClCompile Include="src\render\Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mySrc\Renderer.cpp">
+    <ClCompile Include="src\render\Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mySrc\Resource.cpp">
+    <ClCompile Include="src\render\Resource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mySrc\PCH.cpp">
+    <ClCompile Include="src\PCH.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\physics\PhysicsScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
