@@ -62,26 +62,16 @@ namespace MMath {
 
 
 		//access
+		// 
+		//fail on execution
 		Scalar_t operator[](uint32_t i) const { assert(i < Length); return m_data[i]; }
 		Scalar_t& operator[](uint32_t i) { assert(i < Length); return m_data[i]; }
 
 		std::span<const Scalar_t> data() const { return std::span{ m_data }; }
 		std::span<Scalar_t> data() { return std::span{ m_data }; }
 
-		Scalar_t x() const requires (Length > 0) { return m_data[0]; } 
-		Scalar_t y() const requires (Length > 1) { return m_data[1]; } 
-		Scalar_t z() const requires (Length > 2) { return m_data[2]; } 
-		Scalar_t w() const requires (Length > 3) { return m_data[3]; } 
 
-		auto xy() const requires (Length >= 2) {
-			return Vector<Scalar_t, 2>{m_data[0], m_data[1]};
-		}
-
-		auto xyz() const requires (Length >= 3) {
-			return Vector<Scalar_t, 3>{m_data[0], m_data[1], m_data[2]};
-		}   
-
-		//swizzle is also supported like this;
+		//fail on compilation
 		template <std::size_t I>
 		Scalar_t& get()& {
 			static_assert(I < Length);
@@ -99,6 +89,24 @@ namespace MMath {
 			static_assert(I < Length);
 			return m_data[I];
 		}
+
+
+		//support for 3D semantics:
+		//readonly
+		Scalar_t x() const requires (Length > 0) { return m_data[0]; }
+		Scalar_t y() const requires (Length > 1) { return m_data[1]; }
+		Scalar_t z() const requires (Length > 2) { return m_data[2]; }
+		Scalar_t w() const requires (Length > 3) { return m_data[3]; }
+
+		auto xy() const requires (Length >= 2) {
+			return Vector<Scalar_t, 2>{m_data[0], m_data[1]};
+		}
+
+		auto xyz() const requires (Length >= 3) {
+			return Vector<Scalar_t, 3>{m_data[0], m_data[1], m_data[2]};
+		}
+
+		//swizzle is also supported like this;
 
 
 	private:

@@ -155,6 +155,7 @@
     <ClInclude Include="mySrc\Base.h" />
     <ClInclude Include="mySrc\Delegate.h" />
     <ClInclude Include="mySrc\InputSystem.h" />
+    <ClInclude Include="mySrc\Matrix.h" />
     <ClInclude Include="mySrc\Mesh.h" />
     <ClInclude Include="mySrc\PCH.h" />
     <ClInclude Include="mySrc\Renderer.h" />
