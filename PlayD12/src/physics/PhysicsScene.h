@@ -3,11 +3,11 @@
 #include "Math/MMath.h"
 #include "Shape.h"
 
-//struct PhysicalMaterial { 
-//	float restitution;
-//	float friction;
-//};
- 
+struct PhysicalMaterial { 
+	float restitution;
+	float friction;
+};
+
 struct StaticMeshObjectProxy;
 
 struct RigidBody {
@@ -19,6 +19,7 @@ struct RigidBody {
 	FLOAT3 force;  //accumulation in the frame; 
 
 	bool simulatePhysics{ true };
+	PhysicalMaterial material{ 0.2f,0.05f };
 
 	//bool isKenematic;  
 	void ApplyForce(FLOAT3 force) {
@@ -26,13 +27,14 @@ struct RigidBody {
 	}
 
 	//todo: angular;
-	StaticMeshObjectProxy* owner; 
+	StaticMeshObjectProxy* owner;
 	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position)
 		: owner(owner), position(position)
-	{};
+	{
+	};
 };
 
-/* 
+/*
 design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
 */
@@ -40,14 +42,14 @@ if the collider holds a weak ref of rb,  it directly communicate to it, and noth
 using ShapeType = std::variant<Plane, Sphere, Box>;
 
 struct Collider {
-	ShapeType type;
-	FLOAT3 localOffset;
+	ShapeType type; 
 
 	RigidBody* body{ nullptr };
 	StaticMeshObjectProxy* owner;
-	Collider(StaticMeshObjectProxy* owner, ShapeType type, RigidBody* body) 
+	Collider(StaticMeshObjectProxy* owner, ShapeType type, RigidBody* body)
 		: owner(owner), type(type), body(body)
-	{}; 
+	{
+	};
 };
 
 
@@ -79,19 +81,19 @@ class ContactSolver {
 public:
 	void ResolveContacts(std::span<Contact> contacts, float deltaTime);
 };
- 
+
 class Integrator {
 public:
 	void Integrate();
 };
- 
 
-class PhysicalScene { 
+
+class PhysicsScene {
 public:
 	void Tick(float delata);
 
-	void OnInit(); 
-	void OnDestroy(); 
+	void OnInit();
+	void OnDestroy();
 
 
 public:
@@ -100,7 +102,7 @@ public:
 		m_colliders.push_back(collider);
 	}
 
-private: 
+private:
 	void PreSimulation();
 
 	//accumulate global / user-defined forces
@@ -111,7 +113,7 @@ private:
 
 	//simulation:
 	void DetectCollisions();
-	 
+
 	void ResolveContacts(float delta);
 
 	//todo:
@@ -121,7 +123,7 @@ private:
 	void IntegratePosition(float delta);
 
 	//update again, signal events,  etc.
-	void PostSimulation(); 
+	void PostSimulation();
 
 private:
 	std::vector<RigidBody*> m_bodies;
@@ -133,7 +135,7 @@ private:
 	Integrator m_integrator;
 
 
-//experimental
+	//experimental
 public:
-	FLOAT3 gravity{ 0.0f, 0.1f* -9.8f, 0.0f };
+	FLOAT3 gravity{ 0.0f, -9.8f, 0.0f };
 };

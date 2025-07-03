@@ -75,7 +75,7 @@ public:
 	//
 	float getAspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 
-	PhysicalScene* GetPhysicalScene() { return m_physicsScene; }
+	PhysicsScene* GetPhysicalScene() { return m_physicsScene; }
 
 private:
 	[[nodiscard]] bool initWorkingDirectory();
@@ -107,5 +107,5 @@ public:
 
 private:
 	D3D12HelloRenderer* m_renderer{ nullptr };
-	PhysicalScene* m_physicsScene{ nullptr };
+	PhysicsScene* m_physicsScene{ nullptr };
 };

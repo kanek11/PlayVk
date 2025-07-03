@@ -2,6 +2,7 @@
 
 #include "Vector.h"
 #include "Matrix.h"
+#include "MathUtility.h"
 
 using FLOAT2 = MMath::FLOAT2;
 using FLOAT3 = MMath::FLOAT3;

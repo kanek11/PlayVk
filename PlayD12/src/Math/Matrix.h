@@ -64,10 +64,27 @@ namespace MMath {
 		std::array<Vector<Scalar_t, Rows>, Cols> m_data;
 	};
 
+
+
+	//----------------------------------------------------------
+	//transpose:
+	template <FLOP_t T, std::size_t Rows, std::size_t Cols>
+	inline Matrix<T, Cols, Rows> Transpose(const Matrix<T, Rows, Cols>& mat) {
+		Matrix<T, Cols, Rows> result;
+		for (std::size_t r = 0; r < Rows; ++r) {
+			for (std::size_t c = 0; c < Cols; ++c) {
+				result[c][r] = mat[r][c];
+			}
+		}
+		return result;
+	}
+
+
+
 	//----------------------------------------------------------
 	// Identity matrix
 	template <FLOP_t T, std::size_t N>
-	Matrix<T, N, N> IdentityMatrix() {
+	Matrix<T, N, N> MatrixIdentity() {
 		Matrix<T, N, N> result;
 		for (std::size_t i = 0; i < N; ++i) {
 			result[i][i] = T{ 1 };
@@ -79,11 +96,11 @@ namespace MMath {
 	// Matrix-Vector multiplication;  columen major;  reuse dot product
 
 	template <FLOP_t T, std::size_t Rows, std::size_t Cols>
-	Vector<T, Rows> MatrixVectorMultiply(const Matrix<T, Rows, Cols>& mat, const Vector<T, Cols>& vec) {
-		static_assert(Cols == Rows, "Matrix-Vector multiplication requires compatible dimensions.");
+	Vector<T, Cols> MatrixVectorMultiply(const Matrix<T, Rows, Cols>& mat, const Vector<T, Cols>& vec) {
+		static_assert(Cols == Cols, "Matrix-Vector multiplication requires compatible dimensions.");
 		Vector<T, Rows> result;
-		for (std::size_t r = 0; r < Rows; ++r) {
-			result[r] = std::inner_product(mat[r].data().begin(), mat[r].data().end(), vec.data().begin(), T{});
+		for (std::size_t c = 0; c < Cols; ++c) {
+			result[c] = std::inner_product(mat[c].data().begin(), mat[c].data().end(), vec.data().begin(), T{});
 		}
 		return result;
 	}
@@ -102,8 +119,9 @@ namespace MMath {
 		static_assert(B == A, "Matrix multiplication requires compatible dimensions.");
 		Matrix<T, A, C> result;
 		for (std::size_t c = 0; c < C; ++c) {
-			result[c] = lhs * rhs[c]; // Use the Matrix-Vector multiplication
+			result[c] = MatrixVectorMultiply(rhs, lhs[c]);  //row-major storage;
 		}
+		result = Transpose(result); // Convert to column-major order
 		return result;
 	}
 
@@ -113,6 +131,12 @@ namespace MMath {
 		static_assert(B == A, "Matrix multiplication requires compatible dimensions.");  
 		return MatrixMultiply(lhs, rhs);
 	}
+
+
+
+
+	 
+
 
 	//----------------------------------------------------------
 	using FLOAT2X2 = Matrix<float, 2, 2>;

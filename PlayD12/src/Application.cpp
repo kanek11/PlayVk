@@ -31,7 +31,7 @@ void GameApplication::onInit()
 
 
 
-	m_physicsScene = new PhysicalScene();
+	m_physicsScene = new PhysicsScene();
 	m_physicsScene->OnInit();
 
 	m_renderer = new D3D12HelloRenderer(m_width, m_height, wideTitle.c_str(), m_mainWindow);
@@ -52,7 +52,7 @@ void GameApplication::run()
 		 
 		m_physicsScene->Tick(0.016f);
 
-		m_renderer->OnUpdate();
+		m_renderer->OnUpdate(0.016f);
 		m_renderer->OnRender();
 	}
 		

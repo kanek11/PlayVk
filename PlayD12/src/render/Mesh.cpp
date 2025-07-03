@@ -2,12 +2,12 @@
 #include "Mesh.h" 
 
 
-CubeMesh::CubeMesh() 
+CubeMesh::CubeMesh()
 {
-    CreateMeshData(); 
+    CreateMeshData();
     std::cout << "CubeMesh created with " << m_meshData.vertices.size() << " vertices and "
         << m_meshData.indices.size() << " indices." << std::endl;
-     
+
 }
 
 void CubeMesh::CreateMeshData()
@@ -92,8 +92,8 @@ void CubeMesh::CreateMeshData()
     m_meshData.colors = colors;
     m_meshData.indices = indices;
 
-	// Set topology
-	m_meshData.topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // triangle list
+    // Set topology
+    m_meshData.topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // triangle list
 
     m_meshData.vertices = m_meshData.ConsolidateVertexData();
 }
@@ -101,42 +101,42 @@ void CubeMesh::CreateMeshData()
 void FD3D12MeshResource::CreateResources()
 {
 
-	m_vertexBuffer = CreateShared<FD3D12Buffer>(m_device, FBufferDesc{
-		m_meshData.vertices.size() * sizeof(StaticMeshVertex),
-		DXGI_FORMAT_UNKNOWN, // Not used for vertex buffers
-		sizeof(StaticMeshVertex),
-		EBufferUsage::Upload | EBufferUsage::Vertex
-		});
+    m_vertexBuffer = CreateShared<FD3D12Buffer>(m_device, FBufferDesc{
+        m_meshData.vertices.size() * sizeof(StaticMeshVertex),
+        DXGI_FORMAT_UNKNOWN, // Not used for vertex buffers
+        sizeof(StaticMeshVertex),
+        EBufferUsage::Upload | EBufferUsage::Vertex
+        });
 
-	m_vertexBuffer->UploadData(m_meshData.vertices.data(), m_meshData.vertices.size() * sizeof(StaticMeshVertex));
+    m_vertexBuffer->UploadData(m_meshData.vertices.data(), m_meshData.vertices.size() * sizeof(StaticMeshVertex));
 
 
-	// Create index buffer
-	m_indexBuffer = CreateShared<FD3D12Buffer>(m_device, FBufferDesc{
-		m_meshData.indices.size() * sizeof(INDEX_FORMAT),
-		DXGI_FORMAT_R16_UINT, // 16-bit indices
-		sizeof(INDEX_FORMAT),
-		EBufferUsage::Upload | EBufferUsage::Index
-		});
-	m_indexBuffer->UploadData(m_meshData.indices.data(), m_meshData.indices.size() * sizeof(INDEX_FORMAT));
+    // Create index buffer
+    m_indexBuffer = CreateShared<FD3D12Buffer>(m_device, FBufferDesc{
+        m_meshData.indices.size() * sizeof(INDEX_FORMAT),
+        DXGI_FORMAT_R16_UINT, // 16-bit indices
+        sizeof(INDEX_FORMAT),
+        EBufferUsage::Upload | EBufferUsage::Index
+        });
+    m_indexBuffer->UploadData(m_meshData.indices.data(), m_meshData.indices.size() * sizeof(INDEX_FORMAT));
 
 }
- 
+
 void UStaticMesh::CreateGPUResource(ID3D12Device* device)
 {
-	m_GPUResource = CreateShared<FD3D12MeshResource>(device, m_meshData); 
+    m_GPUResource = CreateShared<FD3D12MeshResource>(device, m_meshData);
 }
 
 PlaneMesh::PlaneMesh()
 {
-	CreateMeshData();
-	std::cout << "PlaneMesh created with " << m_meshData.vertices.size() << " vertices and "
-		<< m_meshData.indices.size() << " indices." << std::endl;
+    CreateMeshData();
+    std::cout << "PlaneMesh created with " << m_meshData.vertices.size() << " vertices and "
+        << m_meshData.indices.size() << " indices." << std::endl;
 }
 
 void PlaneMesh::CreateMeshData()
 {
-	uint32_t subdivision = 2; // 2 means 1x1 grid, 3 means 2x2 grid, etc.
+    uint32_t subdivision = 2; // 2 means 1x1 grid, 3 means 2x2 grid, etc.
 
     // divide by 2 means 3x3 grid
     uint32_t numX = subdivision + 1;
@@ -156,7 +156,7 @@ void PlaneMesh::CreateMeshData()
     {
         for (uint32_t j = 0; j < numX; j++)
         {
-            _positions[j + i * numX] = FLOAT3{ (float)j / (numX - 1) + offset.x(), 0.0f + offset.y(), (float)i / (numZ - 1) + offset.z()};
+            _positions[j + i * numX] = FLOAT3{ (float)j / (numX - 1) + offset.x(), 0.0f + offset.y(), (float)i / (numZ - 1) + offset.z() };
             _UVs[j + i * numX] = FLOAT2{ (float)j / (numX - 1), (float)i / (numZ - 1) };
         }
     }
@@ -178,37 +178,37 @@ void PlaneMesh::CreateMeshData()
             _indices[(j + i * (numX - 1)) * 6 + 5] = j + 1 + i * numX;
         }
     }
-     
-
-    FLOAT3 normal  = FLOAT3{0.0, 1.0, 0.0}; // y axis  world up
-    FLOAT3 tangent = FLOAT3{1.0, 0.0, 0.0}; // x axis
 
 
-	m_meshData.positions = _positions;
-	m_meshData.UVs = _UVs;
-	m_meshData.normals = std::vector<FLOAT3>(_positions.size(), normal);
-	m_meshData.tangents = std::vector<FLOAT3>(_positions.size(), tangent);
+    FLOAT3 normal = FLOAT3{ 0.0, 1.0, 0.0 }; // y axis  world up
+    FLOAT3 tangent = FLOAT3{ 1.0, 0.0, 0.0 }; // x axis
+
+
+    m_meshData.positions = _positions;
+    m_meshData.UVs = _UVs;
+    m_meshData.normals = std::vector<FLOAT3>(_positions.size(), normal);
+    m_meshData.tangents = std::vector<FLOAT3>(_positions.size(), tangent);
     m_meshData.colors = std::vector<FLOAT4>(_positions.size(), FLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f }); // white color
-	m_meshData.indices = _indices;
-     
+    m_meshData.indices = _indices;
+
     //topo:
-	m_meshData.topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // triangle list
-    
-	m_meshData.vertices = m_meshData.ConsolidateVertexData();
+    m_meshData.topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // triangle list
+
+    m_meshData.vertices = m_meshData.ConsolidateVertexData();
 
 }
 
 SphereMesh::SphereMesh()
 {
-	CreateMeshData();
-	std::cout << "SphereMesh created with " << m_meshData.vertices.size() << " vertices and "
-		<< m_meshData.indices.size() << " indices." << std::endl;
+    CreateMeshData();
+    std::cout << "SphereMesh created with " << m_meshData.vertices.size() << " vertices and "
+        << m_meshData.indices.size() << " indices." << std::endl;
 
 }
 
 void SphereMesh::CreateMeshData()
 {
-	uint32_t subdivision = 20;  
+    uint32_t subdivision = 20;
     const float    PI = 3.14159265359f;
 
     std::vector<FLOAT3> _positions;
@@ -252,7 +252,7 @@ void SphereMesh::CreateMeshData()
             }
             else if (yTheta == PI)
             {
-                _tangent = FLOAT3{ -1.0f, 0.0f, 0.0f};
+                _tangent = FLOAT3{ -1.0f, 0.0f, 0.0f };
             }
             else
             {
@@ -261,7 +261,7 @@ void SphereMesh::CreateMeshData()
                     std::cos(xPhi) * std::sin(yTheta) };
 
                 //normalize:  
-				_tangent = MMath::Normalize(Tangent);
+                _tangent = MMath::Normalize(Tangent);
 
             }
 
@@ -282,15 +282,15 @@ void SphereMesh::CreateMeshData()
     }
 
     // generate mesh 
-	m_meshData.positions = _positions;
-	m_meshData.normals = _normals;
-	m_meshData.UVs = _UVs;
-	m_meshData.tangents = _Tangents;
-	m_meshData.indices = _indices;
-    m_meshData.colors = std::vector<FLOAT4>(_positions.size(), FLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f}); // white color
+    m_meshData.positions = _positions;
+    m_meshData.normals = _normals;
+    m_meshData.UVs = _UVs;
+    m_meshData.tangents = _Tangents;
+    m_meshData.indices = _indices;
+    m_meshData.colors = std::vector<FLOAT4>(_positions.size(), FLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f }); // white color
 
-	m_meshData.vertices = m_meshData.ConsolidateVertexData();
+    m_meshData.vertices = m_meshData.ConsolidateVertexData();
 
-     //strip:
-	m_meshData.topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+    //strip:
+    m_meshData.topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 }

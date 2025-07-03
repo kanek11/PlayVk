@@ -27,7 +27,7 @@ D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring nam
 void D3D12HelloRenderer::OnInit()
 {
     LoadPipeline();
-    LoadAssets();  
+    LoadAssets();
 }
 
 
@@ -41,29 +41,29 @@ void D3D12HelloRenderer::LoadPipeline()
     // NOTE: Enabling the debug layer after device creation will invalidate the active device.
     {
         ComPtr<ID3D12Debug> debugController;
-        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf()))))
         {
             debugController->EnableDebugLayer();
 
             // Enable additional debug layers.
             dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
         }
- 
+
     }
 #endif
 
     ComPtr<IDXGIFactory4> factory;
-    ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
+    ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(factory.GetAddressOf())));
 
     if (m_useWarpDevice)
     {
         ComPtr<IDXGIAdapter> warpAdapter;
-        ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(&warpAdapter)));
+        ThrowIfFailed(factory->EnumWarpAdapter(IID_PPV_ARGS(warpAdapter.GetAddressOf())));
 
         ThrowIfFailed(D3D12CreateDevice(
             warpAdapter.Get(),
             D3D_FEATURE_LEVEL_11_0,
-            IID_PPV_ARGS(&m_device)
+            IID_PPV_ARGS(m_device.GetAddressOf())
         ));
     }
     else
@@ -74,7 +74,7 @@ void D3D12HelloRenderer::LoadPipeline()
         ThrowIfFailed(D3D12CreateDevice(
             hardwareAdapter.Get(),
             D3D_FEATURE_LEVEL_11_0,
-            IID_PPV_ARGS(&m_device)
+            IID_PPV_ARGS(m_device.GetAddressOf())
         ));
     }
 
@@ -83,7 +83,7 @@ void D3D12HelloRenderer::LoadPipeline()
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-    ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+    ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_commandQueue.GetAddressOf())));
 
     // Describe and create the swap chain.
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
@@ -122,12 +122,12 @@ void D3D12HelloRenderer::LoadPipeline()
         rtvHeapDesc.NumDescriptors = FrameCount;
         rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
         rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
+        ThrowIfFailed(m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(m_rtvHeap.GetAddressOf())));
 
         m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 
-        constexpr uint32_t descriptorPoolSize = 100; 
+        constexpr uint32_t descriptorPoolSize = 100;
         m_rangeHeapAllocator = CreateShared<FDescriptorHeapAllocator>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, descriptorPoolSize);
 
     }
@@ -139,22 +139,22 @@ void D3D12HelloRenderer::LoadPipeline()
         // Create a RTV for each frame.
         for (UINT n = 0; n < FrameCount; n++)
         {
-            ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(&m_renderTargets[n])));
+            ThrowIfFailed(m_swapChain->GetBuffer(n, IID_PPV_ARGS(m_renderTargets[n].GetAddressOf())));
             m_device->CreateRenderTargetView(m_renderTargets[n].Get(), nullptr, rtvHandle);
             rtvHandle.Offset(1, m_rtvDescriptorSize);
         }
     }
 
-    ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
+    ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())));
 }
 
 // Load the sample assets.
 void D3D12HelloRenderer::LoadAssets()
-{ 
+{
 
     // Create the pipeline state, which includes compiling and loading shaders.
     {
-		//todo: remove the sampler init to texture manager.
+        //todo: remove the sampler init to texture manager.
         D3D12_STATIC_SAMPLER_DESC sampler = {};
         sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
         sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
@@ -174,7 +174,7 @@ void D3D12HelloRenderer::LoadAssets()
         auto assetPathVS = GameApplication::GetInstance()->GetAssetFullPath("shaders/bin/hello_lighting_VS.cso");
         auto assetPathPS = GameApplication::GetInstance()->GetAssetFullPath("shaders/bin/hello_lighting_PS.cso");
 
-		m_shaderManager = CreateShared<FD3D12GraphicsShaderManager>(m_device, m_rangeHeapAllocator);
+        m_shaderManager = CreateShared<FD3D12GraphicsShaderManager>(m_device, m_rangeHeapAllocator);
         m_shaderManager->LoadShaders(assetPathVS, assetPathPS);
         m_shaderManager->PrepareRootSignature();
 
@@ -211,7 +211,7 @@ void D3D12HelloRenderer::LoadAssets()
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         //psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
         psoDesc.InputLayout = { inputDescs.data(), static_cast<UINT>(inputDescs.size()) };
-         
+
         psoDesc.pRootSignature = m_shaderManager->GetRootSignature().Get();
         psoDesc.VS = CD3DX12_SHADER_BYTECODE(m_shaderManager->GetVSBlob().Get());
         psoDesc.PS = CD3DX12_SHADER_BYTECODE(m_shaderManager->GetPSBlob().Get());
@@ -229,17 +229,19 @@ void D3D12HelloRenderer::LoadAssets()
         //psoDesc.DepthStencilState.StencilEnable = FALSE; 
         psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
+        psoDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+
         psoDesc.SampleMask = UINT_MAX;
         psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         psoDesc.NumRenderTargets = 1;
         psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         psoDesc.SampleDesc.Count = 1;
-        ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+        ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_pipelineState.GetAddressOf())));
     }
 
 
 
-     
+
     //depth related:
     {
         D3D12_RESOURCE_DESC depthDesc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -268,15 +270,15 @@ void D3D12HelloRenderer::LoadAssets()
         dsvHeapDesc.NumDescriptors = 1;
         dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
         dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
+        ThrowIfFailed(m_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(m_dsvHeap.GetAddressOf())));
 
         m_device->CreateDepthStencilView(m_depthStencil.Get(), nullptr, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
     }
-     
+
 
     // Create the command list.
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(m_commandList.GetAddressOf())));
 
 
     //teturing:
@@ -307,7 +309,7 @@ void D3D12HelloRenderer::LoadAssets()
             &textureDesc,
             D3D12_RESOURCE_STATE_COPY_DEST,
             nullptr,
-            IID_PPV_ARGS(&m_fallBackTexture)));
+            IID_PPV_ARGS(m_fallBackTexture.GetAddressOf())));
 
         const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_fallBackTexture.Get(), 0, 1);
 
@@ -318,7 +320,7 @@ void D3D12HelloRenderer::LoadAssets()
             &CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
-            IID_PPV_ARGS(&textureUploadHeap)));
+            IID_PPV_ARGS(textureUploadHeap.GetAddressOf())));
 
         // Copy data to the intermediate upload heap and then schedule a copy 
         // from the upload heap to the Texture2D.
@@ -339,8 +341,8 @@ void D3D12HelloRenderer::LoadAssets()
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = 1;
 
-		this->m_fallBackSRVDesc = srvDesc;  
-         
+        this->m_fallBackSRVDesc = srvDesc;
+
         //m_shaderManager->SetSRV("baseMap", m_fallBackTexture, srvDesc, cubeHeapStartOffset); 
     }
 
@@ -361,13 +363,13 @@ void D3D12HelloRenderer::LoadAssets()
 
 
     //new: init the instance data:
-    { 
+    {
     }
 
 
     // Create synchronization objects and wait until assets have been uploaded to the GPU.
     {
-        ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+        ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf())));
         m_fenceValue = 1;
 
         // Create an event handle to use for frame synchronization.
@@ -384,52 +386,7 @@ void D3D12HelloRenderer::LoadAssets()
     }
 }
 
-// Update frame-based values.
-void D3D12HelloRenderer::OnUpdate()
-{
-	for (auto& proxy : m_staticMeshes)
-	{
-		auto constBufferHandle = proxy->constantBuffer;
-        if (constBufferHandle == nullptr) {
-            continue;
-        }
 
-		SceneConstantBuffer constBufferData = {}; 
-
-        XMMATRIX modelMatrix = XMMatrixIdentity();
-        //translate:
-		modelMatrix = XMMatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z()) * modelMatrix;
-		modelMatrix = XMMatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix;
-        XMStoreFloat4x4(&constBufferData.worldMatrix, modelMatrix);
-
-        //eye rotate around the origin
-        constexpr float speedDivisor = 50.0f; // Increase this number to slow it down
-        float angle = static_cast<float>((GetTickCount64() / static_cast<ULONGLONG>(speedDivisor)) % 360) * XM_PI / 180.0f;
-
-        float eyePosX = cosf(angle) * viewRadius;
-        float eyePosY = viewRadius * 0.4;
-        float eyePosZ = sinf(angle) * viewRadius; 
-
-        // Create view and projection matrices
-        //LH = left-handed coordinate system
-        XMMATRIX view = XMMatrixLookAtLH(
-            XMVectorSet(eyePosX, eyePosY, eyePosZ, 1.0f),  // Eye
-            XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),   // At
-            XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // Up
-        );
-
-        XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_aspectRatio, 0.1f, 100.0f);
-         
-        XMMATRIX vp = XMMatrixMultiply(view, proj);
-
-        XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
-
-		// Upload the constant buffer data.
-		constBufferHandle->UploadData(&constBufferData, sizeof(SceneConstantBuffer)); 
-	}
- 
-
-}
 
 // Render the scene.
 void D3D12HelloRenderer::OnRender()
@@ -492,17 +449,17 @@ void D3D12HelloRenderer::PopulateCommandList()
     m_shaderManager->SetDescriptorHeap(m_commandList);
 
     //drawcall loop
-	for (const auto& proxy : m_staticMeshes)
-    {  
+    for (const auto& proxy : m_staticMeshes)
+    {
         if (proxy->mesh == nullptr || proxy->mesh->GetVertexBuffer() == nullptr || proxy->mesh->GetIndexBuffer() == nullptr)
-		{
-			continue; // Skip if mesh is not valid
-		}
+        {
+            continue; // Skip if mesh is not valid
+        }
 
-		m_shaderManager->SetDescriptorTables(m_commandList, proxy->heapStartOffset);
+        m_shaderManager->SetDescriptorTables(m_commandList, proxy->heapStartOffset);
 
         //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_commandList->IASetPrimitiveTopology(proxy->mesh->GetTopology());
+        m_commandList->IASetPrimitiveTopology(proxy->mesh->GetTopology());
 
         m_commandList->IASetVertexBuffers(0, 1, &proxy->mesh->GetVertexBuffer()->GetVertexBufferView());
         m_commandList->IASetVertexBuffers(1, 1, &proxy->instanceProxy->instanceBuffer->GetVertexBufferView());
@@ -515,7 +472,7 @@ void D3D12HelloRenderer::PopulateCommandList()
         auto instanceCount = static_cast<UINT>(proxy->instanceProxy->instanceData.size());
         m_commandList->DrawIndexedInstanced(indiceCount, instanceCount, 0, 0, 0);
     }
-  
+
 
     // Indicate that the back buffer will now be used to present.
     m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -557,14 +514,14 @@ void D3D12HelloRenderer::GetHardwareAdapter(
     ComPtr<IDXGIAdapter1> adapter;
 
     ComPtr<IDXGIFactory6> factory6;
-    if (SUCCEEDED(pFactory->QueryInterface(IID_PPV_ARGS(&factory6))))
+    if (SUCCEEDED(pFactory->QueryInterface(IID_PPV_ARGS(factory6.GetAddressOf()))))
     {
         for (
             UINT adapterIndex = 0;
             DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(
                 adapterIndex,
                 requestHighPerformanceAdapter == true ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_UNSPECIFIED,
-                IID_PPV_ARGS(&adapter));
+                IID_PPV_ARGS(adapter.GetAddressOf()));
                 ++adapterIndex)
         {
             DXGI_ADAPTER_DESC1 desc;
@@ -654,185 +611,22 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateFallBackTextureData()
 
 
 
-void D3D12HelloRenderer::InitMeshAssets()
-{
-	auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
-
-
-    auto cubeMesh0 = CreateShared<CubeMesh>();
-    cubeMesh0->CreateGPUResource(m_device.Get());    
-	auto cubeMeshProxy0 = InitMesh(cubeMesh0,
-		{ -2.0f, 0.0f, 0.0f },  
-		{ 1.0f, 1.0f, 1.0f }  
-	); 
-
-    //new rigidbody:
-	auto rigidBody0 = new RigidBody(cubeMeshProxy0, cubeMeshProxy0->position);
-	cubeMeshProxy0->rigidBody = rigidBody0;  
-	physicsScene->AddRigidBody(rigidBody0);   
-
-	auto boxCollider0 = new Collider(cubeMeshProxy0, Box{ cubeMeshProxy0->scale }, rigidBody0); //half extents
-	cubeMeshProxy0->collider = boxCollider0; 
-	physicsScene->AddCollider(boxCollider0); 
-
-
-	auto cubeMesh1 = CreateShared<CubeMesh>();
-	cubeMesh1->CreateGPUResource(m_device.Get());
-	auto cubeMeshProxy1 = InitMesh(cubeMesh1 ,
-		{ 2.0f, 0.0f, 0.0f }, 
-		{ 1.0f, 1.0f, 1.0f }  
-	); 
-
-	//new rigidbody for the cube:
-	auto rigidBody1 = new RigidBody(cubeMeshProxy1, cubeMeshProxy1->position);
-	cubeMeshProxy1->rigidBody = rigidBody1;
-	physicsScene->AddRigidBody(rigidBody1); //add to the physics scene
-	auto boxCollider1 = new Collider(cubeMeshProxy1, Box{ cubeMeshProxy1->scale }, rigidBody1); //half extents
-	cubeMeshProxy1->collider = boxCollider1;
-	physicsScene->AddCollider(boxCollider1); //add to the physics scene
-
-    //set to static:
-	rigidBody1->mass = 0.0f; //set the mass to 0, so it is static
-	rigidBody1->simulatePhysics = false; //make the cube static, not affected by physics
-
-
-
-    auto cubeMesh2 = CreateShared<CubeMesh>();
-    cubeMesh2->CreateGPUResource(m_device.Get());
-    auto cubeMeshProxy2 = InitMesh(cubeMesh2,
-        { 1.0f, 5.0f, 0.0f },
-        { 1.0f, 1.0f, 1.0f }
-    );
-
-    //new rigidbody for the cube:
-    auto rigidBody2 = new RigidBody(cubeMeshProxy2, cubeMeshProxy2->position);
-    cubeMeshProxy2->rigidBody = rigidBody2;
-    physicsScene->AddRigidBody(rigidBody2); //add to the physics scene
-    auto boxCollider2 = new Collider(cubeMeshProxy2, Box{ cubeMeshProxy2->scale }, rigidBody2); //half extents
-    cubeMeshProxy2->collider = boxCollider2;
-    physicsScene->AddCollider(boxCollider2); //add to the physics scene
-
-
-
-    //cube4：
-	auto cubeMesh3 = CreateShared<CubeMesh>();
-	cubeMesh3->CreateGPUResource(m_device.Get());
-        
-	auto cubeMeshProxy3 = InitMesh(cubeMesh3,
-		{ 0.0f, 0.0f, 9.0f },
-		{ 1.0f, 1.0f, 1.0f }
-	); 
-	//new rigidbody for the cube:
-	auto rigidBody3 = new RigidBody(cubeMeshProxy3, cubeMeshProxy3->position);
-	cubeMeshProxy3->rigidBody = rigidBody3;
-	physicsScene->AddRigidBody(rigidBody3); //add to the physics scene
-	auto boxCollider4 = new Collider(cubeMeshProxy3, Box{ cubeMeshProxy3->scale }, rigidBody3); //half extents
-	cubeMeshProxy3->collider = boxCollider4;
-	physicsScene->AddCollider(boxCollider4); //add to the physics scene
-     
-  
-     
-	auto sphereMesh0 = CreateShared<SphereMesh>();
-	sphereMesh0->CreateGPUResource(m_device.Get());
-	auto sphereMeshProxy0 = InitMesh(sphereMesh0,
-		{ 3.5f, 4.0f, 0.0f },
-		{ 1.0f, 1.0f, 1.0f }
-	);
-
-	//new rigidbody for the sphere:
-	auto rigidBodySphere0 = new RigidBody(sphereMeshProxy0, sphereMeshProxy0->position);
-    sphereMeshProxy0->rigidBody = rigidBodySphere0;
-	physicsScene->AddRigidBody(rigidBodySphere0); //add to the physics scene
-	auto sphereCollider0 = new Collider(sphereMeshProxy0, Sphere{ sphereMeshProxy0->scale.x() }, rigidBodySphere0); //sphere radius
-	sphereMeshProxy0->collider = sphereCollider0;
-	physicsScene->AddCollider(sphereCollider0); //add to the physics scene
-
-	auto sphereMesh1 = CreateShared<SphereMesh>();
-	sphereMesh1->CreateGPUResource(m_device.Get());
-	auto sphereMeshProxy1 = InitMesh(sphereMesh1,
-		{ 0.0f, 0.0f, -3.0f },
-		{ 1.0f, 1.0f, 1.0f }
-	); 
-
-	//new rigidbody for the sphere:
-	auto rigidBodySphere1 = new RigidBody(sphereMeshProxy1, sphereMeshProxy1->position);
-	sphereMeshProxy1->rigidBody = rigidBodySphere1;
-	physicsScene->AddRigidBody(rigidBodySphere1); //add to the physics scene
-	auto sphereCollider1 = new Collider(sphereMeshProxy1, Sphere{ sphereMeshProxy1->scale.x() }, rigidBodySphere1); //sphere radius
-	sphereMeshProxy1->collider = sphereCollider1;
-	physicsScene->AddCollider(sphereCollider1); //add to the physics scene
-
-	//set to static:
-	rigidBodySphere1->mass = 0.0f; //set the mass to 0, so it is static
-	rigidBodySphere1->simulatePhysics = false; //make the sphere static, not affected by physics
-
-
-    //sphere2:
-	auto sphereMesh2 = CreateShared<SphereMesh>();
-	sphereMesh2->CreateGPUResource(m_device.Get());
-	auto sphereMeshProxy2 = InitMesh(sphereMesh2,
-		{ 0.0f, 4.0f, -3.7f },
-		{ 1.0f, 1.0f, 1.0f }
-	);
-
-	//new rigidbody for the sphere:
-	auto rigidBodySphere2 = new RigidBody(sphereMeshProxy2, sphereMeshProxy2->position);
-	sphereMeshProxy2->rigidBody = rigidBodySphere2;
-	physicsScene->AddRigidBody(rigidBodySphere2); //add to the physics scene
-	auto sphereCollider2 = new Collider(sphereMeshProxy2, Sphere{ sphereMeshProxy2->scale.x() }, rigidBodySphere2); //sphere radius
-	sphereMeshProxy2->collider = sphereCollider2;
-	physicsScene->AddCollider(sphereCollider2); //add to the physics scene
-
-     
-
-	auto plane0 = CreateShared<PlaneMesh>();
-	plane0->CreateGPUResource(m_device.Get());
-	auto planeMeshProxy = InitMesh(plane0,
-		{ 0.0f, -4.0f, 0.0f },
-		{ 15.0f, 15.0f, 15.0f }
-	); 
-
-	//add a rigidbody for the plane:
-	auto rigidBodyPlane = new RigidBody(planeMeshProxy, planeMeshProxy->position);
-	planeMeshProxy->rigidBody = rigidBodyPlane;
-	physicsScene->AddRigidBody(rigidBodyPlane); //add to the physics scene
-
-	rigidBodyPlane->mass = 0.0f; //set the mass to 0, so it is static
-	rigidBodyPlane->simulatePhysics = false; //make the plane static, not affected by physics
-
-	auto planeCollider = new Collider(planeMeshProxy, Plane{ planeMeshProxy->scale.x(), planeMeshProxy->scale.y() }, rigidBodyPlane); //plane size
-	planeMeshProxy->collider = planeCollider;
-	physicsScene->AddCollider(planeCollider); //add to the physics scene
-
-     
-
-	m_staticMeshes.push_back(cubeMeshProxy0);  
-	m_staticMeshes.push_back(cubeMeshProxy1);
-	m_staticMeshes.push_back(cubeMeshProxy2);
-	m_staticMeshes.push_back(cubeMeshProxy3);
-
-	m_staticMeshes.push_back(sphereMeshProxy0);
-	m_staticMeshes.push_back(sphereMeshProxy1);
-	m_staticMeshes.push_back(sphereMeshProxy2);
-
-	m_staticMeshes.push_back(planeMeshProxy);
-}
 
 
 void D3D12HelloRenderer::SetMeshDescriptors()
 {
-	for (auto& mesh : m_staticMeshes)
-	{  
-		m_shaderManager->SetSRV("baseMap", mesh->material->baseMapResource, mesh->material->baseMapSRV, mesh->heapStartOffset);
-		
-		auto constBufferRes = mesh->constantBuffer;
+    for (auto& mesh : m_staticMeshes)
+    {
+        m_shaderManager->SetSRV("baseMap", mesh->material->baseMapResource, mesh->material->baseMapSRV, mesh->heapStartOffset);
+
+        auto constBufferRes = mesh->constantBuffer;
         m_shaderManager->SetCBV("SceneConstantBuffer", constBufferRes->GetResource(), constBufferRes->GetCBVDesc(), mesh->heapStartOffset);
-	}
+    }
 }
 
 StaticMeshObjectProxy* D3D12HelloRenderer::InitMesh(SharedPtr<UStaticMesh> mesh,
-	FLOAT3 position,
-	FLOAT3 scale
+    FLOAT3 position,
+    FLOAT3 scale
 )
 {
     //------------------------------
@@ -865,7 +659,7 @@ StaticMeshObjectProxy* D3D12HelloRenderer::InitMesh(SharedPtr<UStaticMesh> mesh,
         EBufferUsage::Upload | EBufferUsage::Vertex
         });
 
-    instanceBuffer->UploadData(instanceData.data(), instanceBufferSize); 
+    instanceBuffer->UploadData(instanceData.data(), instanceBufferSize);
 
     //------------------------------
     auto meshProxy = new StaticMeshObjectProxy{
@@ -875,26 +669,215 @@ StaticMeshObjectProxy* D3D12HelloRenderer::InitMesh(SharedPtr<UStaticMesh> mesh,
         .mesh = mesh,
         .heapStartOffset = heapStartOffset,
 
-        .material = CreateShared<FMaterialProxy>( m_fallBackTexture, m_fallBackSRVDesc),
+        .material = CreateShared<FMaterialProxy>(m_fallBackTexture, m_fallBackSRVDesc),
 
         .constantBuffer = constBuffer,
-         
-		.instanceProxy = CreateShared<FInstanceProxy>(
-			FInstanceProxy{
-				.instanceData = instanceData,
-				.instanceBuffer = instanceBuffer
-			}
-		)
+
+        .instanceProxy = CreateShared<FInstanceProxy>(
+            FInstanceProxy{
+                .instanceData = instanceData,
+                .instanceBuffer = instanceBuffer
+            }
+        )
     };
 
-	return meshProxy;
+    return meshProxy;
 }
 
 
+
+void D3D12HelloRenderer::InitMeshAssets()
+{
+    auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
+
+
+    auto cubeMesh0 = CreateShared<CubeMesh>();
+    cubeMesh0->CreateGPUResource(m_device.Get());
+    auto cubeMeshProxy0 = InitMesh(cubeMesh0,
+        { -2.0f, 0.0f, 0.0f },
+        { 1.0f, 1.0f, 1.0f }
+    );
+
+    //new rigidbody:
+    auto rigidBody0 = new RigidBody(cubeMeshProxy0, cubeMeshProxy0->position);
+    cubeMeshProxy0->rigidBody = rigidBody0;
+    physicsScene->AddRigidBody(rigidBody0);
+
+    auto boxCollider0 = new Collider(cubeMeshProxy0, Box{ cubeMeshProxy0->scale }, rigidBody0); //half extents
+    cubeMeshProxy0->collider = boxCollider0;
+    physicsScene->AddCollider(boxCollider0);
+
+
+    auto cubeMesh1 = CreateShared<CubeMesh>();
+    cubeMesh1->CreateGPUResource(m_device.Get());
+    auto cubeMeshProxy1 = InitMesh(cubeMesh1,
+        { 2.0f, 0.0f, 0.0f },
+        { 1.0f, 1.0f, 1.0f }
+    );
+
+    //new rigidbody for the cube:
+    auto rigidBody1 = new RigidBody(cubeMeshProxy1, cubeMeshProxy1->position);
+    cubeMeshProxy1->rigidBody = rigidBody1;
+    physicsScene->AddRigidBody(rigidBody1); //add to the physics scene
+    auto boxCollider1 = new Collider(cubeMeshProxy1, Box{ cubeMeshProxy1->scale }, rigidBody1); //half extents
+    cubeMeshProxy1->collider = boxCollider1;
+    physicsScene->AddCollider(boxCollider1); //add to the physics scene
+
+    //set to static:
+    rigidBody1->mass = 0.0f; //set the mass to 0, so it is static
+    rigidBody1->simulatePhysics = false; //make the cube static, not affected by physics
+
+
+
+    auto cubeMesh2 = CreateShared<CubeMesh>();
+    cubeMesh2->CreateGPUResource(m_device.Get());
+    auto cubeMeshProxy2 = InitMesh(cubeMesh2,
+        { 1.0f, 5.0f, 0.0f },
+        { 1.0f, 1.0f, 1.0f }
+    );
+
+    //new rigidbody for the cube:
+    auto rigidBody2 = new RigidBody(cubeMeshProxy2, cubeMeshProxy2->position);
+    cubeMeshProxy2->rigidBody = rigidBody2;
+    physicsScene->AddRigidBody(rigidBody2); //add to the physics scene
+    auto boxCollider2 = new Collider(cubeMeshProxy2, Box{ cubeMeshProxy2->scale }, rigidBody2); //half extents
+    cubeMeshProxy2->collider = boxCollider2;
+    physicsScene->AddCollider(boxCollider2); //add to the physics scene
+
+
+    //cube4：
+    auto cubeMesh4 = CreateShared<CubeMesh>();
+    cubeMesh4->CreateGPUResource(m_device.Get());
+
+    auto cubeMeshProxy4 = InitMesh(cubeMesh4,
+        { 0.0f, 8.0f, 0.0f },
+        { 1.0f, 1.0f, 1.0f }
+    );
+    //new rigidbody for the cube:
+    auto rigidBody4 = new RigidBody(cubeMeshProxy4, cubeMeshProxy4->position);
+    cubeMeshProxy4->rigidBody = rigidBody4;
+    physicsScene->AddRigidBody(rigidBody4); //add to the physics scene
+    auto boxCollider4 = new Collider(cubeMeshProxy4, Box{ cubeMeshProxy4->scale }, rigidBody4); //half extents
+    cubeMeshProxy4->collider = boxCollider4;
+    physicsScene->AddCollider(boxCollider4); //add to the physics scene
+
+
+
+
+    //cube4：
+    auto cubeMesh3 = CreateShared<CubeMesh>();
+    cubeMesh3->CreateGPUResource(m_device.Get());
+
+    auto cubeMeshProxy3 = InitMesh(cubeMesh3,
+        { 0.0f, 0.0f, 9.0f },
+        { 1.0f, 1.0f, 1.0f }
+    );
+    //new rigidbody for the cube:
+    auto rigidBody3 = new RigidBody(cubeMeshProxy3, cubeMeshProxy3->position);
+    cubeMeshProxy3->rigidBody = rigidBody3;
+    physicsScene->AddRigidBody(rigidBody3); //add to the physics scene
+    auto boxCollider3 = new Collider(cubeMeshProxy3, Box{ cubeMeshProxy3->scale }, rigidBody3); //half extents
+    cubeMeshProxy3->collider = boxCollider3;
+    physicsScene->AddCollider(boxCollider3); //add to the physics scene
+
  
+
+
+    auto sphereMesh0 = CreateShared<SphereMesh>();
+    sphereMesh0->CreateGPUResource(m_device.Get());
+    auto sphereMeshProxy0 = InitMesh(sphereMesh0,
+        { 3.0f, 12.0f, 0.0f },
+        { 1.0f, 1.0f, 1.0f }
+    );
+
+    //new rigidbody for the sphere:
+    auto rigidBodySphere0 = new RigidBody(sphereMeshProxy0, sphereMeshProxy0->position);
+    sphereMeshProxy0->rigidBody = rigidBodySphere0;
+    physicsScene->AddRigidBody(rigidBodySphere0); //add to the physics scene
+    auto sphereCollider0 = new Collider(sphereMeshProxy0, Sphere{ sphereMeshProxy0->scale.x() }, rigidBodySphere0); //sphere radius
+    sphereMeshProxy0->collider = sphereCollider0;
+    physicsScene->AddCollider(sphereCollider0); //add to the physics scene
+
+
+
+
+    auto sphereMesh1 = CreateShared<SphereMesh>();
+    sphereMesh1->CreateGPUResource(m_device.Get());
+    auto sphereMeshProxy1 = InitMesh(sphereMesh1,
+        { 0.0f, 0.0f, -3.0f },
+        { 1.0f, 1.0f, 1.0f }
+    );
+
+    //new rigidbody for the sphere:
+    auto rigidBodySphere1 = new RigidBody(sphereMeshProxy1, sphereMeshProxy1->position);
+    sphereMeshProxy1->rigidBody = rigidBodySphere1;
+    physicsScene->AddRigidBody(rigidBodySphere1); //add to the physics scene
+    auto sphereCollider1 = new Collider(sphereMeshProxy1, Sphere{ sphereMeshProxy1->scale.x() }, rigidBodySphere1); //sphere radius
+    sphereMeshProxy1->collider = sphereCollider1;
+    physicsScene->AddCollider(sphereCollider1); //add to the physics scene
+
+    //set to static:
+    rigidBodySphere1->mass = 0.0f; //set the mass to 0, so it is static
+    rigidBodySphere1->simulatePhysics = false; //make the sphere static, not affected by physics
+
+
+    //sphere2:
+    auto sphereMesh2 = CreateShared<SphereMesh>();
+    sphereMesh2->CreateGPUResource(m_device.Get());
+    auto sphereMeshProxy2 = InitMesh(sphereMesh2,
+        { 0.0f, 4.0f, -3.7f },
+        { 1.0f, 1.0f, 1.0f }
+    );
+
+    //new rigidbody for the sphere:
+    auto rigidBodySphere2 = new RigidBody(sphereMeshProxy2, sphereMeshProxy2->position);
+    sphereMeshProxy2->rigidBody = rigidBodySphere2;
+    physicsScene->AddRigidBody(rigidBodySphere2); //add to the physics scene
+    auto sphereCollider2 = new Collider(sphereMeshProxy2, Sphere{ sphereMeshProxy2->scale.x() }, rigidBodySphere2); //sphere radius
+    sphereMeshProxy2->collider = sphereCollider2;
+    physicsScene->AddCollider(sphereCollider2); //add to the physics scene
+
+
+
+    auto plane0 = CreateShared<PlaneMesh>();
+    plane0->CreateGPUResource(m_device.Get());
+    auto planeMeshProxy = InitMesh(plane0,
+        { 0.0f, -4.0f, 0.0f },
+        { 15.0f, 15.0f, 15.0f }
+    );
+
+    //add a rigidbody for the plane:
+    auto rigidBodyPlane = new RigidBody(planeMeshProxy, planeMeshProxy->position);
+    planeMeshProxy->rigidBody = rigidBodyPlane;
+    physicsScene->AddRigidBody(rigidBodyPlane); //add to the physics scene
+
+    rigidBodyPlane->mass = 0.0f; //set the mass to 0, so it is static
+    rigidBodyPlane->simulatePhysics = false; //make the plane static, not affected by physics
+
+    auto planeCollider = new Collider(planeMeshProxy, Plane{ planeMeshProxy->scale.x(), planeMeshProxy->scale.y() }, rigidBodyPlane); //plane size
+    planeMeshProxy->collider = planeCollider;
+    physicsScene->AddCollider(planeCollider); //add to the physics scene
+
+
+
+    m_staticMeshes.push_back(cubeMeshProxy0);
+    m_staticMeshes.push_back(cubeMeshProxy1);
+    m_staticMeshes.push_back(cubeMeshProxy2);
+    m_staticMeshes.push_back(cubeMeshProxy3);
+    m_staticMeshes.push_back(cubeMeshProxy4);
+
+    m_staticMeshes.push_back(sphereMeshProxy0);
+    m_staticMeshes.push_back(sphereMeshProxy1);
+    m_staticMeshes.push_back(sphereMeshProxy2);
+
+    m_staticMeshes.push_back(planeMeshProxy);
+}
+
+
+
 std::vector<InstanceData> D3D12HelloRenderer::GenerateInstanceData()
 {
-	std::vector<InstanceData> instanceData;
+    std::vector<InstanceData> instanceData;
 
     // Estimate cube grid dimensions (cubical or close)
     int gridSize = static_cast<int>(std::ceil(std::cbrt(instanceCount)));
@@ -917,7 +900,80 @@ std::vector<InstanceData> D3D12HelloRenderer::GenerateInstanceData()
         instanceData.push_back(_data);
     }
 
-	return instanceData;
+    return instanceData;
 }
 
- 
+
+
+// Update frame-based values.
+void D3D12HelloRenderer::OnUpdate(float delta)
+{
+    for (auto& proxy : m_staticMeshes)
+    {
+        auto constBufferHandle = proxy->constantBuffer;
+        if (constBufferHandle == nullptr) {
+            continue;
+        }
+
+        //eye rotate around the origin
+        constexpr float speedDivisor = 50.0f; // Increase this number to slow it down
+        float angle = static_cast<float>((GetTickCount64() / static_cast<ULONGLONG>(speedDivisor)) % 360) * XM_PI / 180.0f;
+
+
+        //auto yAxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+        //auto rotation = XMQuaternionRotationAxis(yAxis, delta);
+        //proxy->rotation = XMQuaternionMultiply(rotation, proxy->rotation);
+
+        SceneConstantBuffer constBufferData = {}; 
+
+		auto modelMatrix_ = MMath::MatrixIdentity<float,4>();
+		modelMatrix_ = MMath::MatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix_;   
+
+        //modelMatrix = MMath::MatrixRotationQuaternion(proxy->rotation) * modelMatrix;
+        //translate:
+        auto translation = MMath::MatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
+        modelMatrix_ = translation * modelMatrix_;
+
+        //XMStoreFloat4x4(&constBufferData.modelMatrix, modelMatrix); 
+        constBufferData.modelMatrix = modelMatrix_; 
+      
+
+        float eyePosX = cos(angle) * viewRadius;
+        float eyePosY = viewRadius * 0.3;
+        float eyePosZ = sin(angle) * viewRadius;
+
+        // Create view and projection matrices
+        ////LH = left-handed coordinate system
+        //XMMATRIX view = XMMatrixLookAtLH(
+        //    XMVectorSet(eyePosX, eyePosY, eyePosZ, 1.0f),  // Eye
+        //    XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),   // At
+        //    XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // Up
+        //);
+
+		auto view_ = MMath::LookAtLH(
+			{ eyePosX, eyePosY, eyePosZ }, // Eye
+			{ 0.0f, 0.0f, 0.0f },          // At
+			{ 0.0f, 1.0f, 0.0f }           // Up
+		); 
+
+       // XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_aspectRatio, 0.1f, 100.0f);
+		auto proj_ = MMath::PerspectiveFovLH(
+			MMath::ToRadians(45.0f),  
+			m_aspectRatio,  
+			0.1f,  
+			1000.0f  
+		);
+
+        //XMMATRIX vp = XMMatrixMultiply(view, proj);
+		auto pv = proj_ * view_;
+		//auto vp = MMath::MatrixMultiply(view, proj);
+
+        //XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
+       constBufferData.projectionViewMatrix = pv;
+
+        // Upload the constant buffer data.
+        constBufferHandle->UploadData(&constBufferData, sizeof(SceneConstantBuffer));
+    }
+
+
+}

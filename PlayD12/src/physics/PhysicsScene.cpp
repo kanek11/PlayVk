@@ -1,24 +1,23 @@
 ﻿#include "PCH.h"
 #include "PhysicsScene.h"
 
-#include "Render/Renderer.h"
-
+#include "Render/Renderer.h" 
 
 #include "Collision.h" 
 
 
-void PhysicalScene::Tick(float delta)
+void PhysicsScene::Tick(float delta)
 {
 	//std::cout << "tick physics: " << delta << '\n';
 
-	PreSimulation(); 
+	PreSimulation();
 
 	ApplyExternalForce(delta);
 
 	IntegrateVelocity(delta);
-	 
+
 	DetectCollisions();
-	
+
 	ResolveContacts(delta);
 
 	IntegratePosition(delta);
@@ -26,47 +25,48 @@ void PhysicalScene::Tick(float delta)
 	PostSimulation();
 }
 
-void PhysicalScene::OnInit()
+void PhysicsScene::OnInit()
 {
 }
 
-void PhysicalScene::OnDestroy()
+void PhysicsScene::OnDestroy()
 {
 }
 
-void PhysicalScene::AddRigidBody(RigidBody* rb)
+void PhysicsScene::AddRigidBody(RigidBody* rb)
 {
 	this->m_bodies.push_back(rb);
 }
 
-void PhysicalScene::PreSimulation()
+void PhysicsScene::PreSimulation()
 {
 	//for (auto& collider : m_colliders) {
 	//	//collider->GetWorldPosition(); 
 	//}
 }
 
-void PhysicalScene::ApplyExternalForce(float delta)
-{ 
-	for (auto& rb : m_bodies) { 
+void PhysicsScene::ApplyExternalForce(float delta)
+{
+	for (auto& rb : m_bodies) {
 		if (!rb->simulatePhysics) continue;
 		rb->ApplyForce(this->gravity);
 	}
 }
 
-void PhysicalScene::IntegrateVelocity(float delta)
+void PhysicsScene::IntegrateVelocity(float delta)
 {
 	for (auto& rb : m_bodies) {
 		if (!rb->simulatePhysics) continue;
-		rb->linearVelocity = rb->linearVelocity + rb->force / rb->mass * delta;
+		rb->linearVelocity = rb->linearVelocity + rb->force / rb->mass * delta ;
+		//rb->linearVelocity *= 0.99f;  //test damping;
 		rb->force = FLOAT3{};
 	}
 }
 
 
- 
 
-void PhysicalScene::DetectCollisions()
+
+void PhysicsScene::DetectCollisions()
 {
 	m_contacts.clear();
 
@@ -76,9 +76,9 @@ void PhysicalScene::DetectCollisions()
 	ws.reserve(m_colliders.size());
 	for (Collider* c : m_colliders) {
 		WorldShapeProxy proxy = { MakeWorldShape(*c), c };
-		ws.push_back(proxy); 
+		ws.push_back(proxy);
 	}
-	 
+
 	for (size_t i = 0; i < ws.size(); ++i)
 		for (size_t j = i + 1; j < ws.size(); ++j)
 		{
@@ -94,83 +94,115 @@ void PhysicalScene::DetectCollisions()
 						//std::cout << "Collision detected: " << typeid(decltype(sa)).name() << " vs " << typeid(decltype(sb)).name() << std::endl;
 
 						m_contacts.emplace_back(std::move(c));
-					} 
+					}
 
 				}, A.shape, B.shape);
-		} 
+		}
 
-	//
-	// 
-	std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
+	//std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
 
 }
 
-void PhysicalScene::ResolveContacts(float dt)
+void PhysicsScene::ResolveContacts(float dt)
 {
-	constexpr float slop = 0.005f;      // penetration allowance
-	constexpr float beta = 0.2f;        // Baumgarte factor
+	//Baumgarte stabilization;
+	constexpr float slop = 0.005f;      // simply penetration allowance
+	constexpr float beta = 0.2f;        // Baumgarte factor; 0~1 and bias to 0;
 	constexpr float bounceThreshold = 1.0f;    // m/s
 	constexpr float restingThreshold = 0.01f;  // m/s
-	constexpr int   iterations = 8;            // solver passes
+	constexpr int   iterations = 1;            // solver passes
 
 	for (int pass = 0; pass < iterations; ++pass) {
-		for (Contact& c : m_contacts) {
-			RigidBody* A = c.a->body;
-			RigidBody* B = c.b->body;
+		for (Contact& contact : m_contacts) {
+			RigidBody* A = contact.a->body;
+			RigidBody* B = contact.b->body;
+
 			float invMassA = (A && A->mass > 0.f) ? 1.f / A->mass : 0.f;
 			float invMassB = (B && B->mass > 0.f) ? 1.f / B->mass : 0.f;
 			float invMassSum = invMassA + invMassB;
 			if (invMassSum == 0.f) continue;
 
-			// --- 1) 统一法线方向（normal from B→A）---
-			FLOAT3 n = c.normal;
+			// B 2 A 
+			FLOAT3 normal = contact.normal;
 
-			// --- 2) 计算相对速度：fix sign ---
+			// --- relative vel
 			FLOAT3 velA = A ? A->linearVelocity : FLOAT3{ 0,0,0 };
 			FLOAT3 velB = B ? B->linearVelocity : FLOAT3{ 0,0,0 };
-			FLOAT3 relVel = velA - velB;             // was velB - velA
-			float vn = Dot(relVel, n);               // 正值表示正在接近 (approaching)
+			FLOAT3 relVel = velA - velB;            
 
-			// --- 3) Baumgarte 位置修正 (positional bias) ---
-			float penetration = std::max(c.penetration - slop, 0.f);
-			float bias = (beta / dt) * penetration;  // positive → 推离更快
+			//normal component ;  
+			//bug fix: approaching if negative;  
+			float vn_l = Dot(relVel, normal);    
+			 
 
-			// --- 4) 弹性系数 ---
-			float restitution = 0.0f; // 弹性系数，0-1之间
-			float e = (vn < -bounceThreshold) ? restitution : 0.f;
-			// “静止”时不再反弹
-			if (std::abs(vn) < restingThreshold) vn = 0.f;
+			// --- 3) Baumgarte positional bias ---
+			float penetration = std::max(contact.penetration - slop, 0.f);
+			float bias = (beta / dt) * penetration;  // positive = push fast
 
-			// --- 5) 计算脉冲强度 (impulse scalar) ---
-			float j = 0.f;
-			if (vn < 0.f) {
-				// approaching
-				j = -(1.f + e) * vn + bias;
-				j /= invMassSum;
+		 
+			//Coefficient of restitution
+			//a perfectly elastic will flip the velocity.
+			float eA = A ? A->material.restitution : 0.f;
+			float eB = B ? B->material.restitution : 0.f;
+			float e = std::min(eA, eB);
+			float rt_Impulse = (vn_l < -bounceThreshold) ? e : 0.f;
+
+			//set 0 when almost static
+			if (std::abs(vn_l) < restingThreshold) vn_l = 0.f; 
+
+			//impulse scalar j
+			float jn = 0.f;
+
+			// approaching
+			if (vn_l < 0.f) {
+				jn = -(1.f + rt_Impulse) * vn_l + bias;
+				jn /= invMassSum;
 			}
+			//already separate
 			else {
-				continue; // 分离或静止，无需处理
+				continue; 
 			}
 
-			// --- 6) 应用脉冲 ---
-			FLOAT3 impulse = n * j;
+			// apply impulse on normal direction
+			FLOAT3 impulse = normal * jn;
 			if (A) A->linearVelocity += impulse * invMassA;
 			if (B) B->linearVelocity -= impulse * invMassB;
+
+
+			//tangent direction:
+			FLOAT3 vt = relVel - normal * vn_l; 
+
+			//end loop when too small;
+			if (LengthSq(vt) < 1e-6f)  continue;
+
+			FLOAT3 vt_unit = Normalize(vt); 
+			float jt = -Dot(relVel, vt_unit) / invMassSum; 
+
+			//Coulomb
+			float muA = A ? A->material.friction : 0.f;
+			float muB = B ? B->material.friction : 0.f;
+			float mu = std::sqrt(muA * muB);
+			float jtMax = mu * jn;
+			jt = std::clamp(jt, -jtMax, jtMax);
+			
+			FLOAT3 impulseT = vt_unit * jt;
+			if (A) A->linearVelocity += impulseT * invMassA;
+			if (B) B->linearVelocity -= impulseT * invMassB; 
 		}
 	}
 }
 
-void PhysicalScene::IntegratePosition(float delta)
+void PhysicsScene::IntegratePosition(float delta)
 {
-	for (auto& rb : m_bodies) { 
+	for (auto& rb : m_bodies) {
 		if (!rb->simulatePhysics) continue;
-		rb->position = rb->position + rb->linearVelocity * delta;
+		rb->position = rb->position + rb->linearVelocity * delta ;
 	}
 }
 
-void PhysicalScene::PostSimulation()
-{ 
-	for (auto& rb : m_bodies) { 
-		rb->owner->SetWorldPosition(rb->position); 
+void PhysicsScene::PostSimulation()
+{
+	for (auto& rb : m_bodies) {
+		rb->owner->SetWorldPosition(rb->position);
 	}
 }

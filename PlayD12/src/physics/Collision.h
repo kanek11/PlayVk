@@ -4,29 +4,40 @@
 #include "Shape.h" 
 #include "PhysicsScene.h"
 
-//std::min, max
+//std::min, max, clamp..
 #include <algorithm>
+
+/*
+* convention:
+* the contact normal is :  b to a;
+
+*/
 
 
 struct AABB { FLOAT3 min, max; };
+
+//struct OBB { FLOAT3 min, max; }; 
+
 struct SphereWS { FLOAT3 center; float radius; };
 struct CapsuleWS { FLOAT3 p0, p1; float radius; };
-struct PlaneWS {  
-    FLOAT3 normal; 
-    float d; 
+
+// dot(p,n)+d = 0
+struct PlaneWS {
+    FLOAT3 normal;
+    float d;
     float width;
-    float height; 
+    float height;
     FLOAT3 center;
     FLOAT3 right = { 1, 0, 0 };
-    FLOAT3 forward = { 0, 0, 1 }; 
-};   // dot(p,n)+d = 0
+    FLOAT3 forward = { 0, 0, 1 };
+};  
 
-using WorldShape = std::variant<SphereWS, AABB, CapsuleWS, PlaneWS>;
+using WorldShape = std::variant<SphereWS, AABB, PlaneWS>;
 
 struct WorldShapeProxy
 {
-    WorldShape shape;   
-    Collider* owner; 
+    WorldShape shape;
+    Collider* owner;
 };
 
 WorldShape MakeWorldShape(const Collider& c)
@@ -34,24 +45,24 @@ WorldShape MakeWorldShape(const Collider& c)
     return std::visit([&](auto const& s) -> WorldShape {
 
         using Shape = std::decay_t<decltype(s)>;
-         
+
         if constexpr (std::is_same_v<Shape, Sphere>)
         {
-            const FLOAT3 center = (c.body ? c.body->position : FLOAT3{}) + c.localOffset;
+            const FLOAT3 center = (c.body ? c.body->position : FLOAT3{}) ;
             return SphereWS{ center, s.radius };
-        } 
+        }
         else if constexpr (std::is_same_v<Shape, Box>)
         {
-            const FLOAT3 center = (c.body ? c.body->position : FLOAT3{}) + c.localOffset;
+            const FLOAT3 center = (c.body ? c.body->position : FLOAT3{}) ;
             return AABB{ center - s.halfExtents, center + s.halfExtents };
-        } 
+        }
         else if constexpr (std::is_same_v<Shape, Plane>)
         {
-			const FLOAT3 n = FLOAT3{ 0, 1, 0 }; //assuming the plane is horizontal for now  
+            const FLOAT3 n = FLOAT3{ 0, 1, 0 }; //assuming the plane is horizontal for now  
             const float  d = -Dot(n, (c.body ? c.body->position : FLOAT3{}));
-            const FLOAT3 center = (c.body ? c.body->position : FLOAT3{}) + c.localOffset;
+            const FLOAT3 center = (c.body ? c.body->position : FLOAT3{});
 
-			return PlaneWS{ n, d , s.width, s.height, center };
+            return PlaneWS{ n, d , s.width, s.height, center };
         }
         else
         {
@@ -66,21 +77,40 @@ WorldShape MakeWorldShape(const Collider& c)
 
 //fallback for unsupported shape combinations
 template<class A, class B> [[nodiscard]]
-    inline bool Collide(const A& a, const B& b, Contact& out) {
-        std::cout << "Unsupported collision: "
-            << typeid(A).name() << " vs " << typeid(B).name() << std::endl;
-        return false;
-    }
+inline bool Collide(const A& a, const B& b, Contact& out) {
+    std::cout << "Unsupported collision: "
+        << typeid(A).name() << " vs " << typeid(B).name() << std::endl;
+    return false;
+}
+
+
+struct Interval {
+    float min, max;
+};
+
+bool IntervalOverlap(Interval a, Interval b ) {
+
+    if (a.max < b.min || a.min > b.max) return false;
+    return true;
+}
 
 [[nodiscard]]
 bool Collide(const AABB& a, const AABB& b, Contact& out)
-{ 
-	//std::cout << "Collide AABB with AABB" << std::endl;
+{
+    //std::cout << "Collide AABB with AABB" << std::endl;
 
-    if (a.max.x() < b.min.x() || a.min.x() > b.max.x()) return false;
-    if (a.max.y() < b.min.y() || a.min.y() > b.max.y()) return false;
-    if (a.max.z() < b.min.z() || a.min.z() > b.max.z()) return false;
-     
+    //run a interval overlap
+    //if (a.max.x() < b.min.x() || a.min.x() > b.max.x()) return false;
+    //if (a.max.y() < b.min.y() || a.min.y() > b.max.y()) return false;
+    //if (a.max.z() < b.min.z() || a.min.z() > b.max.z()) return false;
+
+    //---------------------
+    if (!IntervalOverlap({ a.min.x(), a.max.x() }, { b.min.x(), b.max.x() })) return false;
+    if (!IntervalOverlap({ a.min.y(), a.max.y() }, { b.min.y(), b.max.y() })) return false;
+    if (!IntervalOverlap({ a.min.z(), a.max.z() }, { b.min.z(), b.max.z() })) return false; 
+
+
+    //---------------------
     float dx = std::min(a.max.x() - b.min.x(), b.max.x() - a.min.x());
     float dy = std::min(a.max.y() - b.min.y(), b.max.y() - a.min.y());
     float dz = std::min(a.max.z() - b.min.z(), b.max.z() - a.min.z());
@@ -88,6 +118,7 @@ bool Collide(const AABB& a, const AABB& b, Contact& out)
     FLOAT3 normal;
     float penetration;
 
+    //decide on minimum overlap and normal dir.
     if (dx < dy && dx < dz) {
         normal = (a.min.x() < b.min.x()) ? FLOAT3{ -1, 0, 0 } : FLOAT3{ 1, 0, 0 };
         penetration = dx;
@@ -100,7 +131,7 @@ bool Collide(const AABB& a, const AABB& b, Contact& out)
         normal = (a.min.z() < b.min.z()) ? FLOAT3{ 0, 0, -1 } : FLOAT3{ 0, 0, 1 };
         penetration = dz;
     }
-     
+
     FLOAT3 point = (FLOAT3{
         std::max(a.min.x(), b.min.x()),
         std::max(a.min.y(), b.min.y()),
@@ -117,62 +148,66 @@ bool Collide(const AABB& a, const AABB& b, Contact& out)
 
     return true;
 }
-     
-[[nodiscard]]
-[[nodiscard]]
+
+[[nodiscard]] 
 bool Collide(const SphereWS& a, const SphereWS& b, Contact& out)
 {
-    std::cout << "Collide Sphere with Sphere" << std::endl;
-
-    // 1. 计算球心向量及距离
-    FLOAT3 ab = b.center - a.center;
-    float  distSq = Dot(ab, ab);
-    float  r = a.radius + b.radius;
-
-    // 不相交
-    if (distSq >= r * r)
+    //std::cout << "Collide Sphere with Sphere" << std::endl;
+         
+    FLOAT3 a2b = b.center - a.center;
+    float  distSq = LengthSq(a2b);
+    float  r_sum = a.radius + b.radius;
+         
+    if (distSq >= r_sum * r_sum)
         return false;
 
     float dist = std::sqrt(distSq);
-    float penetration = r - dist; // 始终为正
-
-    // 2. 法线：从 B→A，单位化 (normalize)
+    float penetration = r_sum - dist;  
+         
+    //defensive check.
+    //bug fix : if the direction is negative; the spheres will get entangled;
     FLOAT3 normal;
     if (dist > 1e-6f)
-        normal = (a.center - b.center) / dist;
+        normal = Normalize(-1.0f * a2b);
     else
-        normal = FLOAT3{ 1, 0, 0 }; // fallback
-
-    // 3. 接触点：两球表面中点 (midpoint of surface points)
+        normal = FLOAT3{ 1, 0, 0 }; //meaningless fallback
+         
+    //take the middle:
     FLOAT3 surfaceA = a.center - normal * a.radius;
     FLOAT3 surfaceB = b.center + normal * b.radius;
-    FLOAT3 point = (surfaceA + surfaceB) * 0.5f;
-
-    // 输出
+    FLOAT3 contactPoint = (surfaceA + surfaceB) * 0.5f;
+         
     out.normal = normal;
-    out.point = point;
+    out.point = contactPoint;
     out.penetration = penetration;
     return true;
 }
- 
+
+
+FLOAT3 ClosedPoint(const AABB& box, const FLOAT3& point) {
+    FLOAT3 closestPoint{
+std::clamp(point.x(), box.min.x(), box.max.x()),
+std::clamp(point.y(), box.min.y(), box.max.y()),
+std::clamp(point.z(), box.min.z(), box.max.z())
+    };
+
+    return closestPoint;
+}
+
 [[nodiscard]]
 bool Collide(const SphereWS& s, const AABB& box, Contact& out)
 {
-	//std::cout << "Collide Sphere with AABB" << std::endl;
+    //std::cout << "Collide Sphere with AABB" << std::endl;
 
-    FLOAT3 closestPoint{
-    std::clamp(s.center.x(), box.min.x(), box.max.x()),
-    std::clamp(s.center.y(), box.min.y(), box.max.y()),
-    std::clamp(s.center.z(), box.min.z(), box.max.z())
-    };
+    FLOAT3 closestPoint = ClosedPoint(box, s.center);
 
-    FLOAT3 delta = s.center - closestPoint;
-    float distSq = Dot(delta, delta);
+    FLOAT3 offset = s.center - closestPoint;
+    float distSq = LengthSq(offset);
 
     if (distSq > s.radius * s.radius) return false;
 
     float dist = std::sqrt(distSq);
-    FLOAT3 normal = dist > 0.0001f ? delta / dist : FLOAT3{ 0, 1, 0 };  
+    FLOAT3 normal = dist > 0.0001f ? offset / dist : FLOAT3{ 0, 1, 0 };
     FLOAT3 point = closestPoint;
 
     out.normal = normal;
@@ -184,12 +219,12 @@ bool Collide(const SphereWS& s, const AABB& box, Contact& out)
 
 [[nodiscard]]
 bool Collide(const AABB& box, const SphereWS& s, Contact& out)
-{ 
-	//std::cout << "Collide AABB with Sphere" << std::endl;
+{
+    //std::cout << "Collide AABB with Sphere" << std::endl;
 
     if (!Collide(s, box, out)) return false;
 
-    out.normal = out.normal *  -1.0f;
+    out.normal = out.normal * -1.0f;
     return true;
 }
 
@@ -209,21 +244,21 @@ bool Collide(const AABB& box, const PlaneWS& plane, Contact& out)
 
     if (std::abs(d) > r)
         return false;  // no intersection
-
-    // -------- NEW: 投影点是否在 Plane 的矩形内 --------
-    FLOAT3 projected = center - plane.normal * d; // 投影到平面
+         
+    FLOAT3 projected = center - plane.normal * d;  
     FLOAT3 localVec = projected - plane.center;
 
+    //------------------------------
     float u = Dot(localVec, plane.right);
     float v = Dot(localVec, plane.forward);
 
-    if (std::abs(u) > plane.width * 0.5f || std::abs(v) > plane.height * 0.5f)
-        return false; // 落点超出 plane 面片边界
+    if (std::abs(u) > plane.width * 0.5f + extents.x() || std::abs(v) > plane.height * 0.5f + extents.z())
+        return false; 
 
-  
     out.normal = (d < 0) ? plane.normal * -1.0f : plane.normal;
     out.penetration = r - std::abs(d);
     out.point = projected;
+
 
     return true;
 }
@@ -231,7 +266,7 @@ bool Collide(const AABB& box, const PlaneWS& plane, Contact& out)
 [[nodiscard]]
 bool Collide(const PlaneWS& plane, const AABB& box, Contact& out)
 {
-	//std::cout << "Collide Plane with AABB" << std::endl;
+    //std::cout << "Collide Plane with AABB" << std::endl;
     if (!Collide(box, plane, out)) return false;
 
     out.normal = out.normal * -1.0f;
@@ -240,27 +275,36 @@ bool Collide(const PlaneWS& plane, const AABB& box, Contact& out)
 }
 
 
+inline float SignedDist(const PlaneWS& plane, const FLOAT3& point) {
+
+    return Dot(plane.normal, point) + plane.d; 
+}
+
 // Sphere vs Plane
 [[nodiscard]]
 bool Collide(const SphereWS& s, const PlaneWS& plane, Contact& out)
 {
     //std::cout << "Collide Sphere with Plane" << std::endl;
-
-    FLOAT3 local = s.center - plane.center;
-    float u = Dot(local, plane.right);
-    float v = Dot(local, plane.forward);
-    if (std::abs(u) > plane.width * 0.5f || std::abs(v) > plane.height * 0.5f)
-        return false;
-
      
-    float signedDist = Dot(plane.normal, s.center) + plane.d;
-     
+    //-----------------------
+    float signedDist = SignedDist(plane, s.center);
+
     if (std::abs(signedDist) > s.radius)
         return false;
+
      
-    out.normal = (signedDist < 0.f) ? (plane.normal * -1.f) : plane.normal; 
-    out.penetration = s.radius - std::abs(signedDist); 
-    out.point = s.center - plane.normal * signedDist; 
+    //----------------------- 
+    FLOAT3 max = plane.center + 0.5f * plane.right * plane.width + 0.5f * plane.forward * plane.height;
+    FLOAT3 min = plane.center - 0.5f * plane.right * plane.width - 0.5f * plane.forward * plane.height;
+    AABB mimicAABB = AABB{ min, max };
+
+    if (!Collide(s, mimicAABB, out))
+        return false;
+      
+    ////-----------------------
+    //out.normal = (signedDist < 0.f) ? (plane.normal * -1.f) : plane.normal;
+    //out.penetration = s.radius - std::abs(signedDist);
+    //out.point = s.center - plane.normal * signedDist;
     return true;
 }
 
@@ -269,12 +313,10 @@ bool Collide(const SphereWS& s, const PlaneWS& plane, Contact& out)
 bool Collide(const PlaneWS& plane, const SphereWS& s, Contact& out)
 {
     //std::cout << "Collide Plane with Sphere" << std::endl;
-
-    // 调用上面的 Sphere–Plane
+         
     if (!Collide(s, plane, out))
         return false;
-
-    // 反转法线和碰撞双方
+         
     out.normal *= -1.f;
     std::swap(out.a, out.b);
 

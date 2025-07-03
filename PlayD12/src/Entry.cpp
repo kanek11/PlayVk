@@ -161,7 +161,7 @@ void TestMath()
 		assert(mat2[0][0] == 1.f && mat2[0][1] == 2.f && mat2[0][2] == 3.f); 
 		 
 		 
-		auto mat3 = MMath::IdentityMatrix<float, 3>();
+		auto mat3 = MMath::MatrixIdentity<float, 3>();
 
 		auto col0 = FLOAT3{ 1.f, 2.f, 3.f };
 		auto col1 = FLOAT3{ 4.f, 5.f, 6.f };

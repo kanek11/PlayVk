@@ -4,17 +4,25 @@
 
 #include "Resource.h"
 
-#include "Math/MMath.h"
+#include "Math/Vector.h"
 
 //abstract of mesh; only consider static mesh for now;
 
 
-using namespace DirectX; 
- 
+using namespace DirectX;
+
+//using FLOAT3 = XMFLOAT3;
+//using FLOAT2 = XMFLOAT2;
+//using FLOAT4 = XMFLOAT4;
+
+using FLOAT3 = MMath::FLOAT3;
+using FLOAT2 = MMath::FLOAT2;
+using FLOAT4 = MMath::FLOAT4;
+
 using INDEX_FORMAT = uint16_t;
 
 
-struct D3D12InputDesc {
+struct FD3D12InputDesc {
 	std::string semanticName;
 	uint32_t semanticIndex = 0;
 	DXGI_FORMAT format;
@@ -36,9 +44,9 @@ struct StaticMeshVertex
 
 struct StaticMeshInputDesc
 {
-	static const std::vector<D3D12InputDesc>& GetInputDescs()
+	static const std::vector<FD3D12InputDesc>& GetInputDescs()
 	{
-		static const std::vector<D3D12InputDesc> table =
+		static const std::vector<FD3D12InputDesc> table =
 		{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, position), sizeof(FLOAT3), 16 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, normal), sizeof(FLOAT3), 16 },
@@ -89,17 +97,17 @@ struct StaticMeshData
 
 
 class FD3D12MeshResource {
-public: 
+public:
 	virtual ~FD3D12MeshResource() = default;
-	FD3D12MeshResource(ID3D12Device* device, const StaticMeshData& meshData):
+	FD3D12MeshResource(ID3D12Device* device, const StaticMeshData& meshData) :
 		m_device(device),
-		m_meshData(meshData) 
-	{ 
+		m_meshData(meshData)
+	{
 		CreateResources();
 	}
 
-	void CreateResources(); 
-	
+	void CreateResources();
+
 
 public:
 	const StaticMeshData& m_meshData; // Reference to the mesh data
@@ -113,15 +121,15 @@ private:
 
 
 class UStaticMesh {
-public: 
+public:
 	virtual ~UStaticMesh() = default;
-	UStaticMesh() = default; 
+	UStaticMesh() = default;
 
 public:
 	virtual void CreateMeshData() = 0;
 
 public:
-	void CreateGPUResource(ID3D12Device* device) ; 
+	void CreateGPUResource(ID3D12Device* device);
 
 public:
 	//getters:
@@ -158,16 +166,16 @@ public:
 	}
 
 
-public: 
+public:
 	StaticMeshData m_meshData;
 
-	SharedPtr<FD3D12MeshResource> m_GPUResource; 
+	SharedPtr<FD3D12MeshResource> m_GPUResource;
 };
 
 
 class CubeMesh : public UStaticMesh {
 public:
-	virtual ~CubeMesh() = default; 
+	virtual ~CubeMesh() = default;
 	CubeMesh();
 
 	void CreateMeshData() override;

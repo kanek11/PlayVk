@@ -3,13 +3,14 @@
 
 #include "Window.h" 
 #include "D12Helper.h"
-
-
+ 
 #include "Resource.h"
 #include "Mesh.h"
 #include "Shader.h"
 
-#include "physics/PhysicsScene.h"
+#include "Physics/PhysicsScene.h"
+
+#include "Math/MMath.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -33,6 +34,7 @@ struct FMaterialProxy {
 //strip out the minimum to render a static mesh:
 struct StaticMeshObjectProxy {
     FLOAT3 position = { 0.0f, 0.0f, 0.0f };
+    XMVECTOR rotation = XMQuaternionIdentity();
     FLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 
     SharedPtr<UStaticMesh> mesh;
@@ -45,19 +47,19 @@ struct StaticMeshObjectProxy {
 
     SharedPtr<FInstanceProxy> instanceProxy;
 
-	//new: for physics:
-    RigidBody* rigidBody{ nullptr }; 
-	Collider* collider{ nullptr };
+    //new: for physics:
+    RigidBody* rigidBody{ nullptr };
+    Collider* collider{ nullptr };
 
-	void SetWorldPosition(const FLOAT3& newPosition) {
-		position = newPosition;
-	}
+    void SetWorldPosition(const FLOAT3& newPosition) {
+        position = newPosition;
+    }
 };
 
 
 
 
- 
+
 
 class D3D12HelloRenderer
 {
@@ -65,7 +67,7 @@ public:
     D3D12HelloRenderer(UINT width, UINT height, std::wstring name, SharedPtr<WindowBase>);
 
     virtual void OnInit();
-    virtual void OnUpdate();
+    virtual void OnUpdate(float delta);
     virtual void OnRender();
     virtual void OnDestroy();
 
@@ -76,7 +78,7 @@ private:
     CD3DX12_VIEWPORT m_viewport;
     CD3DX12_RECT m_scissorRect;
     ComPtr<IDXGISwapChain3> m_swapChain;
-    ComPtr<ID3D12Device> m_device; 
+    ComPtr<ID3D12Device> m_device;
 
     ComPtr<ID3D12CommandAllocator> m_commandAllocator;
     ComPtr<ID3D12CommandQueue> m_commandQueue;
@@ -84,7 +86,7 @@ private:
 
     ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
     ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-    UINT m_rtvDescriptorSize; 
+    UINT m_rtvDescriptorSize;
 
     ComPtr<ID3D12PipelineState> m_pipelineState;
     ComPtr<ID3D12GraphicsCommandList> m_commandList;
@@ -120,32 +122,36 @@ private:
     float m_aspectRatio;
 
     //new:
-    SharedPtr<WindowBase> m_mainWindow; 
-     
+    SharedPtr<WindowBase> m_mainWindow;
+
     //new: enable depth:
     //Create a Depth/Stencil Buffer Resource
     ComPtr<ID3D12Resource> m_depthStencil;
     //Create a Depth Stencil View (DSV) Descriptor Heap
     ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
-       
+
 
     SharedPtr<FDescriptorHeapAllocator> m_rangeHeapAllocator;
 
     //ComPtr<ID3D12RootSignature> m_rootSignature; 
     SharedPtr<FD3D12GraphicsShaderManager> m_shaderManager;
 
-   
+
     struct SceneConstantBuffer
     {
-		XMFLOAT4X4 worldMatrix; // 64 bytes 
-        XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
+        //XMFLOAT4X4 modelMatrix; // 64 bytes 
+		FLOAT4X4 modelMatrix; // 64 bytes
+
+       // XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
+		FLOAT4X4 projectionViewMatrix; // 64 bytes
+
         //padding:
-		float padding[32]; 
+        float padding[32];
     };
 
     static_assert((sizeof(SceneConstantBuffer) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
 
-     
+
 
     //new: 6.27 texturing
     static const UINT TextureWidth = 256;
@@ -153,21 +159,20 @@ private:
     static const UINT TexturePixelSize = 4;  //bytes/channel (RGBA)
 
     ComPtr<ID3D12Resource> m_fallBackTexture;
-	D3D12_SHADER_RESOURCE_VIEW_DESC m_fallBackSRVDesc;
-    std::vector<UINT8> GenerateFallBackTextureData(); 
+    D3D12_SHADER_RESOURCE_VIEW_DESC m_fallBackSRVDesc;
+    std::vector<UINT8> GenerateFallBackTextureData();
 
- 
 
-     
-	std::vector<StaticMeshObjectProxy*> m_staticMeshes;   
-     
+
+
+    std::vector<StaticMeshObjectProxy*> m_staticMeshes;
+
 
     void InitMeshAssets();
     void SetMeshDescriptors();
-     
-	StaticMeshObjectProxy* InitMesh(SharedPtr<UStaticMesh> mesh, FLOAT3 position = { 0.0f, 0.0f, 0.0f }, FLOAT3 scale = { 1.0f, 1.0f, 1.0f });
-     
-	std::vector<InstanceData> GenerateInstanceData();  
+
+    StaticMeshObjectProxy* InitMesh(SharedPtr<UStaticMesh> mesh, FLOAT3 position = { 0.0f, 0.0f, 0.0f }, FLOAT3 scale = { 1.0f, 1.0f, 1.0f });
+
+    std::vector<InstanceData> GenerateInstanceData();
 };
 
- 

@@ -161,6 +161,7 @@
     <ClInclude Include="src\InputSystem.h" />
     <ClInclude Include="src\Math\Matrix.h" />
     <ClInclude Include="src\Math\MMath.h" />
+    <ClInclude Include="src\Math\MathUtility.h" />
     <ClInclude Include="src\physics\Collision.h" />
     <ClInclude Include="src\physics\PhysicsScene.h" />
     <ClInclude Include="src\physics\Shape.h" />
