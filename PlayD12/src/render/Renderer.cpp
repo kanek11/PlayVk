@@ -399,7 +399,7 @@ void D3D12HelloRenderer::OnRender()
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     // Present the frame.
-    ThrowIfFailed(m_swapChain->Present(1, 0));
+    ThrowIfFailed(m_swapChain->Present(1, 0)); 
 
     WaitForPreviousFrame();
 }

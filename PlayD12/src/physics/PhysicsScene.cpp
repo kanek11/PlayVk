@@ -132,7 +132,7 @@ void PhysicsScene::ResolveContacts(float dt)
 
 			//normal component ;  
 			//bug fix: approaching if negative;  
-			float vn_l = Dot(relVel, normal);    
+			float vn_mag = Dot(relVel, normal);    
 			 
 
 			// --- 3) Baumgarte positional bias ---
@@ -145,17 +145,17 @@ void PhysicsScene::ResolveContacts(float dt)
 			float eA = A ? A->material.restitution : 0.f;
 			float eB = B ? B->material.restitution : 0.f;
 			float e = std::min(eA, eB);
-			float rt_Impulse = (vn_l < -bounceThreshold) ? e : 0.f;
+			float rt_Impulse = (vn_mag < -bounceThreshold) ? e : 0.f;
 
 			//set 0 when almost static
-			if (std::abs(vn_l) < restingThreshold) vn_l = 0.f; 
+			if (std::abs(vn_mag) < restingThreshold) vn_mag = 0.f; 
 
 			//impulse scalar j
 			float jn = 0.f;
 
 			// approaching
-			if (vn_l < 0.f) {
-				jn = -(1.f + rt_Impulse) * vn_l + bias;
+			if (vn_mag < 0.f) {
+				jn = -(1.f + rt_Impulse) * vn_mag + bias;
 				jn /= invMassSum;
 			}
 			//already separate
@@ -164,13 +164,13 @@ void PhysicsScene::ResolveContacts(float dt)
 			}
 
 			// apply impulse on normal direction
-			FLOAT3 impulse = normal * jn;
-			if (A) A->linearVelocity += impulse * invMassA;
-			if (B) B->linearVelocity -= impulse * invMassB;
+			FLOAT3 impulseN = normal * jn;
+			if (A) A->linearVelocity += impulseN * invMassA;
+			if (B) B->linearVelocity -= impulseN * invMassB;
 
 
 			//tangent direction:
-			FLOAT3 vt = relVel - normal * vn_l; 
+			FLOAT3 vt = relVel - normal * vn_mag; 
 
 			//end loop when too small;
 			if (LengthSq(vt) < 1e-6f)  continue;
@@ -178,7 +178,7 @@ void PhysicsScene::ResolveContacts(float dt)
 			FLOAT3 vt_unit = Normalize(vt); 
 			float jt = -Dot(relVel, vt_unit) / invMassSum; 
 
-			//Coulomb
+			//Coulomb's friction model:  friction = mu * normal force; 
 			float muA = A ? A->material.friction : 0.f;
 			float muB = B ? B->material.friction : 0.f;
 			float mu = std::sqrt(muA * muB);

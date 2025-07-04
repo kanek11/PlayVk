@@ -139,10 +139,9 @@ private:
 
     struct SceneConstantBuffer
     {
-        //XMFLOAT4X4 modelMatrix; // 64 bytes 
-		FLOAT4X4 modelMatrix; // 64 bytes
-
+        //XMFLOAT4X4 modelMatrix; // 64 bytes  
        // XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
+		FLOAT4X4 modelMatrix; // 64 bytes 
 		FLOAT4X4 projectionViewMatrix; // 64 bytes
 
         //padding:
