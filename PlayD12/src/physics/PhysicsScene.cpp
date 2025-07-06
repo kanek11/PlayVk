@@ -44,8 +44,7 @@ void PhysicsScene::PreSimulation()
 	for (auto& rb : m_bodies) {
 
 		//cache the previous position:
-		rb->prevPos = rb->position;
-
+		rb->prevPos = rb->position; 
 
 
 		if (!rb->enableRotation) continue;
@@ -164,8 +163,7 @@ void PhysicsScene::SolveConstraints(float delta)
 			float C = contact.penetration;  
 			if (C <= 0) { 
 				continue; 
-			}
-
+			} 
 			// XPBD: α = compliance / dt²
 			//float alpha = compliance * inv_dt2;
 			//float dLambda = (C + alpha * contact.lambda) / (wSum + alpha);
@@ -176,9 +174,7 @@ void PhysicsScene::SolveConstraints(float delta)
 	 
 			//apply correction to predicted positions:
 			if (A) A->predPos += corr * wA; // 
-			if (B) B->predPos -= corr * wB; // 
-
-
+			if (B) B->predPos -= corr * wB; //  
 
 
 			//post PBD: 

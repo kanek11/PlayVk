@@ -694,20 +694,20 @@ void D3D12HelloRenderer::InitMeshAssets()
     auto cubeMesh0 = CreateShared<CubeMesh>();
     cubeMesh0->CreateGPUResource(m_device.Get());
     auto cubeMeshProxy0 = InitMesh(cubeMesh0,
-        { -2.0f, 0.0f, 0.0f },
+        { -5.0f, 0.0f, 0.0f },
         { 1.0f, 1.0f, 1.0f }
     );
     
     //new rigidbody:
-    auto rigidBody0 = new RigidBody(cubeMeshProxy0, cubeMeshProxy0->position, Box{ cubeMeshProxy0->scale });
-    cubeMeshProxy0->rigidBody = rigidBody0;
-    physicsScene->AddRigidBody(rigidBody0);
-    
-    auto boxCollider0 = new Collider(cubeMeshProxy0, Box{ cubeMeshProxy0->scale }, rigidBody0); //half extents
-    cubeMeshProxy0->collider = boxCollider0;
-    physicsScene->AddCollider(boxCollider0);
-    
-    rigidBody0->enableRotation = false; 
+    //auto rigidBody0 = new RigidBody(cubeMeshProxy0, cubeMeshProxy0->position, Box{ cubeMeshProxy0->scale });
+    //cubeMeshProxy0->rigidBody = rigidBody0;
+    //physicsScene->AddRigidBody(rigidBody0);
+    //
+    //auto boxCollider0 = new Collider(cubeMeshProxy0, Box{ cubeMeshProxy0->scale }, rigidBody0); //half extents
+    //cubeMeshProxy0->collider = boxCollider0;
+    //physicsScene->AddCollider(boxCollider0);
+    //
+    //rigidBody0->enableRotation = false; 
     
     
     
@@ -753,25 +753,25 @@ void D3D12HelloRenderer::InitMeshAssets()
 
 
 
-    auto cubeMesh5 = CreateShared<CubeMesh>();
-    cubeMesh5->CreateGPUResource(m_device.Get());
-    auto cubeMeshProxy5 = InitMesh(cubeMesh5,
-        { 2.0f, -15.0f, 0.0f },
-        { 20.0f, 10.0f, 20.0f }
-    );
+    //auto cubeMesh5 = CreateShared<CubeMesh>();
+    //cubeMesh5->CreateGPUResource(m_device.Get());
+    //auto cubeMeshProxy5 = InitMesh(cubeMesh5,
+    //    { 2.0f, -15.0f, 0.0f },
+    //    { 20.0f, 10.0f, 20.0f }
+    //);
 
-    //new rigidbody for the cube:
-    auto rigidBody5 = new RigidBody(cubeMeshProxy5, cubeMeshProxy5->position, Box{ cubeMeshProxy5->scale });
-    cubeMeshProxy5->rigidBody = rigidBody5;
-    physicsScene->AddRigidBody(rigidBody5); //add to the physics scene
-    auto boxCollider5 = new Collider(cubeMeshProxy5, Box{ cubeMeshProxy5->scale }, rigidBody5); //half extents
-    cubeMeshProxy5->collider = boxCollider5;
-    physicsScene->AddCollider(boxCollider5); //add to the physics scene 
-     
-    rigidBody5->mass = MMath::FLOAT_MAX; //set the mass to 0, so it is static
-    rigidBody5->simulatePhysics = false; //make the cube static, not affected by physics
+    ////new rigidbody for the cube:
+    //auto rigidBody5 = new RigidBody(cubeMeshProxy5, cubeMeshProxy5->position, Box{ cubeMeshProxy5->scale });
+    //cubeMeshProxy5->rigidBody = rigidBody5;
+    //physicsScene->AddRigidBody(rigidBody5); //add to the physics scene
+    //auto boxCollider5 = new Collider(cubeMeshProxy5, Box{ cubeMeshProxy5->scale }, rigidBody5); //half extents
+    //cubeMeshProxy5->collider = boxCollider5;
+    //physicsScene->AddCollider(boxCollider5); //add to the physics scene 
+    // 
+    //rigidBody5->mass = MMath::FLOAT_MAX; //set the mass to 0, so it is static
+    //rigidBody5->simulatePhysics = false; //make the cube static, not affected by physics
 
-    rigidBody5->enableRotation = false; //make the cube not affected by rotation, so it will not fall down due to gravity
+    //rigidBody5->enableRotation = false; //make the cube not affected by rotation, so it will not fall down due to gravity
 
 
     //cube4：
@@ -782,15 +782,15 @@ void D3D12HelloRenderer::InitMeshAssets()
         { 0.0f, 8.0f, 0.0f },
         { 1.0f, 1.0f, 1.0f }
     );
-    //new rigidbody for the cube:
-    auto rigidBody4 = new RigidBody(cubeMeshProxy4, cubeMeshProxy4->position, Box{});
-    cubeMeshProxy4->rigidBody = rigidBody4;
-    physicsScene->AddRigidBody(rigidBody4); //add to the physics scene
-    auto boxCollider4 = new Collider(cubeMeshProxy4, Box{ cubeMeshProxy4->scale }, rigidBody4); //half extents
-    cubeMeshProxy4->collider = boxCollider4;
-    physicsScene->AddCollider(boxCollider4); //add to the physics scene
-    
-    rigidBody4->enableRotation = false;
+    ////new rigidbody for the cube:
+    //auto rigidBody4 = new RigidBody(cubeMeshProxy4, cubeMeshProxy4->position, Box{});
+    //cubeMeshProxy4->rigidBody = rigidBody4;
+    //physicsScene->AddRigidBody(rigidBody4); //add to the physics scene
+    //auto boxCollider4 = new Collider(cubeMeshProxy4, Box{ cubeMeshProxy4->scale }, rigidBody4); //half extents
+    //cubeMeshProxy4->collider = boxCollider4;
+    //physicsScene->AddCollider(boxCollider4); //add to the physics scene
+    //
+    //rigidBody4->enableRotation = false;
     
     
     ////cube4：
@@ -801,16 +801,18 @@ void D3D12HelloRenderer::InitMeshAssets()
         { 0.0f, 0.0f, 9.0f },
         { 1.0f, 1.0f, 1.0f }
     );
+
+
     //new rigidbody for the cube:
-    auto rigidBody3 = new RigidBody(cubeMeshProxy3, cubeMeshProxy3->position, Box{ cubeMeshProxy3->scale });
-    cubeMeshProxy3->rigidBody = rigidBody3;
-    physicsScene->AddRigidBody(rigidBody3); //add to the physics scene
-    auto boxCollider3 = new Collider(cubeMeshProxy3, Box{ cubeMeshProxy3->scale }, rigidBody3); //half extents
-    cubeMeshProxy3->collider = boxCollider3;
-    physicsScene->AddCollider(boxCollider3); //add to the physics scene
-    
-    
-    rigidBody3->enableRotation = false;
+    //auto rigidBody3 = new RigidBody(cubeMeshProxy3, cubeMeshProxy3->position, Box{ cubeMeshProxy3->scale });
+    //cubeMeshProxy3->rigidBody = rigidBody3;
+    //physicsScene->AddRigidBody(rigidBody3); //add to the physics scene
+    //auto boxCollider3 = new Collider(cubeMeshProxy3, Box{ cubeMeshProxy3->scale }, rigidBody3); //half extents
+    //cubeMeshProxy3->collider = boxCollider3;
+    //physicsScene->AddCollider(boxCollider3); //add to the physics scene
+    //
+    //
+    //rigidBody3->enableRotation = false;
     
     //auto sphereMesh0 = CreateShared<SphereMesh>();
     //sphereMesh0->CreateGPUResource(m_device.Get());

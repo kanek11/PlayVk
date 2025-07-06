@@ -65,7 +65,7 @@ WorldShape MakeWorldShape(const Collider& c)
 
 			if (!c.body->enableRotation) {
 				//if the body is not rotating, we can use AABB
-                const FLOAT3 center = c.body->position;
+                const FLOAT3 center = c.body->predPos;
 				return AABB{ center - s.halfExtents, center + s.halfExtents };
 			} 
 
@@ -128,10 +128,7 @@ bool IntervalOverlap(Interval a, Interval b, float& overlap) {
 	}
     return true;
 }
-
-
-
-
+ 
 
 [[nodiscard]]
 bool Collide(const AABB& a, const AABB& b, Contact& out)
@@ -152,19 +149,23 @@ bool Collide(const AABB& a, const AABB& b, Contact& out)
 
     FLOAT3 normal;
     float penetration;
-
+      
     //decide on minimum overlap and normal dir.
+	//pass the overlap test means the values are positive.
+
     if (dx < dy && dx < dz) {
         normal = (a.min.x() < b.min.x()) ? FLOAT3{ -1, 0, 0 } : FLOAT3{ 1, 0, 0 };
         penetration = dx;
     }
     else if (dy < dz) {
         normal = (a.min.y() < b.min.y()) ? FLOAT3{ 0, -1, 0 } : FLOAT3{ 0, 1, 0 };
-        penetration = dy;
+        penetration = dy; 
+		std::cout << "penetration Y: " << penetration << '\n';
     }
     else {
         normal = (a.min.z() < b.min.z()) ? FLOAT3{ 0, 0, -1 } : FLOAT3{ 0, 0, 1 };
         penetration = dz;
+		std::cout << "penetration Z: " << penetration << '\n';
     }
 
     FLOAT3 point = (FLOAT3{
@@ -180,6 +181,10 @@ bool Collide(const AABB& a, const AABB& b, Contact& out)
     out.normal = normal;
     out.point = point;
     out.penetration = penetration;
+
+	std::cout << "Collided AABB with AABB: " 
+		<< "Penetration: " << out.penetration 
+        << " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << '\n';
 
     return true;
 }
