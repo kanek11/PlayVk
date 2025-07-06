@@ -10,6 +10,9 @@ void PhysicsScene::Tick(float delta)
 {
 	//std::cout << "tick physics: " << delta << '\n';
 
+	constexpr int   iterations = 1;            // solver passes
+
+
 	PreSimulation();
 
 	ApplyExternalForce(delta);
@@ -135,72 +138,68 @@ void PhysicsScene::DetectCollisions()
 }
 
 void PhysicsScene::SolveConstraints(float delta)
-{
-	//Baumgarte stabilization; 
-	constexpr int   iterations = 1;            // solver passes
+{ 
 	//hardcode compliance:
-	constexpr float compliance = 0.01f; // compliance factor 
+	constexpr float compliance = 0.0001f; // compliance factor 
 	const float inv_dt2 = 1.f / (delta * delta); // 1 / dt²
 	 
 	for (Contact& contact : m_contacts) {
 		contact.lambda = 0.f;
 	}
-
-
-	for (int pass = 0; pass < iterations; ++pass) {
-		for (Contact& contact : m_contacts) {
-			RigidBody* A = contact.a->body;
-			RigidBody* B = contact.b->body;
-
-			FLOAT3 posA = A ? A->predPos : FLOAT3{}; 
-			FLOAT3 posB = B ? B->predPos : FLOAT3{};  
-
-			float  wA = A ? A->invMass : 0.f;  
-			float  wB = B ? B->invMass : 0.f;  
-			float  wSum = wA + wB;
-			if (wSum == 0) continue;
-
-			float C = contact.penetration;  
-			if (C <= 0) { 
-				continue; 
-			} 
-			// XPBD: α = compliance / dt²
-			//float alpha = compliance * inv_dt2;
-			//float dLambda = (C + alpha * contact.lambda) / (wSum + alpha);
-			//contact.lambda += dLambda;
-
-			//FLOAT3 corr = dLambda * contact.normal;
-			FLOAT3 corr = C * contact.normal / wSum; // correction vector
 	 
-			//apply correction to predicted positions:
-			if (A) A->predPos += corr * wA; // 
-			if (B) B->predPos -= corr * wB; //  
+	for (Contact& contact : m_contacts) {
+		RigidBody* A = contact.a->body;
+		RigidBody* B = contact.b->body;
+
+		FLOAT3 posA = A ? A->predPos : FLOAT3{}; 
+		FLOAT3 posB = B ? B->predPos : FLOAT3{};  
+
+		float  wA = A && A->simulatePhysics ? A->invMass : 0.f;  
+		float  wB = B && B->simulatePhysics ? B->invMass : 0.f;  
+		float  wSum = wA + wB;
+		if (wSum == 0) continue;
+
+		float C = contact.penetration;  
+		if (C <= 0) { 
+			continue; 
+		}  
+		//if (C <= 0.01f ) continue;
+		// XPBD: α = compliance / dt²
+		float alpha = compliance * inv_dt2;
+		float dLambda = (C + alpha * contact.lambda) / (wSum + alpha);
+		contact.lambda += dLambda;
+
+		FLOAT3 corr = dLambda * contact.normal;
+		//FLOAT3 corr = C * contact.normal / wSum; // correction vector
+	 
+		//apply correction to predicted positions:
+		if (A) A->predPos += corr * wA; // 
+		if (B) B->predPos -= corr * wB; //  
 
 
-			//post PBD: 
-			//FLOAT3 vA = A ? (A->predPos - A->prevPos) / delta : FLOAT3{}; // predicted velocity
-			//FLOAT3 vB = B ? (B->predPos - B->prevPos) / delta : FLOAT3{}; // predicted velocity
-			//
-			//FLOAT3 v_rel = vA - vB;
-			//float vn = Dot(v_rel, contact.normal);
-			//if (vn >= 0) continue; // no need to resolve if they are separating
- 		// 
-			//float eA = A ? A->material.restitution : 0.f;
-			//float eB = B ? B->material.restitution : 0.f;
-			//float restitution = std::min(eA, eB);  
+		//post PBD: 
+		//FLOAT3 vA = A ? (A->predPos - A->prevPos) / delta : FLOAT3{}; // predicted velocity
+		//FLOAT3 vB = B ? (B->predPos - B->prevPos) / delta : FLOAT3{}; // predicted velocity
+		//
+		//FLOAT3 v_rel = vA - vB;
+		//float vn = Dot(v_rel, contact.normal);
+		//if (vn >= 0) continue; // no need to resolve if they are separating
+ 	// 
+		//float eA = A ? A->material.restitution : 0.f;
+		//float eB = B ? B->material.restitution : 0.f;
+		//float restitution = std::min(eA, eB);  
 
-			//float threshold = 0.01f; // threshold for bounce, can be adjusted
-			////if (vn < -threshold) { 
-			//	float vBounce = -vn * restitution;
-			//	FLOAT3 corr_n = vBounce * contact.normal * delta / wSum;
+		//float threshold = 0.01f; // threshold for bounce, can be adjusted
+		////if (vn < -threshold) { 
+		//	float vBounce = -vn * restitution;
+		//	FLOAT3 corr_n = vBounce * contact.normal * delta / wSum;
 
-			//	// Apply bounce as position shift 
-			//	if (A) A->predPos += corr_n * wA; 
-			//	if (B) B->predPos -= corr_n * wB; 
-			////}
+		//	// Apply bounce as position shift 
+		//	if (A) A->predPos += corr_n * wA; 
+		//	if (B) B->predPos -= corr_n * wB; 
+		////}
 
-		}
-	}
+	} 
 }
 
 void PhysicsScene::PostPBD(float delta)
@@ -212,8 +211,10 @@ void PhysicsScene::PostPBD(float delta)
 
 		rb->position = rb->predPos; //update position to predicted position 
 		rb->linearVelocity = (rb->predPos - rb->prevPos) / delta;
-		 
+		  
 		//rb->linearVelocity *= 0.99f;  //test damping;
+		if (LengthSq(rb->linearVelocity) < 1e-6f)  
+			rb->linearVelocity = FLOAT3{}; //reset to zero if too small
 	} 
 
 }
@@ -249,6 +250,8 @@ void PhysicsScene::PostSimulation()
 {
 	for (auto& rb : m_bodies) {
 		rb->owner->SetWorldPosition(rb->position);
+
+		//std::cout << "Position vs PredPos: " << rb->position.y() << " vs " << rb->predPos.y() << std::endl;
 
 		if (!rb->enableRotation) continue;  
 		rb->owner->SetWorldRotation(rb->rotation);

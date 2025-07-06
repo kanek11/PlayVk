@@ -699,15 +699,15 @@ void D3D12HelloRenderer::InitMeshAssets()
     );
     
     //new rigidbody:
-    //auto rigidBody0 = new RigidBody(cubeMeshProxy0, cubeMeshProxy0->position, Box{ cubeMeshProxy0->scale });
-    //cubeMeshProxy0->rigidBody = rigidBody0;
-    //physicsScene->AddRigidBody(rigidBody0);
-    //
-    //auto boxCollider0 = new Collider(cubeMeshProxy0, Box{ cubeMeshProxy0->scale }, rigidBody0); //half extents
-    //cubeMeshProxy0->collider = boxCollider0;
-    //physicsScene->AddCollider(boxCollider0);
-    //
-    //rigidBody0->enableRotation = false; 
+    auto rigidBody0 = new RigidBody(cubeMeshProxy0, cubeMeshProxy0->position, Box{ cubeMeshProxy0->scale });
+    cubeMeshProxy0->rigidBody = rigidBody0;
+    physicsScene->AddRigidBody(rigidBody0);
+    
+    auto boxCollider0 = new Collider(cubeMeshProxy0, Box{ cubeMeshProxy0->scale }, rigidBody0); //half extents
+    cubeMeshProxy0->collider = boxCollider0;
+    physicsScene->AddCollider(boxCollider0);
+    
+    rigidBody0->enableRotation = false; 
     
     
     
@@ -783,14 +783,14 @@ void D3D12HelloRenderer::InitMeshAssets()
         { 1.0f, 1.0f, 1.0f }
     );
     ////new rigidbody for the cube:
-    //auto rigidBody4 = new RigidBody(cubeMeshProxy4, cubeMeshProxy4->position, Box{});
-    //cubeMeshProxy4->rigidBody = rigidBody4;
-    //physicsScene->AddRigidBody(rigidBody4); //add to the physics scene
-    //auto boxCollider4 = new Collider(cubeMeshProxy4, Box{ cubeMeshProxy4->scale }, rigidBody4); //half extents
-    //cubeMeshProxy4->collider = boxCollider4;
-    //physicsScene->AddCollider(boxCollider4); //add to the physics scene
-    //
-    //rigidBody4->enableRotation = false;
+    auto rigidBody4 = new RigidBody(cubeMeshProxy4, cubeMeshProxy4->position, Box{});
+    cubeMeshProxy4->rigidBody = rigidBody4;
+    physicsScene->AddRigidBody(rigidBody4); //add to the physics scene
+    auto boxCollider4 = new Collider(cubeMeshProxy4, Box{ cubeMeshProxy4->scale }, rigidBody4); //half extents
+    cubeMeshProxy4->collider = boxCollider4;
+    physicsScene->AddCollider(boxCollider4); //add to the physics scene
+    
+    rigidBody4->enableRotation = false;
     
     
     ////cube4：

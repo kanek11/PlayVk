@@ -146,6 +146,10 @@ bool Collide(const AABB& a, const AABB& b, Contact& out)
     if (!IntervalOverlap({ a.min.y(), a.max.y() }, { b.min.y(), b.max.y() }, dy)) return false;
     if (!IntervalOverlap({ a.min.z(), a.max.z() }, { b.min.z(), b.max.z() }, dz)) return false; 
      
+    //dx = std::min(a.max.x() - b.min.x(), b.max.x() - a.min.x());
+    //dy = std::min(a.max.y() - b.min.y(), b.max.y() - a.min.y());
+    //dz = std::min(a.max.z() - b.min.z(), b.max.z() - a.min.z());
+
 
     FLOAT3 normal;
     float penetration;
@@ -160,7 +164,7 @@ bool Collide(const AABB& a, const AABB& b, Contact& out)
     else if (dy < dz) {
         normal = (a.min.y() < b.min.y()) ? FLOAT3{ 0, -1, 0 } : FLOAT3{ 0, 1, 0 };
         penetration = dy; 
-		std::cout << "penetration Y: " << penetration << '\n';
+		//std::cout << "penetration Y: " << penetration << '\n';
     }
     else {
         normal = (a.min.z() < b.min.z()) ? FLOAT3{ 0, 0, -1 } : FLOAT3{ 0, 0, 1 };
