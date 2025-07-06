@@ -53,7 +53,7 @@ WorldShape MakeWorldShape(const Collider& c)
 
         if constexpr (std::is_same_v<Shape, Sphere>)
         {
-            const FLOAT3 center = (c.body ? c.body->position : FLOAT3{}) ;
+            const FLOAT3 center = (c.body ? c.body->predPos : FLOAT3{}) ;
             return SphereWS{ center, s.radius };
         }
         else if constexpr (std::is_same_v<Shape, Box>)
@@ -186,9 +186,9 @@ bool Collide(const AABB& a, const AABB& b, Contact& out)
     out.point = point;
     out.penetration = penetration;
 
-	std::cout << "Collided AABB with AABB: " 
-		<< "Penetration: " << out.penetration 
-        << " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << '\n';
+	//std::cout << "Collided AABB with AABB: " 
+	//	<< "Penetration: " << out.penetration 
+ //       << " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << '\n';
 
     return true;
 }
@@ -257,6 +257,11 @@ bool Collide(const SphereWS& s, const AABB& box, Contact& out)
     out.normal = normal;
     out.point = point;
     out.penetration = s.radius - dist;
+
+	std::cout << "Collided Sphere with AABB: "
+		<< "Penetration: " << out.penetration
+		<< " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << '\n';
+
     return true;
 }
 

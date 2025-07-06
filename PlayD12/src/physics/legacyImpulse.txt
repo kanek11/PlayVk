@@ -1,0 +1,346 @@
+
+#include "PCH.h"
+#include "PhysicsScene.h"
+
+#include "Render/Renderer.h" 
+
+#include "Collision.h" 
+
+
+void PhysicsScene::Tick(float delta)
+{
+	//std::cout << "tick physics: " << delta << '\n';
+
+	PreSimulation();
+
+	ApplyExternalForce(delta);
+
+	Integrate(delta);
+
+	DetectCollisions();
+
+	SolveConstraints(delta);
+
+	PostPBD(delta);
+	//IntegratePosition(delta);
+
+	PostSimulation();
+}
+
+void PhysicsScene::OnInit()
+{
+}
+
+void PhysicsScene::OnDestroy()
+{
+}
+
+void PhysicsScene::AddRigidBody(RigidBody* rb)
+{
+	this->m_bodies.push_back(rb);
+}
+
+void PhysicsScene::PreSimulation()
+{
+	for (auto& rb : m_bodies) {
+
+		//cache the previous position:
+		rb->prevPosition = rb->position;
+
+
+
+		if (!rb->enableRotation) continue;
+		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->rotation);
+		FLOAT3X3 R;
+		R[0] = { R_.r[0].m128_f32[0], R_.r[1].m128_f32[0], R_.r[2].m128_f32[0] };
+		R[1] = { R_.r[0].m128_f32[1], R_.r[1].m128_f32[1], R_.r[2].m128_f32[1] };
+		R[2] = { R_.r[0].m128_f32[2], R_.r[1].m128_f32[2], R_.r[2].m128_f32[2] };
+
+		auto temp = MatrixMultiply(R, rb->localInertia);
+		auto R_t = Transpose(R);
+		auto worldInertia = MatrixMultiply(temp, R_t);
+		rb->worldInertia = worldInertia;
+		rb->RotationMatrix = R;
+	}
+}
+
+void PhysicsScene::ApplyExternalForce(float delta)
+{
+	for (auto& rb : m_bodies) {
+		if (!rb->simulatePhysics) continue;
+		rb->ApplyForce(this->gravity);
+		 
+	}
+}
+
+void PhysicsScene::Integrate(float delta)
+{
+	for (auto& rb : m_bodies) {
+		if (!rb->simulatePhysics) continue;
+
+		rb->linearVelocity = rb->linearVelocity + rb->force / rb->mass * delta ;
+		//rb->linearVelocity *= 0.99f;  //test damping;
+		rb->force = FLOAT3{};
+		 
+		//predicated position:
+		rb->predPosition = rb->position + rb->linearVelocity * delta;  
+
+		 
+
+		//new: consider torque:
+		if (!rb->enableRotation) continue; //skip if not enabled
+		rb->angularVelocity = rb->angularVelocity + Inverse(rb->worldInertia) * rb->torque * delta; 
+		rb->torque = FLOAT3{}; //reset torque
+		 
+		//angular damping: 
+//	rb->angularVelocity *= 0.98f; //test damping;
+//} 
+	}
+}
+
+
+
+
+void PhysicsScene::DetectCollisions()
+{
+	m_contacts.clear();
+
+	//std::cout << "Detecting collisions, colliders count: " << m_colliders.size() << std::endl;
+
+	std::vector<WorldShapeProxy> ws;
+	ws.reserve(m_colliders.size());
+	for (Collider* c : m_colliders) {
+		WorldShapeProxy proxy = { MakeWorldShape(*c), c };
+		ws.push_back(proxy);
+	}
+
+	for (size_t i = 0; i < ws.size(); ++i)
+		for (size_t j = i + 1; j < ws.size(); ++j)
+		{
+			auto& A = ws[i];
+			auto& B = ws[j];
+
+			std::visit([&, this](auto const& sa, auto const& sb)
+				{
+					Contact c;
+					c.a = A.owner;
+					c.b = B.owner;
+					if (Collide(sa, sb, c)) { 
+						//std::cout << "Collision detected: " << typeid(decltype(sa)).name() << " vs " << typeid(decltype(sb)).name() << std::endl;
+
+						m_contacts.emplace_back(std::move(c));
+					}
+
+				}, A.shape, B.shape);
+		}
+
+	//std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
+
+}
+
+void PhysicsScene::SolveConstraints(float dt)
+{
+	//Baumgarte stabilization;
+	constexpr float slop = 0.005f;      // simply penetration allowance
+	constexpr float beta = 0.2f;        // Baumgarte factor; 0~1 and bias to 0;
+	constexpr float bounceThreshold = 1.0f;    // m/s
+	constexpr float restingThreshold = 0.01f;  // m/s
+	constexpr int   iterations = 1;            // solver passes
+
+	for (int pass = 0; pass < iterations; ++pass) {
+		for (Contact& contact : m_contacts) {
+			RigidBody* A = contact.a->body;
+			RigidBody* B = contact.b->body;
+
+			float invMassA = (A && A->simulatePhysics && A->mass > 0.f) ? 1.f / A->mass : 0.f;
+			float invMassB = (B && B->simulatePhysics && B->mass > 0.f) ? 1.f / B->mass : 0.f;
+			float invMassSum = invMassA + invMassB;
+			if (invMassSum == 0.f) continue;
+
+			// B 2 A 
+			FLOAT3 normal = contact.normal;
+
+			// --- relative vel
+			//FLOAT3 velA = A ? A->linearVelocity : FLOAT3{ 0,0,0 };
+			//FLOAT3 velB = B ? B->linearVelocity : FLOAT3{ 0,0,0 };
+			//new: consider rotation and position of the rigidbodies: the contact point velocity =
+			FLOAT3 velA = FLOAT3{ 0,0,0 };
+			if (A ) {
+				velA = A->linearVelocity;
+				if (A->enableRotation) {
+					FLOAT3 curr_offset = contact.point - A->position;
+					velA += Vector3Cross(A->angularVelocity, curr_offset);
+				}
+
+			} 
+
+			FLOAT3 velB = FLOAT3{ 0,0,0 };
+			if (B) {
+				velB = B->linearVelocity; 
+				if (B->enableRotation) {
+					FLOAT3 Rr = contact.point - B->position;
+					velB += Vector3Cross(B->angularVelocity, Rr);
+				} 
+			} 
+			FLOAT3 relVel = velA - velB;            
+
+			//normal component ;  
+			//bug fix: approaching if negative;  
+			float vn_mag = Dot(relVel, normal);    
+			 
+
+			// --- 3) Baumgarte positional bias ---
+			float penetration = std::max(contact.penetration - slop, 0.f);
+			float bias = (beta / dt) * penetration;  // positive = push fast
+
+		 
+			//Coefficient of restitution
+			//a perfectly elastic will flip the velocity.
+			float eA = A ? A->material.restitution : 0.f;
+			float eB = B ? B->material.restitution : 0.f;
+			float e = std::min(eA, eB);
+			float rt_Impulse = (vn_mag < -bounceThreshold) ? e : 0.f;
+
+			//set 0 when almost static
+			if (std::abs(vn_mag) < restingThreshold) vn_mag = 0.f; 
+
+			//impulse scalar j
+			float jn = 0.f;
+			 
+			// approaching
+			if (vn_mag < 0.f) {
+				jn = -(1.f + rt_Impulse) * vn_mag + bias;
+				jn /= invMassSum;
+			}
+			//already separate
+			else {
+				continue; 
+			}
+
+			// apply impulse on normal direction
+			FLOAT3 impulseN = normal * jn;
+		    //if (A) A->linearVelocity += impulseN * invMassA;
+			//if (B) B->linearVelocity -= impulseN * invMassB;
+
+
+			//tangent direction:
+			FLOAT3 vt = relVel - normal * vn_mag; 
+			FLOAT3 impulseT = FLOAT3{ 0,0,0 };  
+			//end loop when too small;
+			if (LengthSq(vt) < 1e-6f) {
+				//continue;
+				//impulseT = FLOAT3{ 0,0,0 }; // no tangential impulse
+				//vt = FLOAT3{ 0,0,0 }; // no tangential impulse
+		
+			}
+			else
+			{ 
+				vt = Normalize(vt);
+
+				float jt = -Dot(relVel, vt) / invMassSum;
+
+				//Coulomb's friction model:  friction = mu * normal force; 
+				float muA = A ? A->material.friction : 0.f;
+				float muB = B ? B->material.friction : 0.f;
+				float mu = std::sqrt(muA * muB);
+				float jtMax = mu * jn;
+				jt = std::clamp(jt, -jtMax, jtMax);
+
+				impulseT = vt * jt;
+
+				//if (A) A->linearVelocity += impulseT * invMassA;
+				//if (B) B->linearVelocity -= impulseT * invMassB; 
+			}
+			 
+			FLOAT3 impulse = impulseN + impulseT; // total impulse
+
+			if (A) A->linearVelocity += impulseN * invMassA;
+		    if (B) B->linearVelocity -= impulseN * invMassB;
+
+			if (A) A->linearVelocity += impulseT * invMassA;
+			if (B) B->linearVelocity -= impulseT * invMassB;
+
+			/*std::cout << "\tContact resolved: " << contact.a->body->debugName << " vs " << contact.b->body->debugName
+				<< ", impulse: " << impulse.x() << ", " << impulse.y() << ", " << impulse.z() << std::endl;*/
+
+			
+			if (A && A->enableRotation) { 
+				FLOAT3 Rr = contact.point - A->position;
+				FLOAT3 angularImpulse = Vector3Cross(Rr, impulse);
+				 
+				FLOAT3X3 I_inv = Inverse(A->worldInertia);
+				A->angularVelocity += I_inv * angularImpulse;
+	/*			std::cout << A->debugName << "\tangular velocity: " << A->angularVelocity.x() << ", "
+					<< A->angularVelocity.y() << ", "
+					<< A->angularVelocity.z() << std::endl;*/
+			}
+
+			if (B && B->enableRotation) { 
+				FLOAT3 Rr =  contact.point - B->position;
+				FLOAT3 angularImpulse = Vector3Cross(Rr, impulse);
+
+
+				FLOAT3X3 I_inv = Inverse(B->worldInertia);
+				B->angularVelocity -= I_inv * angularImpulse; //note: minus here, because B is moving in opposite direction
+				//std::cout << B->debugName << " angular velocity : " << B->angularVelocity.x() << ", "
+				//	<< B->angularVelocity.y() << ", "
+				//	<< B->angularVelocity.z() << std::endl;
+			}
+			 
+		}
+	}
+}
+
+void PhysicsScene::PostPBD(float delta)
+{
+	//pbd step after solving constraints:
+	//v = (x - x0) / dt
+	for (auto& rb : m_bodies) {
+		if (!rb->simulatePhysics) continue; 
+
+		rb->linearVelocity = (rb->predPosition - rb->prevPosition) / delta;
+		 
+		rb->position = rb->predPosition; //update position to predicted position
+	
+	} 
+
+}
+
+void PhysicsScene::IntegratePosition(float delta)
+{
+	for (auto& rb : m_bodies) {
+		if (!rb->simulatePhysics) continue;
+		//rb->position = rb->position + rb->linearVelocity * delta ;
+
+
+		if (!rb->enableRotation) continue;
+        //rotation by quaternion: 
+		XMVECTOR q = rb->rotation; // ??? XMVECTOR ???x,y,z,w?
+
+		XMVECTOR omegaQuat = XMVectorSet(
+			rb->angularVelocity.x(),
+			rb->angularVelocity.y(),
+			rb->angularVelocity.z(),
+			0.0f
+		);
+
+		// dq = 0.5 * omegaQuat * q
+		XMVECTOR dq = XMQuaternionMultiply(omegaQuat, q);
+		dq = XMVectorScale(dq, 0.5f);
+		 
+		XMVECTOR updatedRot = XMVectorAdd(q, XMVectorScale(dq, delta));
+		rb->rotation = XMQuaternionNormalize(updatedRot);
+	}
+}
+
+void PhysicsScene::PostSimulation()
+{
+	for (auto& rb : m_bodies) {
+		rb->owner->SetWorldPosition(rb->position);
+
+		if (!rb->enableRotation) continue;  
+		rb->owner->SetWorldRotation(rb->rotation);
+		//update world inertia:
+
+	}
+}
