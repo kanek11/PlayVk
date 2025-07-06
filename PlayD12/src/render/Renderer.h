@@ -54,6 +54,10 @@ struct StaticMeshObjectProxy {
     void SetWorldPosition(const FLOAT3& newPosition) {
         position = newPosition;
     }
+
+	void SetWorldRotation(const XMVECTOR& newRotation) {
+		rotation = newRotation;
+	}
 };
 
 
@@ -139,10 +143,10 @@ private:
 
     struct SceneConstantBuffer
     {
-        //XMFLOAT4X4 modelMatrix; // 64 bytes  
-       // XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
-		FLOAT4X4 modelMatrix; // 64 bytes 
-		FLOAT4X4 projectionViewMatrix; // 64 bytes
+        XMFLOAT4X4 modelMatrix; // 64 bytes  
+        XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
+		//FLOAT4X4 modelMatrix; // 64 bytes 
+		//FLOAT4X4 projectionViewMatrix; // 64 bytes
 
         //padding:
         float padding[32];
@@ -159,9 +163,7 @@ private:
 
     ComPtr<ID3D12Resource> m_fallBackTexture;
     D3D12_SHADER_RESOURCE_VIEW_DESC m_fallBackSRVDesc;
-    std::vector<UINT8> GenerateFallBackTextureData();
-
-
+    std::vector<UINT8> GenerateFallBackTextureData(); 
 
 
     std::vector<StaticMeshObjectProxy*> m_staticMeshes;

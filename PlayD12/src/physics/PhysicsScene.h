@@ -3,6 +3,12 @@
 #include "Math/MMath.h"
 #include "Shape.h"
 
+//design decision: use PBD solver ;
+ 
+using namespace DirectX;
+
+
+
 struct PhysicalMaterial { 
 	float restitution;
 	float friction;
@@ -12,25 +18,53 @@ struct StaticMeshObjectProxy;
 
 struct RigidBody {
 
+	std::string debugName; //for debug purpose
+
 	float mass = 1.0f;   //or inverseMass
+	float invMass = 1.0f; //inverse mass, 0 means infinite mass (static body)
 
 	FLOAT3 position;
+	FLOAT3 prevPos; //for previous
+	FLOAT3 predPos; //for prediction
+
 	FLOAT3 linearVelocity;
 	FLOAT3 force;  //accumulation in the frame; 
 
 	bool simulatePhysics{ true };
-	PhysicalMaterial material{ 0.2f,0.05f };
+	PhysicalMaterial material{ 0.0f,0.05f };
+
+	bool enableRotation{ false }; 
+	XMVECTOR rotation = XMQuaternionIdentity(); //quaternion rotation
+	FLOAT3 angularVelocity;
+	FLOAT3 torque{};
+
+	FLOAT3X3 RotationMatrix; 
+
+	//inertia
+	FLOAT3X3 localInertia;   
+	FLOAT3X3 worldInertia; 
+
+	ShapeType type;
 
 	//bool isKenematic;  
 	void ApplyForce(FLOAT3 force) {
-		this->force = force;
+		this->force += force;
+	}
+
+	void ApplyTorque(const FLOAT3& torque) {
+		this->torque += torque;
 	}
 
 	//todo: angular;
 	StaticMeshObjectProxy* owner;
-	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position)
-		: owner(owner), position(position)
+	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position, ShapeType type = Sphere{ 1.0f })
+		: owner(owner), position(position), type(type)
 	{
+		predPos = position;  
+		prevPos = position; 
+
+		localInertia = MakeInertiaTensor(type, 10.0f); 
+		//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
 	};
 };
 
@@ -39,7 +73,6 @@ design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
 */
 
-using ShapeType = std::variant<Plane, Sphere, Box>;
 
 struct Collider {
 	ShapeType type; 
@@ -69,6 +102,8 @@ struct Contact {
 
 	Collider* a{};
 	Collider* b{};
+
+	float  lambda = 0.f;   // XPBD
 };
 
 
@@ -109,15 +144,18 @@ private:
 	void ApplyExternalForce(float delta);
 
 	//prediction
-	void IntegrateVelocity(float delta);
+	void Integrate(float delta);
 
 	//simulation:
 	void DetectCollisions();
 
-	void ResolveContacts(float delta);
+	void SolveConstraints(float delta);
 
 	//todo:
 	//void ResolveConstraints();
+
+
+	void PostPBD(float delta);
 
 	//
 	void IntegratePosition(float delta);

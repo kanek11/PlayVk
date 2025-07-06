@@ -231,6 +231,23 @@ namespace MMath {
 		return vector;
 	}
  
+	//----------------------------------------------------------
+    //negate
+	template <FLOP_t Scalar_t, size_t Length>
+	inline Vector<Scalar_t, Length> VectorNegate(const Vector<Scalar_t, Length>& vector)
+	{
+		Vector<Scalar_t, Length> result; 
+		std::transform(vector.data().begin(), vector.data().end(), result.data().begin(),
+			[](Scalar_t a) { return -a; });
+		return result;
+	}
+
+	//negate operator overload:
+	template <FLOP_t T, std::size_t N>
+	inline Vector<T, N> operator-(const Vector<T, N>& vector)
+	{
+		return VectorNegate(vector);
+	}
 
 	//----------------------------------------------------------
 	template <FLOP_t Scalar_t, size_t Length>

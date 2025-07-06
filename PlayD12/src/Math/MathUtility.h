@@ -1,10 +1,16 @@
 #pragma once
 
+//numeric limits:
+#include <limits>
+
 #include "Matrix.h" 
 
 namespace MMath {
 
 	float constexpr PI = 3.14159265358979323846f; // Pi constant
+
+	//max possible float value:
+	float constexpr FLOAT_MAX = std::numeric_limits<float>::max();
      
 
     //cross product 
@@ -125,6 +131,37 @@ namespace MMath {
 		return degrees * (PI / 180.0f);
 	}
 
+
+	//matrix3x3 inverse
+	inline FLOAT3X3 Inverse(const FLOAT3X3& m)
+	{
+		FLOAT3X3 inv;
+		float det = m[0].x() * (m[1].y() * m[2].z() - m[1].z() * m[2].y()) -
+			m[0].y() * (m[1].x() * m[2].z() - m[1].z() * m[2].x()) +
+			m[0].z() * (m[1].x() * m[2].y() - m[1].y() * m[2].x());
+		if (det == 0.0f) {
+			std::cerr << "Matrix is singular." << std::endl;
+			return FLOAT3X3{}; // return zero matrix if singular
+		}
+		float invDet = 1.0f / det;
+		inv[0] = {
+			invDet * (m[1].y() * m[2].z() - m[1].z() * m[2].y()),
+			invDet * (m[0].z() * m[2].y() - m[0].y() * m[2].z()),
+			invDet * (m[0].y() * m[1].z() - m[0].z() * m[1].y())
+		};
+		inv[1] = {
+			invDet * (m[1].z() * m[2].x() - m[1].x() * m[2].z()),
+			invDet * (m[0].x() * m[2].z() - m[0].z() * m[2].x()),
+			invDet * (m[0].z() * m[1].x() - m[0].x() * m[1].z())
+		};
+		inv[2] = {
+			invDet * (m[1].x() * m[2].y() - m[1].y() * m[2].x()),
+			invDet * (m[0].y() * m[2].x() - m[0].x() * m[2].y()),
+			invDet * (m[0].x() * m[1].y() - m[0].y() * m[1].x())
+		};
+
+		return inv;
+	}
 
 
 }
