@@ -1,0 +1,92 @@
+﻿//AABB vs OBB
+[[nodiscard]] 
+bool Collide(const AABB& a, const OBB& b, Contact& out) {
+    // convert the AABB
+    FLOAT3 aCenter = (a.min + a.max) * 0.5f;
+    FLOAT3 aExtent = (a.max - a.min) * 0.5f;
+
+    // constant axis;
+    const FLOAT3 aAxes[3] = {
+        FLOAT3{1,0,0}, FLOAT3{0,1,0}, FLOAT3{0,0,1}
+    };
+
+    float   minOverlap = FLT_MAX;
+    FLOAT3  bestAxis = FLOAT3{ 0,0,0 };
+     
+	//capture by reference
+    auto testAxis = [&](const FLOAT3& axis) {
+
+        Interval aProj = AABBProject(a, axis);
+        Interval bProj = OBBProject(b, axis);
+
+        float overlap = 0.0f;
+        if (!IntervalOverlap(aProj, bProj, overlap)) {
+            return false; // 分离轴
+
+        }
+        if (overlap < minOverlap) {
+            minOverlap = overlap;
+           
+            //point B to A
+			if (Dot(axis, aCenter - b.center) > 0) {
+				bestAxis = axis;  
+			}
+			else {
+				bestAxis = -axis; 
+			} 
+
+        };
+        return true;
+        };
+
+    // 3. 测试 3 条 AABB 主轴
+    for (int i = 0; i < 3; i++)
+        if (!testAxis(aAxes[i]))
+            return false;
+
+    // 4. 测试 3 条 OBB 局部主轴
+    for (int i = 0; i < 3; i++)
+        if (!testAxis(b.axis[i]))
+            return false;
+
+    // 5. 测试 9 条棱–棱交叉轴
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            FLOAT3 axis = Vector3Cross(aAxes[i], b.axis[j]);
+            float len2 = Dot(axis, axis);
+            if (len2 < 1e-6f)
+                continue;   // 共线，跳过
+			axis = Normalize(axis); // 归一化
+            if (!testAxis(axis))
+                return false;
+        }
+    }
+
+    // 如果所有轴都未分离，则发生碰撞 
+    out.penetration = minOverlap; 
+    std::cout << "Collide AABB with OBB: penetration = " << out.penetration << std::endl;
+
+	std::cout << "Best axis: " << bestAxis.x() << ", " << bestAxis.y() << ", " << bestAxis.z() << std::endl;
+
+	//make sure the normal is pointing from B to A
+    out.normal = bestAxis;
+
+
+    // 6. 近似计算接触点（在 A 与 B 表面之间做中点）
+    {
+		FLOAT3 contactPointA = aCenter - bestAxis * (
+            aExtent.x() * std::abs(bestAxis.x()) +
+			aExtent.y() * std::abs(bestAxis.y()) +
+			aExtent.z() * std::abs(bestAxis.z())
+            );
+		FLOAT3 contactPointB = b.center + bestAxis * (
+            b.halfExtents.x() * std::abs(Dot(b.axis[0], bestAxis)) +
+			b.halfExtents.y() * std::abs(Dot(b.axis[1], bestAxis)) +
+			b.halfExtents.z() * std::abs(Dot(b.axis[2], bestAxis))
+            );
+		out.point = (contactPointA + contactPointB) * 0.5f; 
+        std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
+    }
+
+    return true;
+}

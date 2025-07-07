@@ -10,21 +10,25 @@ void PhysicsScene::Tick(float delta)
 {
 	//std::cout << "tick physics: " << delta << '\n';
 
-	constexpr int   iterations = 1;            // solver passes
+	float substeps = 1;
+	float substepDelta = delta / substeps;
 
-
+	 
 	PreSimulation();
 
 	ApplyExternalForce(delta);
 
-	Integrate(delta);
+	for (int i = 0; i < substeps; ++i) {
 
-	DetectCollisions();
+		Integrate(substepDelta);
 
-	SolveConstraints(delta);
+		DetectCollisions();
 
-	PostPBD(delta);
-	//IntegratePosition(delta);
+		SolveConstraints(substepDelta);
+
+		PostPBD(substepDelta); 
+		//IntegratePosition(delta);
+	} 
 
 	PostSimulation();
 }
@@ -47,8 +51,7 @@ void PhysicsScene::PreSimulation()
 	for (auto& rb : m_bodies) {
 
 		//cache the previous position:
-		rb->prevPos = rb->position; 
-
+		rb->prevPos = rb->position;  
 
 		if (!rb->enableRotation) continue;
 		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->rotation);
@@ -62,6 +65,7 @@ void PhysicsScene::PreSimulation()
 		auto worldInertia = MatrixMultiply(temp, R_t);
 		rb->worldInertia = worldInertia;
 		rb->RotationMatrix = R;
+		rb->invWorldInertia = Inverse(worldInertia); 
 	}
 }
 
@@ -94,6 +98,17 @@ void PhysicsScene::Integrate(float delta)
 		//angular damping: 
 //	rb->angularVelocity *= 0.98f; //test damping;
 //} 
+		rb->prevRot = rb->rotation;
+
+		XMVECTOR dq = XMVectorSet(rb->angularVelocity.x(), rb->angularVelocity.y(), rb->angularVelocity.z(), 0.0f);
+
+		dq = XMQuaternionMultiply(dq, rb->rotation); //predicted rotation
+ 
+		dq = 0.5f * delta * dq; 
+
+		rb->predRot += dq;  
+	 	
+		rb->predRot = XMQuaternionNormalize(rb->predRot); 
 	}
 }
 
@@ -125,7 +140,7 @@ void PhysicsScene::DetectCollisions()
 					c.a = A.owner;
 					c.b = B.owner;
 					if (Collide(sa, sb, c)) { 
-						//std::cout << "Collision detected: " << typeid(decltype(sa)).name() << " vs " << typeid(decltype(sb)).name() << std::endl;
+						std::cout << "Collision detected: " << typeid(decltype(sa)).name() << " vs " << typeid(decltype(sb)).name() << std::endl;
 
 						m_contacts.emplace_back(std::move(c));
 					}
@@ -142,10 +157,17 @@ void PhysicsScene::SolveConstraints(float delta)
 	//hardcode compliance:
 	constexpr float compliance = 0.0001f; // compliance factor 
 	const float inv_dt2 = 1.f / (delta * delta); // 1 / dt²
+
+	auto generalizedInvMass = [&](RigidBody* rb,
+		const FLOAT3& ri,
+		const FLOAT3& n)->float
+		{
+			if (!rb || !rb->simulatePhysics) return 0.f;
+			FLOAT3 cross = Vector3Cross(ri, n);
+			FLOAT3 tmp = rb->invWorldInertia * cross;
+			return rb->invMass + Dot(cross, tmp);     // scalar
+		};
 	 
-	for (Contact& contact : m_contacts) {
-		contact.lambda = 0.f;
-	}
 	 
 	for (Contact& contact : m_contacts) {
 		RigidBody* A = contact.a->body;
@@ -154,11 +176,15 @@ void PhysicsScene::SolveConstraints(float delta)
 		FLOAT3 posA = A ? A->predPos : FLOAT3{}; 
 		FLOAT3 posB = B ? B->predPos : FLOAT3{};  
 
-		float  wA = A && A->simulatePhysics ? A->invMass : 0.f;  
-		float  wB = B && B->simulatePhysics ? B->invMass : 0.f;  
-		float  wSum = wA + wB;
+		FLOAT3 ra = contact.point - (A ? A->predPos : FLOAT3{});
+		FLOAT3 rb = contact.point - (B ? B->predPos : FLOAT3{});
+
+		float wA = generalizedInvMass(A, ra, contact.normal);
+		float wB = generalizedInvMass(B, rb, contact.normal);
+		float wSum = wA + wB; 
 		if (wSum == 0) continue;
 
+		//PBD: distance constraint C = l-l0 = l;
 		float C = contact.penetration;  
 		if (C <= 0) { 
 			continue; 
@@ -166,15 +192,43 @@ void PhysicsScene::SolveConstraints(float delta)
 		//if (C <= 0.01f ) continue;
 		// XPBD: α = compliance / dt²
 		float alpha = compliance * inv_dt2;
-		float dLambda = (C + alpha * contact.lambda) / (wSum + alpha);
-		contact.lambda += dLambda;
+		//float dLambda = (C + alpha * contact.lambda) / (wSum + alpha);
+		float dLambda = (C) / (wSum + alpha);
+		//contact.lambda += dLambda;
 
-		FLOAT3 corr = dLambda * contact.normal;
-		//FLOAT3 corr = C * contact.normal / wSum; // correction vector
-	 
+		//PBD: impulse direction:
+		FLOAT3 N = contact.normal; // contact normal
+
+		FLOAT3 corr = N * dLambda;
 		//apply correction to predicted positions:
-		if (A) A->predPos += corr * wA; // 
-		if (B) B->predPos -= corr * wB; //  
+		if (A) A->predPos += corr* wA;  
+		if (B) B->predPos -= corr* wB;  
+
+
+
+		auto applyRot = [&](RigidBody* rb, const FLOAT3& r, const FLOAT3& dir, float sign)
+			{
+				if (!rb || !rb->enableRotation || !rb->simulatePhysics) return;
+
+				if (Vector3Cross(r, dir * sign) == FLOAT3{})
+				{
+					std::cout << "Zero angular correction?" << std::endl;
+				}
+
+				// Δω = I^{-1} (r × Δp)
+				FLOAT3 dOmega = rb->invWorldInertia * Vector3Cross(r, dir * sign);
+				XMVECTOR q = rb->predRot;
+				XMVECTOR dq = XMQuaternionMultiply(
+					XMVectorSet(dOmega.x(), dOmega.y(), dOmega.z(), 0.f), q);
+				dq = XMVectorScale(dq, 0.5f);
+				rb->predRot = XMQuaternionNormalize(q + dq);
+			};
+
+		if (A && A->enableRotation) 
+		applyRot(A, ra, corr, -1.f);
+
+		if (B && B->enableRotation)
+		applyRot(B, rb, corr, +1.f);
 
 
 		//post PBD: 
@@ -213,37 +267,53 @@ void PhysicsScene::PostPBD(float delta)
 		rb->linearVelocity = (rb->predPos - rb->prevPos) / delta;
 		  
 		//rb->linearVelocity *= 0.99f;  //test damping;
-		if (LengthSq(rb->linearVelocity) < 1e-6f)  
-			rb->linearVelocity = FLOAT3{}; //reset to zero if too small
+		//if (LengthSq(rb->linearVelocity) < 1e-6f)  
+		//	rb->linearVelocity = FLOAT3{}; //reset to zero if too small
+
+
+		// PostPBD()
+		if (!rb->enableRotation) continue; //skip if not enabled
+		rb->rotation = rb->predRot;
+
+		XMVECTOR dq = XMQuaternionMultiply(rb->rotation,
+			XMQuaternionInverse(rb->prevRot));
+
+		FLOAT3 v = { dq.m128_f32[0], dq.m128_f32[1], dq.m128_f32[2] };
+		float  w = dq.m128_f32[3];
+		if (w < 0.f) v = -v;                       // 取最短弧
+		rb->angularVelocity = (2.f / delta) * v;
+
+		//angular damping:
+		//rb->angularVelocity *= 0.99f; //test damping;
 	} 
 
 }
 
 void PhysicsScene::IntegratePosition(float delta)
 {
-	for (auto& rb : m_bodies) {
-		if (!rb->simulatePhysics) continue;
-		//rb->position = rb->position + rb->linearVelocity * delta ;
+	//for (auto& rb : m_bodies) {
+	//	if (!rb->simulatePhysics) continue;
+	//	//rb->position = rb->position + rb->linearVelocity * delta ;
 
+	//	if (!rb->enableRotation) continue;
+	//	//rotation by quaternion: 
+	//	XMVECTOR q = rb->rotation; // 假设为 XMVECTOR 类型（x,y,z,w）
 
-		if (!rb->enableRotation) continue;
-        //rotation by quaternion: 
-		XMVECTOR q = rb->rotation; // 假设为 XMVECTOR 类型（x,y,z,w）
+	//	XMVECTOR omegaQuat = XMVectorSet(
+	//		rb->angularVelocity.x(),
+	//		rb->angularVelocity.y(),
+	//		rb->angularVelocity.z(),
+	//		0.0f
+	//	);
 
-		XMVECTOR omegaQuat = XMVectorSet(
-			rb->angularVelocity.x(),
-			rb->angularVelocity.y(),
-			rb->angularVelocity.z(),
-			0.0f
-		);
+	//	// dq = 0.5 * omegaQuat * q
+	//	XMVECTOR dq = XMQuaternionMultiply(omegaQuat, q);
+	//	dq = XMVectorScale(dq, 0.5f);
 
-		// dq = 0.5 * omegaQuat * q
-		XMVECTOR dq = XMQuaternionMultiply(omegaQuat, q);
-		dq = XMVectorScale(dq, 0.5f);
-		 
-		XMVECTOR updatedRot = XMVectorAdd(q, XMVectorScale(dq, delta));
-		rb->rotation = XMQuaternionNormalize(updatedRot);
-	}
+	//	XMVECTOR updatedRot = XMVectorAdd(q, XMVectorScale(dq, delta));
+	//	rb->rotation = XMQuaternionNormalize(updatedRot);
+
+	//}
 }
 
 void PhysicsScene::PostSimulation()

@@ -104,5 +104,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="legacy.txt" />
+    <Text Include="legacy\legacyImpulse.txt" />
+    <Text Include="legacy\OBBVSAABB.txt" />
   </ItemGroup>
 </Project>

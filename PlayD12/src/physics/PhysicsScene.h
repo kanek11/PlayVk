@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "PCH.h"
 #include "Math/MMath.h"
 #include "Shape.h"
@@ -34,7 +34,7 @@ struct RigidBody {
 	PhysicalMaterial material{ 0.0f,0.05f };
 
 	bool enableRotation{ false }; 
-	XMVECTOR rotation = XMQuaternionIdentity(); //quaternion rotation
+	XMVECTOR rotation{ XMQuaternionIdentity() }; 
 	FLOAT3 angularVelocity;
 	FLOAT3 torque{};
 
@@ -42,7 +42,11 @@ struct RigidBody {
 
 	//inertia
 	FLOAT3X3 localInertia;   
-	FLOAT3X3 worldInertia; 
+	FLOAT3X3 worldInertia;  
+	FLOAT3X3  invWorldInertia;
+
+	XMVECTOR prevRot{ XMQuaternionIdentity() };
+	XMVECTOR predRot{ XMQuaternionIdentity() };
 
 	ShapeType type;
 
@@ -57,11 +61,15 @@ struct RigidBody {
 
 	//todo: angular;
 	StaticMeshObjectProxy* owner;
-	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position, ShapeType type = Sphere{ 1.0f })
-		: owner(owner), position(position), type(type)
+	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position,ShapeType type, XMVECTOR rotation)
+		: owner(owner), position(position), type(type), rotation(rotation)
 	{
+		 
 		predPos = position;  
 		prevPos = position; 
+
+		predRot = rotation;
+		prevRot = rotation; 
 
 		localInertia = MakeInertiaTensor(type, 10.0f); 
 		//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
@@ -84,10 +92,7 @@ struct Collider {
 	{
 	};
 };
-
-
-
-
+ 
 //using ColliderPair = std::pair<const Collider* , const Collider* >;
 //class BroadPhaseCollision {
 //public:

@@ -63,13 +63,13 @@ WorldShape MakeWorldShape(const Collider& c)
 				return OBB{};
 			}
 
-			if (!c.body->enableRotation) {
-				//if the body is not rotating, we can use AABB
-                const FLOAT3 center = c.body->predPos;
-				return AABB{ center - s.halfExtents, center + s.halfExtents };
-			} 
+			//if (!c.body->enableRotation) {
+			//	//if the body is not rotating, we can use AABB
+   //             const FLOAT3 center = c.body->predPos;
+			//	return AABB{ center - s.halfExtents, center + s.halfExtents };
+			//} 
 
-            const FLOAT3 center = c.body->position;
+            const FLOAT3 center = c.body->predPos;
             //return as OBB:
             FLOAT3X3 R = c.body->RotationMatrix;
 			OBB obb;
@@ -373,6 +373,13 @@ bool Collide(const PlaneWS& plane, const SphereWS& s, Contact& out)
 }
 
 
+// Projects an oriented box onto an arbitrary axis and returns its radius on that axis.
+static float ProjectOBB(const OBB& obb, const FLOAT3& n)
+{
+    return obb.halfExtents.x() * std::abs(Dot(obb.axis[0], n)) +
+        obb.halfExtents.y() * std::abs(Dot(obb.axis[1], n)) +
+        obb.halfExtents.z() * std::abs(Dot(obb.axis[2], n));
+}
 
 inline Interval OBBProject(const OBB& obb, const FLOAT3& axis) {
     //project the OBB onto a given axis
@@ -401,112 +408,182 @@ inline Interval AABBProject(const AABB& aabb, const FLOAT3& axis) {
      
 }
 
-//AABB vs OBB
-[[nodiscard]] 
-bool Collide(const AABB& a, const OBB& b, Contact& out) {
-    // convert the AABB
-    FLOAT3 aCenter = (a.min + a.max) * 0.5f;
-    FLOAT3 aExtent = (a.max - a.min) * 0.5f;
+// Returns an extreme vertex on obb in direction "dir" (support mapping).
+static FLOAT3 SupportVertex(const OBB& obb, const FLOAT3& dir)
+{
+    FLOAT3 res = obb.center;
+    res += obb.axis[0] * obb.halfExtents.x() * ((Dot(dir, obb.axis[0]) >= 0.f) ? 1.f : -1.f);
+    res += obb.axis[1] * obb.halfExtents.y() * ((Dot(dir, obb.axis[1]) >= 0.f) ? 1.f : -1.f);
+    res += obb.axis[2] * obb.halfExtents.z() * ((Dot(dir, obb.axis[2]) >= 0.f) ? 1.f : -1.f);
+    return res;
+}
 
-    // constant axis;
-    const FLOAT3 aAxes[3] = {
-        FLOAT3{1,0,0}, FLOAT3{0,1,0}, FLOAT3{0,0,1}
-    };
+
+bool Collide(const OBB& A, const OBB& B, Contact& out)
+{
+	std::cout << "Collide OBB with OBB" << std::endl;
+    constexpr float kEps = 1e-6f;
+
+    // Translation from A to B
+    const FLOAT3 T = B.center - A.center;
+
+    const FLOAT3 axesA[3] = { A.axis[0], A.axis[1], A.axis[2] };
+    const FLOAT3 axesB[3] = { B.axis[0], B.axis[1], B.axis[2] };
 
     float   minOverlap = FLT_MAX;
-    FLOAT3  bestAxis = FLOAT3{ 0,0,0 };
-     
-	//capture by reference
-    auto testAxis = [&](const FLOAT3& axis) {
+    FLOAT3  bestAxis = { 0,0,0 };
 
-        Interval aProj = AABBProject(a, axis);
-        Interval bProj = OBBProject(b, axis);
+    // Helper lambda for the 15 SAT axes.
+    auto TestAxis = [&](const FLOAT3& n) -> bool
+        {
+            float len2 = Dot(n, n);
+            if (len2 < kEps) return true; // degenerate / parallel axis
 
-        float overlap = 0.0f;
-        if (!IntervalOverlap(aProj, bProj, overlap)) {
-            return false; // 分离轴
+            const FLOAT3 axis = n / std::sqrt(len2);
+            float dist = std::abs(Dot(T, axis));
+            float ra = ProjectOBB(A, axis);
+            float rb = ProjectOBB(B, axis);
+            float overlap = ra + rb - dist;
 
-        }
-        if (overlap < minOverlap) {
-            minOverlap = overlap;
-           
-            //point B to A
-			if (Dot(axis, aCenter - b.center) > 0) {
-				bestAxis = axis;  
-			}
-			else {
-				bestAxis = -axis; 
-			} 
-
-        };
-        return true;
+            if (overlap < 0.f) return false; // Separating axis – no collision.
+            if (overlap < minOverlap) {
+                minOverlap = overlap;
+                bestAxis = axis;
+            }
+            return true;
         };
 
-    // 3. 测试 3 条 AABB 主轴
-    for (int i = 0; i < 3; i++)
-        if (!testAxis(aAxes[i]))
-            return false;
+    // 3 face normals of A
+    for (int i = 0; i < 3; ++i) if (!TestAxis(axesA[i])) return false;
+    // 3 face normals of B
+    for (int i = 0; i < 3; ++i) if (!TestAxis(axesB[i])) return false;
+    // 9 edge–edge axes (cross products)
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            if (!TestAxis(Vector3Cross(axesA[i], axesB[j]))) return false;
 
-    // 4. 测试 3 条 OBB 局部主轴
-    for (int i = 0; i < 3; i++)
-        if (!testAxis(b.axis[i]))
-            return false;
+    // ---------------- contact data ----------------
+    // Ensure normal obeys Collision.h convention: "b to a"
+    if (Dot(bestAxis, A.center - B.center) < 0.f)
+        bestAxis = -bestAxis;
 
-    // 5. 测试 9 条棱–棱交叉轴
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            FLOAT3 axis = Vector3Cross(aAxes[i], b.axis[j]);
-            float len2 = Dot(axis, axis);
-            if (len2 < 1e-6f)
-                continue;   // 共线，跳过
-			axis = Normalize(axis); // 归一化
-            if (!testAxis(axis))
-                return false;
-        }
-    }
-
-    // 如果所有轴都未分离，则发生碰撞 
-    out.penetration = minOverlap; 
-    std::cout << "Collide AABB with OBB: penetration = " << out.penetration << std::endl;
-
-	std::cout << "Best axis: " << bestAxis.x() << ", " << bestAxis.y() << ", " << bestAxis.z() << std::endl;
-
-	//make sure the normal is pointing from B to A
     out.normal = bestAxis;
+    out.penetration = minOverlap;
 
+    // Approximate a single contact point – midpoint of extreme vertices along the normal.
+    FLOAT3 pa = SupportVertex(A, -bestAxis);
+    FLOAT3 pb = SupportVertex(B, bestAxis);
+    out.point = (pa + pb) * 0.5f;
 
-    // 6. 近似计算接触点（在 A 与 B 表面之间做中点）
-    {
-		FLOAT3 contactPointA = aCenter - bestAxis * (
-            aExtent.x() * std::abs(bestAxis.x()) +
-			aExtent.y() * std::abs(bestAxis.y()) +
-			aExtent.z() * std::abs(bestAxis.z())
-            );
-		FLOAT3 contactPointB = b.center + bestAxis * (
-            b.halfExtents.x() * std::abs(Dot(b.axis[0], bestAxis)) +
-			b.halfExtents.y() * std::abs(Dot(b.axis[1], bestAxis)) +
-			b.halfExtents.z() * std::abs(Dot(b.axis[2], bestAxis))
-            );
-		out.point = (contactPointA + contactPointB) * 0.5f; 
-        std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
-    }
-
-    return true;
+    return true; // Boxes intersect.
 }
 
-// AABB vs OBB
-[[nodiscard]]
-bool Collide(const OBB& obb, const AABB& aabb, Contact& out)
-{
-	//std::cout << "Collide OBB with AABB" << std::endl;
-	if (!Collide(aabb, obb, out)) return false;
-	out.normal *= -1.0f; 
-	//std::swap(out.a, out.b); 
-
-	//std::cout << "Collide OBB with AABB: true normal = " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
-     
-	return true;
-}
+////AABB vs OBB
+//[[nodiscard]] 
+//bool Collide(const AABB& a, const OBB& b, Contact& out) {
+//    // convert the AABB
+//    FLOAT3 aCenter = (a.min + a.max) * 0.5f;
+//    FLOAT3 aExtent = (a.max - a.min) * 0.5f;
+//
+//    // constant axis;
+//    const FLOAT3 aAxes[3] = {
+//        FLOAT3{1,0,0}, FLOAT3{0,1,0}, FLOAT3{0,0,1}
+//    };
+//
+//    float   minOverlap = FLT_MAX;
+//    FLOAT3  bestAxis = FLOAT3{ 0,0,0 };
+//     
+//	//capture by reference
+//    auto testAxis = [&](const FLOAT3& axis) {
+//
+//        Interval aProj = AABBProject(a, axis);
+//        Interval bProj = OBBProject(b, axis);
+//
+//        float overlap = 0.0f;
+//        if (!IntervalOverlap(aProj, bProj, overlap)) {
+//            return false; // 分离轴
+//
+//        }
+//        if (overlap < minOverlap) {
+//            minOverlap = overlap;
+//           
+//            //point B to A
+//			if (Dot(axis, aCenter - b.center) > 0) {
+//				bestAxis = axis;  
+//			}
+//			else {
+//				bestAxis = -axis; 
+//			} 
+//
+//        };
+//        return true;
+//        };
+//
+//    // 3. 测试 3 条 AABB 主轴
+//    for (int i = 0; i < 3; i++)
+//        if (!testAxis(aAxes[i]))
+//            return false;
+//
+//    // 4. 测试 3 条 OBB 局部主轴
+//    for (int i = 0; i < 3; i++)
+//        if (!testAxis(b.axis[i]))
+//            return false;
+//
+//    // 5. 测试 9 条棱–棱交叉轴
+//    for (int i = 0; i < 3; i++) {
+//        for (int j = 0; j < 3; j++) {
+//            FLOAT3 axis = Vector3Cross(aAxes[i], b.axis[j]);
+//            float len2 = Dot(axis, axis);
+//            if (len2 < 1e-6f)
+//                continue;   // 共线，跳过
+//			axis = Normalize(axis); // 归一化
+//            if (!testAxis(axis))
+//                return false;
+//        }
+//    }
+//
+//    // 如果所有轴都未分离，则发生碰撞 
+//    out.penetration = minOverlap; 
+//    std::cout << "Collide AABB with OBB: penetration = " << out.penetration << std::endl;
+//
+//	std::cout << "Best axis: " << bestAxis.x() << ", " << bestAxis.y() << ", " << bestAxis.z() << std::endl;
+//
+//	//make sure the normal is pointing from B to A
+//    out.normal = bestAxis;
+//
+//
+//    // 6. 近似计算接触点（在 A 与 B 表面之间做中点）
+//    {
+//		FLOAT3 contactPointA = aCenter - bestAxis * (
+//            aExtent.x() * std::abs(bestAxis.x()) +
+//			aExtent.y() * std::abs(bestAxis.y()) +
+//			aExtent.z() * std::abs(bestAxis.z())
+//            );
+//		FLOAT3 contactPointB = b.center + bestAxis * (
+//            b.halfExtents.x() * std::abs(Dot(b.axis[0], bestAxis)) +
+//			b.halfExtents.y() * std::abs(Dot(b.axis[1], bestAxis)) +
+//			b.halfExtents.z() * std::abs(Dot(b.axis[2], bestAxis))
+//            );
+//		out.point = (contactPointA + contactPointB) * 0.5f; 
+//        std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
+//    }
+//
+//    return true;
+//}
+//
+//// AABB vs OBB
+//[[nodiscard]]
+//bool Collide(const OBB& obb, const AABB& aabb, Contact& out)
+//{
+//	//std::cout << "Collide OBB with AABB" << std::endl;
+//	if (!Collide(aabb, obb, out)) return false;
+//	out.normal *= -1.0f; 
+//	//std::swap(out.a, out.b); 
+//
+//	//std::cout << "Collide OBB with AABB: true normal = " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
+//     
+//	return true;
+//}
 
  
 
@@ -537,32 +614,31 @@ inline std::array<FLOAT3, 8> GetOBBVertices(const OBB& b) {
 [[nodiscard]]
 bool Collide(const OBB& b, const PlaneWS& p, Contact& out) {
     // 1. 中心到平面距离
-	float dist = SignedDist(p, b.center); 
+    // ---------- 1. 找到最深顶点 ----------
+    auto verts = GetOBBVertices(b);           // 8 个顶点
+    float minDist = FLT_MAX;                    // < 0 ⇒ 穿入
+    FLOAT3 deepestV;
 
-    // 2. 计算投影半径 r
-    float r_n =
-        b.halfExtents.x() * std::abs(Dot(p.normal, b.axis[0])) +
-        b.halfExtents.y() * std::abs(Dot(p.normal, b.axis[1])) +
-        b.halfExtents.z() * std::abs(Dot(p.normal, b.axis[2]));
+    for (const auto& v : verts) {
+        float d = SignedDist(p, v);             // 已有工具函数:contentReference[oaicite:1]{index=1}
+        if (d < minDist) {
+            minDist = d;
+            deepestV = v;
+        }
+    }
 
-    // 3. 判定
-    if (std::abs(dist) > r_n)
-        return false;  // 分离，不碰撞 
-     
-    // 4. 填充 Contact
-    FLOAT3 bestAxis = (dist >= 0.0f) ? p.normal : -p.normal;
+    if (minDist > 0)          // 全部在平面外侧 ⇒ 不相交
+        return false;
 
-	out.normal = bestAxis; 
-    out.penetration = r_n - std::abs(dist); 
+    // ---------- 2. 填充 Contact ----------
+    out.normal = p.normal;               // 让 normal 指向 OBB -> Plane
+    out.penetration = -minDist;                // 深度正值
+	out.point = ProjectToPlane(p, deepestV); // 投影到平面上
 
-	out.point = b.center - p.normal * dist; 
-	//out.point = ProjectToPlane(p, b.center);  
-
-    FLOAT3 contactPoint = b.center - bestAxis * (b.halfExtents.x() * std::abs(bestAxis.x()) +
-        b.halfExtents.y() * std::abs(bestAxis.y()) +
-        b.halfExtents.z() * std::abs(bestAxis.z()));
-
-	out.point = contactPoint;  
+	//std::cout << "Collide OBB with Plane: penetration = " << out.penetration << std::endl;
+	//std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
+	//std::cout << "center: " << b.center.x() << ", " << b.center.y() << ", " << b.center.z() << std::endl;
+	//std::cout << "Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
 
     return true;
 }

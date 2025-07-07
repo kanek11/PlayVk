@@ -691,35 +691,35 @@ void D3D12HelloRenderer::InitMeshAssets()
     auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
 
 
-    auto cubeMesh0 = CreateShared<CubeMesh>();
-    cubeMesh0->CreateGPUResource(m_device.Get());
-    auto cubeMeshProxy0 = InitMesh(cubeMesh0,
-        { -5.0f, 0.0f, 0.0f },
-        { 1.0f, 1.0f, 1.0f }
-    );
-    
-    //new rigidbody:
-    auto rigidBody0 = new RigidBody(cubeMeshProxy0, cubeMeshProxy0->position, Box{ cubeMeshProxy0->scale });
-    cubeMeshProxy0->rigidBody = rigidBody0;
-    physicsScene->AddRigidBody(rigidBody0);
-    
-    auto boxCollider0 = new Collider(cubeMeshProxy0, Box{ cubeMeshProxy0->scale }, rigidBody0); //half extents
-    cubeMeshProxy0->collider = boxCollider0;
-    physicsScene->AddCollider(boxCollider0);
-    
-    rigidBody0->enableRotation = false; 
+    //auto cubeMesh0 = CreateShared<CubeMesh>();
+    //cubeMesh0->CreateGPUResource(m_device.Get());
+    //auto cubeMeshProxy0 = InitMesh(cubeMesh0,
+    //    { -5.0f, 0.0f, 0.0f },
+    //    { 1.0f, 1.0f, 1.0f }
+    //);
+    //
+    ////new rigidbody:
+    //auto rigidBody0 = new RigidBody(cubeMeshProxy0, cubeMeshProxy0->position, Box{ cubeMeshProxy0->scale });
+    //cubeMeshProxy0->rigidBody = rigidBody0;
+    //physicsScene->AddRigidBody(rigidBody0);
+    //
+    //auto boxCollider0 = new Collider(cubeMeshProxy0, Box{ cubeMeshProxy0->scale }, rigidBody0); //half extents
+    //cubeMeshProxy0->collider = boxCollider0;
+    //physicsScene->AddCollider(boxCollider0);
+    //
+    //rigidBody0->enableRotation = false; 
     
     
     
     auto cubeMesh1 = CreateShared<CubeMesh>();
     cubeMesh1->CreateGPUResource(m_device.Get());
     auto cubeMeshProxy1 = InitMesh(cubeMesh1,
-        { 2.0f, 0.0f, 0.0f },
+        { 1.0f, 0.0f, 0.0f },
         { 1.0f, 1.0f, 1.0f }
     );
     
     //new rigidbody for the cube:
-    auto rigidBody1 = new RigidBody(cubeMeshProxy1, cubeMeshProxy1->position, Box{ cubeMeshProxy1->scale });
+	auto rigidBody1 = new RigidBody(cubeMeshProxy1, cubeMeshProxy1->position, Box{ cubeMeshProxy1->scale } , cubeMeshProxy1->rotation);
     cubeMeshProxy1->rigidBody = rigidBody1;
     physicsScene->AddRigidBody(rigidBody1); //add to the physics scene
     auto boxCollider1 = new Collider(cubeMeshProxy1, Box{ cubeMeshProxy1->scale }, rigidBody1); //half extents
@@ -737,19 +737,24 @@ void D3D12HelloRenderer::InitMeshAssets()
     auto cubeMesh2 = CreateShared<CubeMesh>();
     cubeMesh2->CreateGPUResource(m_device.Get());
     auto cubeMeshProxy2 = InitMesh(cubeMesh2,
-        { 1.0f, 5.0f, 0.0f },
+        { 0.0f, 5.0f, 0.0f },
         { 1.0f, 1.0f, 1.0f }
     );
 
+	//a initial rotation of the cube:
+    auto x = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+	auto rotation = XMQuaternionRotationAxis(x, XMConvertToRadians(20.0f)); // Rotate 45 degrees around the Y-axis
+    cubeMeshProxy2->rotation = XMQuaternionMultiply(rotation, cubeMeshProxy2->rotation);
+
     //new rigidbody for the cube:
-    auto rigidBody2 = new RigidBody(cubeMeshProxy2, cubeMeshProxy2->position, Box{ cubeMeshProxy2->scale });
+	auto rigidBody2 = new RigidBody(cubeMeshProxy2, cubeMeshProxy2->position, Box{ cubeMeshProxy2->scale }, cubeMeshProxy2->rotation);
     cubeMeshProxy2->rigidBody = rigidBody2;
     physicsScene->AddRigidBody(rigidBody2); //add to the physics scene
     auto boxCollider2 = new Collider(cubeMeshProxy2, Box{ cubeMeshProxy2->scale }, rigidBody2); //half extents
     cubeMeshProxy2->collider = boxCollider2;
     physicsScene->AddCollider(boxCollider2); //add to the physics scene 
 
-    rigidBody2->enableRotation = false;
+    rigidBody2->enableRotation = true;
 
 
 
@@ -775,22 +780,22 @@ void D3D12HelloRenderer::InitMeshAssets()
 
 
     //cube4：
-    auto cubeMesh4 = CreateShared<CubeMesh>();
-    cubeMesh4->CreateGPUResource(m_device.Get());
-    
-    auto cubeMeshProxy4 = InitMesh(cubeMesh4,
-        { 0.0f, 8.0f, 0.0f },
-        { 1.0f, 1.0f, 1.0f }
-    );
+    //auto cubeMesh4 = CreateShared<CubeMesh>();
+    //cubeMesh4->CreateGPUResource(m_device.Get());
+    //
+    //auto cubeMeshProxy4 = InitMesh(cubeMesh4,
+    //    { 0.0f, 8.0f, 0.0f },
+    //    { 1.0f, 1.0f, 1.0f }
+    //);
     ////new rigidbody for the cube:
-    auto rigidBody4 = new RigidBody(cubeMeshProxy4, cubeMeshProxy4->position, Box{});
-    cubeMeshProxy4->rigidBody = rigidBody4;
-    physicsScene->AddRigidBody(rigidBody4); //add to the physics scene
-    auto boxCollider4 = new Collider(cubeMeshProxy4, Box{ cubeMeshProxy4->scale }, rigidBody4); //half extents
-    cubeMeshProxy4->collider = boxCollider4;
-    physicsScene->AddCollider(boxCollider4); //add to the physics scene
-    
-    rigidBody4->enableRotation = false;
+    //auto rigidBody4 = new RigidBody(cubeMeshProxy4, cubeMeshProxy4->position, Box{});
+    //cubeMeshProxy4->rigidBody = rigidBody4;
+    //physicsScene->AddRigidBody(rigidBody4); //add to the physics scene
+    //auto boxCollider4 = new Collider(cubeMeshProxy4, Box{ cubeMeshProxy4->scale }, rigidBody4); //half extents
+    //cubeMeshProxy4->collider = boxCollider4;
+    //physicsScene->AddCollider(boxCollider4); //add to the physics scene
+    //
+    //rigidBody4->enableRotation = true;
     
     
     ////cube4：
@@ -814,46 +819,46 @@ void D3D12HelloRenderer::InitMeshAssets()
     //
     //rigidBody3->enableRotation = false;
     
-    auto sphereMesh0 = CreateShared<SphereMesh>();
-    sphereMesh0->CreateGPUResource(m_device.Get());
-    auto sphereMeshProxy0 = InitMesh(sphereMesh0,
-        { 3.0f, 10.0f, 0.0f },
-        { 1.0f, 1.0f, 1.0f }
-    );
+    //auto sphereMesh0 = CreateShared<SphereMesh>();
+    //sphereMesh0->CreateGPUResource(m_device.Get());
+    //auto sphereMeshProxy0 = InitMesh(sphereMesh0,
+    //    { 2.5f, 10.0f, 0.0f },
+    //    { 1.0f, 1.0f, 1.0f }
+    //);
+    //
+    ////new rigidbody for the sphere:
+    //auto rigidBodySphere0 = new RigidBody(sphereMeshProxy0, sphereMeshProxy0->position, Sphere{});
+    //sphereMeshProxy0->rigidBody = rigidBodySphere0;
+    //physicsScene->AddRigidBody(rigidBodySphere0); //add to the physics scene
+    //auto sphereCollider0 = new Collider(sphereMeshProxy0, Sphere{ sphereMeshProxy0->scale.x() }, rigidBodySphere0); //sphere radius
+    //sphereMeshProxy0->collider = sphereCollider0;
+    //physicsScene->AddCollider(sphereCollider0); //add to the physics scene 
+    //
+    //rigidBodySphere0->debugName = "Sphere0";  
     
-    //new rigidbody for the sphere:
-    auto rigidBodySphere0 = new RigidBody(sphereMeshProxy0, sphereMeshProxy0->position, Sphere{});
-    sphereMeshProxy0->rigidBody = rigidBodySphere0;
-    physicsScene->AddRigidBody(rigidBodySphere0); //add to the physics scene
-    auto sphereCollider0 = new Collider(sphereMeshProxy0, Sphere{ sphereMeshProxy0->scale.x() }, rigidBodySphere0); //sphere radius
-    sphereMeshProxy0->collider = sphereCollider0;
-    physicsScene->AddCollider(sphereCollider0); //add to the physics scene 
     
-    rigidBodySphere0->debugName = "Sphere0";  
-    
-    
-    auto sphereMesh1 = CreateShared<SphereMesh>();
-    sphereMesh1->CreateGPUResource(m_device.Get());
-    auto sphereMeshProxy1 = InitMesh(sphereMesh1,
-        { 0.0f, 0.0f, -3.0f },
-        { 1.0f, 1.0f, 1.0f }
-    );
-    
-    //new rigidbody for the sphere:
-    auto rigidBodySphere1 = new RigidBody(sphereMeshProxy1, sphereMeshProxy1->position, Sphere{});
-    sphereMeshProxy1->rigidBody = rigidBodySphere1;
-    physicsScene->AddRigidBody(rigidBodySphere1); //add to the physics scene
-    auto sphereCollider1 = new Collider(sphereMeshProxy1, Sphere{ sphereMeshProxy1->scale.x() }, rigidBodySphere1); //sphere radius
-    sphereMeshProxy1->collider = sphereCollider1;
-    physicsScene->AddCollider(sphereCollider1); //add to the physics scene
-    
-    //set to static:
-    rigidBodySphere1->mass = MMath::FLOAT_MAX; //set the mass to 0, so it is static
-    rigidBodySphere1->simulatePhysics = false; //make the sphere static, not affected by physics
-    
-    rigidBodySphere1->debugName = "Sphere1";
-    rigidBodySphere1->enableRotation = false; //make the sphere not affected by rotation, so it will not fall down due to gravity
-    
+    //auto sphereMesh1 = CreateShared<SphereMesh>();
+    //sphereMesh1->CreateGPUResource(m_device.Get());
+    //auto sphereMeshProxy1 = InitMesh(sphereMesh1,
+    //    { 0.0f, 0.0f, -3.0f },
+    //    { 1.0f, 1.0f, 1.0f }
+    //);
+    //
+    ////new rigidbody for the sphere:
+    //auto rigidBodySphere1 = new RigidBody(sphereMeshProxy1, sphereMeshProxy1->position, Sphere{});
+    //sphereMeshProxy1->rigidBody = rigidBodySphere1;
+    //physicsScene->AddRigidBody(rigidBodySphere1); //add to the physics scene
+    //auto sphereCollider1 = new Collider(sphereMeshProxy1, Sphere{ sphereMeshProxy1->scale.x() }, rigidBodySphere1); //sphere radius
+    //sphereMeshProxy1->collider = sphereCollider1;
+    //physicsScene->AddCollider(sphereCollider1); //add to the physics scene
+    //
+    ////set to static:
+    //rigidBodySphere1->mass = MMath::FLOAT_MAX; //set the mass to 0, so it is static
+    //rigidBodySphere1->simulatePhysics = false; //make the sphere static, not affected by physics
+    //
+    //rigidBodySphere1->debugName = "Sphere1";
+    //rigidBodySphere1->enableRotation = false; //make the sphere not affected by rotation, so it will not fall down due to gravity
+    //
     //sphere2:
     auto sphereMesh2 = CreateShared<SphereMesh>();
     sphereMesh2->CreateGPUResource(m_device.Get());
@@ -863,14 +868,15 @@ void D3D12HelloRenderer::InitMeshAssets()
     );
     
     //new rigidbody for the sphere:
-    auto rigidBodySphere2 = new RigidBody(sphereMeshProxy2, sphereMeshProxy2->position, Sphere{});
-    sphereMeshProxy2->rigidBody = rigidBodySphere2;
-    physicsScene->AddRigidBody(rigidBodySphere2); //add to the physics scene
-    auto sphereCollider2 = new Collider(sphereMeshProxy2, Sphere{ sphereMeshProxy2->scale.x() }, rigidBodySphere2); //sphere radius
-    sphereMeshProxy2->collider = sphereCollider2;
-    physicsScene->AddCollider(sphereCollider2); //add to the physics scene 
-    
-    rigidBodySphere2->debugName = "Sphere2"; 
+	//auto rigidBodySphere2 = new RigidBody(sphereMeshProxy2, sphereMeshProxy2->position, Sphere{ sphereMeshProxy2->scale.x() }, sphereMeshProxy2->rotation);
+ //   sphereMeshProxy2->rigidBody = rigidBodySphere2;
+ //   physicsScene->AddRigidBody(rigidBodySphere2); //add to the physics scene
+ //   auto sphereCollider2 = new Collider(sphereMeshProxy2, Sphere{ sphereMeshProxy2->scale.x() }, rigidBodySphere2); //sphere radius
+ //   sphereMeshProxy2->collider = sphereCollider2;
+ //   physicsScene->AddCollider(sphereCollider2); //add to the physics scene 
+ //   
+ //   rigidBodySphere2->debugName = "Sphere2"; 
+	//rigidBodySphere2->enableRotation = true; //make the sphere affected by rotation, so it will fall down due to gravity
 
 
     auto plane0 = CreateShared<PlaneMesh>();
@@ -881,7 +887,7 @@ void D3D12HelloRenderer::InitMeshAssets()
     );
 
     //add a rigidbody for the plane:
-    auto rigidBodyPlane = new RigidBody(planeMeshProxy, planeMeshProxy->position);
+	auto rigidBodyPlane = new RigidBody(planeMeshProxy, planeMeshProxy->position, Plane{ planeMeshProxy->scale.x(), planeMeshProxy->scale.y() }, planeMeshProxy->rotation);
     planeMeshProxy->rigidBody = rigidBodyPlane;
     physicsScene->AddRigidBody(rigidBodyPlane); //add to the physics scene
     
@@ -896,16 +902,16 @@ void D3D12HelloRenderer::InitMeshAssets()
     rigidBodyPlane->debugName = "Plane"; //set the debug name for the plane
 
 
-    m_staticMeshes.push_back(cubeMeshProxy0);
+    //m_staticMeshes.push_back(cubeMeshProxy0);
     m_staticMeshes.push_back(cubeMeshProxy1);
     m_staticMeshes.push_back(cubeMeshProxy2);
     m_staticMeshes.push_back(cubeMeshProxy3);
-    m_staticMeshes.push_back(cubeMeshProxy4);
+    //m_staticMeshes.push_back(cubeMeshProxy4);
 	//m_staticMeshes.push_back(cubeMeshProxy5);
 
-    m_staticMeshes.push_back(sphereMeshProxy0);
-    m_staticMeshes.push_back(sphereMeshProxy1);
-    m_staticMeshes.push_back(sphereMeshProxy2);
+    //m_staticMeshes.push_back(sphereMeshProxy0);
+    //m_staticMeshes.push_back(sphereMeshProxy1);
+    //m_staticMeshes.push_back(sphereMeshProxy2);
 
     m_staticMeshes.push_back(planeMeshProxy);
 }
