@@ -701,8 +701,12 @@ bool Collide(const OBB& b, const PlaneWS& p, Contact& out) {
 
 	std::cout << "Collide OBB with Plane: penetration = " << out.penetration << std::endl;
 	std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
-	std::cout << "center: " << b.center.x() << ", " << b.center.y() << ", " << b.center.z() << std::endl;
-	std::cout << "Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
+	//std::cout << "center: " << b.center.x() << ", " << b.center.y() << ", " << b.center.z() << std::endl;
+	//std::cout << "Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
+    //output the axes:
+	std::cout << "OBB axes: " << b.axis[0].x() << ", " << b.axis[0].y() << ", " << b.axis[0].z() << std::endl;
+	std::cout << "OBB axes: " << b.axis[1].x() << ", " << b.axis[1].y() << ", " << b.axis[1].z() << std::endl;
+	std::cout << "OBB axes: " << b.axis[2].x() << ", " << b.axis[2].y() << ", " << b.axis[2].z() << std::endl;
 
     return true;
 }
