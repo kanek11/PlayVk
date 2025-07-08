@@ -61,13 +61,13 @@ WorldShape MakeWorldShape(const Collider& c)
 			if (!c.body) {
 				std::cerr << "Collider has no body, cannot create OBB." << std::endl;
 				return OBB{};
-			}
+			} 
 
-			//if (!c.body->enableRotation) {
-			//	//if the body is not rotating, we can use AABB
-   //             const FLOAT3 center = c.body->predPos;
-			//	return AABB{ center - s.halfExtents, center + s.halfExtents };
-			//} 
+			if (!c.body->simulateRotation && XMQuaternionEqual(c.body->rotation, XMQuaternionIdentity())) {
+				//if the body is not rotating, we can use AABB
+                const FLOAT3 center = c.body->predPos;
+				return AABB{ center - s.halfExtents, center + s.halfExtents };
+			} 
 
             const FLOAT3 center = c.body->predPos;
             //return as OBB:
@@ -271,11 +271,49 @@ bool Collide(const AABB& box, const SphereWS& s, Contact& out)
 {
     //std::cout << "Collide AABB with Sphere" << std::endl;
 
-    if (!Collide(s, box, out)) return false;
-
+    if (!Collide(s, box, out)) return false; 
     out.normal = out.normal * -1.0f;
     return true;
 }
+
+
+
+[[nodiscard]]
+bool Collide(const SphereWS& s, const OBB& box, Contact& out)
+{
+
+	//std::cout << "Collide Sphere with OBB" << std::endl;
+	//project the sphere onto the OBB's axes
+	FLOAT3 closestPoint = box.center;
+	for (int i = 0; i < 3; ++i) {
+		closestPoint += box.axis[i] * std::clamp(Dot(s.center - box.center, box.axis[i]), -box.halfExtents[i], box.halfExtents[i]);
+	}
+	FLOAT3 offset = s.center - closestPoint;
+	float distSq = LengthSq(offset);
+	if (distSq > s.radius * s.radius) return false;
+	float dist = std::sqrt(distSq);
+	FLOAT3 normal = dist > 0.0001f ? offset / dist : FLOAT3{ 0, 1, 0 };
+	FLOAT3 point = closestPoint;
+	out.normal = normal;
+	out.point = point;
+	out.penetration = s.radius - dist;
+	//std::cout << "Collided Sphere with OBB: "
+	//	<< "Penetration: " << out.penetration
+	//	<< " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << '\n';
+	return true;
+    
+}
+
+[[nodiscard]]
+bool Collide(const OBB& box, const SphereWS& s, Contact& out)
+{
+	//std::cout << "Collide OBB with Sphere" << std::endl;
+	if (!Collide(s, box, out)) return false;
+	out.normal = -out.normal; //reverse the normal
+	//std::swap(out.a, out.b); //swap the contact points
+	return true;
+}
+
 
 
 [[nodiscard]]
@@ -319,7 +357,7 @@ bool Collide(const PlaneWS& plane, const AABB& box, Contact& out)
     if (!Collide(box, plane, out)) return false;
 
     out.normal = -out.normal;
-    std::swap(out.a, out.b);
+    //std::swap(out.a, out.b);
     return true;
 }
 
@@ -367,7 +405,7 @@ bool Collide(const PlaneWS& plane, const SphereWS& s, Contact& out)
         return false;
          
     out.normal *= -1.f;
-    std::swap(out.a, out.b);
+    //std::swap(out.a, out.b);
 
     return true;
 }
@@ -421,11 +459,10 @@ static FLOAT3 SupportVertex(const OBB& obb, const FLOAT3& dir)
 
 bool Collide(const OBB& A, const OBB& B, Contact& out)
 {
-	std::cout << "Collide OBB with OBB" << std::endl;
+	std::cout << "Detect OBB with OBB" << std::endl;
     constexpr float kEps = 1e-6f;
-
-    // Translation from A to B
-    const FLOAT3 T = B.center - A.center;
+     
+    const FLOAT3 A2B = B.center - A.center;
 
     const FLOAT3 axesA[3] = { A.axis[0], A.axis[1], A.axis[2] };
     const FLOAT3 axesB[3] = { B.axis[0], B.axis[1], B.axis[2] };
@@ -436,16 +473,22 @@ bool Collide(const OBB& A, const OBB& B, Contact& out)
     // Helper lambda for the 15 SAT axes.
     auto TestAxis = [&](const FLOAT3& n) -> bool
         {
-            float len2 = Dot(n, n);
-            if (len2 < kEps) return true; // degenerate / parallel axis
+            if (LengthSq(n) < kEps) return true; // degenerate / parallel axis？
 
-            const FLOAT3 axis = n / std::sqrt(len2);
-            float dist = std::abs(Dot(T, axis));
-            float ra = ProjectOBB(A, axis);
-            float rb = ProjectOBB(B, axis);
-            float overlap = ra + rb - dist;
+            const FLOAT3 axis = Normalize(n); 
 
-            if (overlap < 0.f) return false; // Separating axis – no collision.
+            //float dist = std::abs(Dot(A2B, axis));
+            //float ra = ProjectOBB(A, axis);
+            //float rb = ProjectOBB(B, axis);
+            //float overlap = ra + rb - dist;
+
+			auto intervalA = OBBProject(A, axis);
+			auto intervalB = OBBProject(B, axis);
+			float overlap = 0.0f;
+			if (!IntervalOverlap(intervalA, intervalB, overlap)) {
+				return false; // Separating axis found.
+			} 
+            //if (overlap < 0.f) return false; // Separating axis – no collision.
             if (overlap < minOverlap) {
                 minOverlap = overlap;
                 bestAxis = axis;
@@ -475,8 +518,29 @@ bool Collide(const OBB& A, const OBB& B, Contact& out)
     FLOAT3 pb = SupportVertex(B, bestAxis);
     out.point = (pa + pb) * 0.5f;
 
+    
+	//std::cout << "Collided OBB with OBB: "
+	//	<< "Penetration: " << out.penetration
+	//	<< " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() 
+	//	<< " Point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << '\n';
+
     return true; // Boxes intersect.
 }
+
+
+//[[nodiscard]] 
+bool Collide(const AABB& a, const OBB& b, Contact& out) {
+
+    //delegate to OBB vs OBB:
+	OBB obb;
+	obb.center = (a.min + a.max) * 0.5f;
+	obb.halfExtents = (a.max - a.min) * 0.5f;
+	obb.axis[0] = FLOAT3{ 1, 0, 0 };
+	obb.axis[1] = FLOAT3{ 0, 1, 0 };
+	obb.axis[2] = FLOAT3{ 0, 0, 1 };
+	return Collide(obb, b, out);  
+}
+
 
 ////AABB vs OBB
 //[[nodiscard]] 
@@ -635,10 +699,10 @@ bool Collide(const OBB& b, const PlaneWS& p, Contact& out) {
     out.penetration = -minDist;                // 深度正值
 	out.point = ProjectToPlane(p, deepestV); // 投影到平面上
 
-	//std::cout << "Collide OBB with Plane: penetration = " << out.penetration << std::endl;
-	//std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
-	//std::cout << "center: " << b.center.x() << ", " << b.center.y() << ", " << b.center.z() << std::endl;
-	//std::cout << "Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
+	std::cout << "Collide OBB with Plane: penetration = " << out.penetration << std::endl;
+	std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
+	std::cout << "center: " << b.center.x() << ", " << b.center.y() << ", " << b.center.z() << std::endl;
+	std::cout << "Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
 
     return true;
 }
@@ -650,6 +714,6 @@ bool Collide(const PlaneWS& plane, const OBB& obb, Contact& out)
 	//std::cout << "Collide OBB with Plane" << std::endl;
 	if (!Collide(obb, plane, out)) return false;
 	out.normal *= -1.0f;
-	std::swap(out.a, out.b);
+	//std::swap(out.a, out.b);
 	return true;
 }

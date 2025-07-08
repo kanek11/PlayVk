@@ -27,8 +27,11 @@ void PhysicsScene::Tick(float delta)
 		SolveConstraints(substepDelta);
 
 		PostPBD(substepDelta); 
-		//IntegratePosition(delta);
+		//IntegratePosition(delta); 
+		
 	} 
+
+	//VelocityPass(delta);
 
 	PostSimulation();
 }
@@ -52,20 +55,6 @@ void PhysicsScene::PreSimulation()
 
 		//cache the previous position:
 		rb->prevPos = rb->position;  
-
-		if (!rb->enableRotation) continue;
-		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->rotation);
-		FLOAT3X3 R;
-		R[0] = { R_.r[0].m128_f32[0], R_.r[1].m128_f32[0], R_.r[2].m128_f32[0] };
-		R[1] = { R_.r[0].m128_f32[1], R_.r[1].m128_f32[1], R_.r[2].m128_f32[1] };
-		R[2] = { R_.r[0].m128_f32[2], R_.r[1].m128_f32[2], R_.r[2].m128_f32[2] };
-
-		auto temp = MatrixMultiply(R, rb->localInertia);
-		auto R_t = Transpose(R);
-		auto worldInertia = MatrixMultiply(temp, R_t);
-		rb->worldInertia = worldInertia;
-		rb->RotationMatrix = R;
-		rb->invWorldInertia = Inverse(worldInertia); 
 	}
 }
 
@@ -91,7 +80,7 @@ void PhysicsScene::Integrate(float delta)
 		 
 
 		//new: consider torque:
-		if (!rb->enableRotation) continue; //skip if not enabled
+		if (!rb->simulateRotation) continue; //skip if not enabled
 		rb->angularVelocity = rb->angularVelocity + Inverse(rb->worldInertia) * rb->torque * delta; 
 		rb->torque = FLOAT3{}; //reset torque
 		 
@@ -109,6 +98,22 @@ void PhysicsScene::Integrate(float delta)
 		rb->predRot += dq;  
 	 	
 		rb->predRot = XMQuaternionNormalize(rb->predRot); 
+		 
+
+
+		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->rotation);
+		FLOAT3X3 R;
+		R[0] = { R_.r[0].m128_f32[0], R_.r[1].m128_f32[0], R_.r[2].m128_f32[0] };
+		R[1] = { R_.r[0].m128_f32[1], R_.r[1].m128_f32[1], R_.r[2].m128_f32[1] };
+		R[2] = { R_.r[0].m128_f32[2], R_.r[1].m128_f32[2], R_.r[2].m128_f32[2] };
+		rb->RotationMatrix = R;
+
+		if (!rb->simulateRotation) continue;
+		auto temp = MatrixMultiply(R, rb->localInertia);
+		auto R_t = Transpose(R);
+		auto worldInertia = MatrixMultiply(temp, R_t);
+		rb->worldInertia = worldInertia;
+		rb->invWorldInertia = Inverse(worldInertia);
 	}
 }
 
@@ -163,6 +168,10 @@ void PhysicsScene::SolveConstraints(float delta)
 		const FLOAT3& n)->float
 		{
 			if (!rb || !rb->simulatePhysics) return 0.f;
+
+			if (rb->simulateRotation == false) { 
+				return rb->invMass;  
+			}
 			FLOAT3 cross = Vector3Cross(ri, n);
 			FLOAT3 tmp = rb->invWorldInertia * cross;
 			return rb->invMass + Dot(cross, tmp);     // scalar
@@ -208,7 +217,7 @@ void PhysicsScene::SolveConstraints(float delta)
 
 		auto applyRot = [&](RigidBody* rb, const FLOAT3& r, const FLOAT3& dir, float sign)
 			{
-				if (!rb || !rb->enableRotation || !rb->simulatePhysics) return;
+				if (!rb || !rb->simulateRotation || !rb->simulatePhysics) return;
 
 				if (Vector3Cross(r, dir * sign) == FLOAT3{})
 				{
@@ -224,10 +233,10 @@ void PhysicsScene::SolveConstraints(float delta)
 				rb->predRot = XMQuaternionNormalize(q + dq);
 			};
 
-		if (A && A->enableRotation) 
+		if (A && A->simulateRotation) 
 		applyRot(A, ra, corr, -1.f);
 
-		if (B && B->enableRotation)
+		if (B && B->simulateRotation)
 		applyRot(B, rb, corr, +1.f);
 
 
@@ -266,13 +275,13 @@ void PhysicsScene::PostPBD(float delta)
 		rb->position = rb->predPos; //update position to predicted position 
 		rb->linearVelocity = (rb->predPos - rb->prevPos) / delta;
 		  
-		//rb->linearVelocity *= 0.99f;  //test damping;
+		rb->linearVelocity *= 0.99f;  //test damping;
 		//if (LengthSq(rb->linearVelocity) < 1e-6f)  
 		//	rb->linearVelocity = FLOAT3{}; //reset to zero if too small
 
 
 		// PostPBD()
-		if (!rb->enableRotation) continue; //skip if not enabled
+		if (!rb->simulateRotation) continue; //skip if not enabled
 		rb->rotation = rb->predRot;
 
 		XMVECTOR dq = XMQuaternionMultiply(rb->rotation,
@@ -283,10 +292,96 @@ void PhysicsScene::PostPBD(float delta)
 		if (w < 0.f) v = -v;                       // 取最短弧
 		rb->angularVelocity = (2.f / delta) * v;
 
+		std::cout << "rb: " << rb->debugName << ", "
+			<< "angVel: " << rb->angularVelocity.x() << ", "
+			<< rb->angularVelocity.y() << ", "
+			<< rb->angularVelocity.z() << std::endl;
 		//angular damping:
 		//rb->angularVelocity *= 0.99f; //test damping;
 	} 
 
+}
+
+void PhysicsScene::VelocityPass(float delta)
+{ 
+	for (Contact& c : m_contacts)
+	{
+		RigidBody* A = c.a->body;
+		RigidBody* B = c.b->body; 
+
+		FLOAT3 ra = c.point - (A ? A->predPos : FLOAT3{});
+		FLOAT3 rb = c.point - (B ? B->predPos : FLOAT3{});
+
+
+		//--------------------------------- 
+		auto w = [&](RigidBody* r, const FLOAT3& rVec)->float
+			{
+				if (!r || !r->simulatePhysics) return 0.f;
+				FLOAT3 cr = Vector3Cross(rVec, c.normal);
+				return r->invMass + Dot(cr, r->invWorldInertia * cr);
+			};
+		float wA = w(A, ra);
+		float wB = w(B, rb);
+		float invMassN = wA + wB;
+		if (invMassN == 0.f) continue;
+
+
+		//--------------------------------- 
+		FLOAT3 vA = A ? (A->linearVelocity + Vector3Cross(A->angularVelocity, ra)) : FLOAT3{};
+		FLOAT3 vB = B ? (B->linearVelocity + Vector3Cross(B->angularVelocity, rb)) : FLOAT3{};
+		FLOAT3 vRel = vA - vB;
+
+		std::cout << "vA: " << vA.x() << ", " << vA.y()<< ", " << vA.z() << std::endl;
+		std::cout << "vB: " << vB.x() << ", " << vB.y()<< ", " << vB.z() << std::endl;
+
+		float vn = Dot(vRel, c.normal);   
+		if (vn > 0.f) continue;   
+
+		//---------------------------------
+		//restitution  
+		float eA = A ? A->material.restitution : 0.f;
+		float eB = B ? B->material.restitution : 0.f;
+		float e = std::min(eA, eB);             //avg/max
+		float jn = -(1 + e) * vn / invMassN;
+
+		//---------------------------------
+		// 4) friction impulse（Coulomb）
+		FLOAT3 vT = vRel - vn * c.normal;       
+		float  vtLen = Length(vT);
+		FLOAT3 jtDir = vtLen > 1e-6f ? (vT / vtLen) : FLOAT3{};
+	 
+		auto wT = [&](RigidBody* r, const FLOAT3& rVec)->float
+			{
+				if (!r || !r->simulatePhysics) return 0.f;
+				FLOAT3 cr = Vector3Cross(rVec, jtDir);
+				return r->invMass + Dot(cr, r->invWorldInertia * cr);
+			};
+		float invMassT = wT(A, ra) + wT(B, rb);
+		float jt = -vtLen / invMassT;
+
+		float muA = A ? A->material.friction : 0.f;
+		float muB = B ? B->material.friction : 0.f;
+		float mu = std::sqrt(muA * muB); // geometric mean
+		//|jt| ≤ μ|jn|
+		jt = std::clamp(jt, -mu * jn, mu * jn);
+
+		//--------------------------------- 
+		FLOAT3 Pn = jn * c.normal;
+		FLOAT3 Pt = jt * jtDir;
+		FLOAT3 impulse = Pn + Pt;
+
+		auto applyImpulse = [&](RigidBody* r,
+			const FLOAT3& rVec,
+			const FLOAT3& imp, float sign)
+			{
+				if (!r || !r->simulatePhysics) return;
+				r->linearVelocity += sign * imp * r->invMass;
+				r->angularVelocity += sign * (r->invWorldInertia *
+					Vector3Cross(rVec, imp));
+			};
+		applyImpulse(A, ra, impulse, +1.f);
+		applyImpulse(B, rb, impulse, -1.f);
+	}
 }
 
 void PhysicsScene::IntegratePosition(float delta)
@@ -323,7 +418,7 @@ void PhysicsScene::PostSimulation()
 
 		//std::cout << "Position vs PredPos: " << rb->position.y() << " vs " << rb->predPos.y() << std::endl;
 
-		if (!rb->enableRotation) continue;  
+		if (!rb->simulateRotation) continue;  
 		rb->owner->SetWorldRotation(rb->rotation);
 		//update world inertia:
 

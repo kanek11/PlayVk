@@ -31,9 +31,9 @@ struct RigidBody {
 	FLOAT3 force;  //accumulation in the frame; 
 
 	bool simulatePhysics{ true };
-	PhysicalMaterial material{ 0.0f,0.05f };
+	PhysicalMaterial material{ 0.0f,0.4f };
 
-	bool enableRotation{ false }; 
+	bool simulateRotation{ false }; 
 	XMVECTOR rotation{ XMQuaternionIdentity() }; 
 	FLOAT3 angularVelocity;
 	FLOAT3 torque{};
@@ -161,6 +161,8 @@ private:
 
 
 	void PostPBD(float delta);
+
+	void VelocityPass(float delta);
 
 	//
 	void IntegratePosition(float delta);
