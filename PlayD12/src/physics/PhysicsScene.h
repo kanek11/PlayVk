@@ -31,7 +31,7 @@ struct RigidBody {
 	FLOAT3 force;  //accumulation in the frame; 
 
 	bool simulatePhysics{ true };
-	PhysicalMaterial material{ 0.0f,0.4f };
+	PhysicalMaterial material{ 0.2f,0.5f };
 
 	bool simulateRotation{ false }; 
 	XMVECTOR rotation{ XMQuaternionIdentity() }; 
@@ -73,6 +73,12 @@ struct RigidBody {
 
 		localInertia = MakeInertiaTensor(type, 10.0f); 
 		//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
+		XMMATRIX R_ = XMMatrixRotationQuaternion(rotation);
+		FLOAT3X3 R;
+		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
+		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
+		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
+		RotationMatrix = R;
 	};
 };
 
@@ -108,7 +114,7 @@ struct Contact {
 	Collider* a{};
 	Collider* b{};
 
-	float  lambda = 0.f;   // XPBD
+	float  lambda = 0.f;   // to restore , eg: force;
 };
 
 
