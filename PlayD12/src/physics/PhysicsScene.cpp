@@ -255,7 +255,7 @@ void PhysicsScene::PostPBD(float delta)
 		rb->position = rb->predPos; //update position to predicted position 
 		rb->linearVelocity = (rb->predPos - rb->prevPos) / delta;
 
-		rb->linearVelocity *= 0.999f;  //debug damping;
+		//rb->linearVelocity *= 0.999f;  //debug damping;
 		//if (LengthSq(rb->linearVelocity) < 1e-3f)  
 		//	rb->linearVelocity = FLOAT3{}; //reset to zero if too small
 
@@ -283,7 +283,7 @@ void PhysicsScene::PostPBD(float delta)
 		//<< rb->angularVelocity.y() << ", "
 		//<< rb->angularVelocity.z() << std::endl;
 	    //angular damping:
-	    rb->angularVelocity *= 0.999f; //test damping;
+	    //rb->angularVelocity *= 0.999f; //test damping;
 	}
 
 }
@@ -364,6 +364,8 @@ void PhysicsScene::VelocityPass(float delta)
 
 		float maxStatic = mu_s * jn;
 		float jt = 0.f;
+
+		// | jt | ≤ μ | jn |
 		jt = desiredJt;
 		//if (std::fabs(desiredJt) < maxStatic)
 		//{ 
@@ -374,7 +376,7 @@ void PhysicsScene::VelocityPass(float delta)
 		//	//μk·jn
 		//	jt = -mu_k * jn * (desiredJt > 0 ? 1.f : -1.f);
 		//}
-		//|jt| ≤ μ|jn|
+		
  
 
 		//--------------------------------- 

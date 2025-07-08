@@ -31,7 +31,7 @@ struct RigidBody {
 	FLOAT3 force;  //accumulation in the frame; 
 
 	bool simulatePhysics{ true };
-	PhysicalMaterial material{ 0.2f,0.5f };
+	PhysicalMaterial material{ 0.0f,0.0f };
 
 	bool simulateRotation{ false }; 
 	XMVECTOR rotation{ XMQuaternionIdentity() }; 
