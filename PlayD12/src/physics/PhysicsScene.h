@@ -4,10 +4,8 @@
 #include "Shape.h"
 
 //design decision: use PBD solver ;
- 
-using namespace DirectX;
 
-
+//using namespace DirectX;
 
 struct PhysicalMaterial { 
 	float restitution;
@@ -34,7 +32,7 @@ struct RigidBody {
 	PhysicalMaterial material{ 0.0f,0.0f };
 
 	bool simulateRotation{ false }; 
-	XMVECTOR rotation{ XMQuaternionIdentity() }; 
+	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity()};
 	FLOAT3 angularVelocity;
 	FLOAT3 torque{};
 
@@ -45,8 +43,8 @@ struct RigidBody {
 	FLOAT3X3 worldInertia;  
 	FLOAT3X3  invWorldInertia;
 
-	XMVECTOR prevRot{ XMQuaternionIdentity() };
-	XMVECTOR predRot{ XMQuaternionIdentity() };
+	DirectX::XMVECTOR prevRot{ DirectX::XMQuaternionIdentity() };
+	DirectX::XMVECTOR predRot{ DirectX::XMQuaternionIdentity() };
 
 	ShapeType type;
 
@@ -61,7 +59,7 @@ struct RigidBody {
 
 	//todo: angular;
 	StaticMeshObjectProxy* owner;
-	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position,ShapeType type, XMVECTOR rotation)
+	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position,ShapeType type, DirectX::XMVECTOR rotation)
 		: owner(owner), position(position), type(type), rotation(rotation)
 	{
 		 
@@ -73,7 +71,7 @@ struct RigidBody {
 
 		localInertia = MakeInertiaTensor(type, 10.0f); 
 		//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
-		XMMATRIX R_ = XMMatrixRotationQuaternion(rotation);
+		DirectX::XMMATRIX R_ = DirectX::XMMatrixRotationQuaternion(rotation);
 		FLOAT3X3 R;
 		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
 		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };

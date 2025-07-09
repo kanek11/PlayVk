@@ -12,8 +12,8 @@
 
 #include "Math/MMath.h"
 
-using namespace DirectX;
-using Microsoft::WRL::ComPtr;
+
+//using Microsoft::WRL::ComPtr;
 
 
 struct InstanceData
@@ -34,7 +34,7 @@ struct FMaterialProxy {
 //strip out the minimum to render a static mesh:
 struct StaticMeshObjectProxy {
     FLOAT3 position = { 0.0f, 0.0f, 0.0f };
-    XMVECTOR rotation = XMQuaternionIdentity();
+    DirectX::XMVECTOR rotation = DirectX::XMQuaternionIdentity();
     FLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 
     SharedPtr<UStaticMesh> mesh;
@@ -55,7 +55,7 @@ struct StaticMeshObjectProxy {
         position = newPosition;
     }
 
-	void SetWorldRotation(const XMVECTOR& newRotation) {
+	void SetWorldRotation(const DirectX::XMVECTOR& newRotation) {
 		rotation = newRotation;
 	}
 };
@@ -143,10 +143,10 @@ private:
 
     struct SceneConstantBuffer
     {
-        XMFLOAT4X4 modelMatrix; // 64 bytes  
-        XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
-		//FLOAT4X4 modelMatrix; // 64 bytes 
-		//FLOAT4X4 projectionViewMatrix; // 64 bytes
+        //XMFLOAT4X4 modelMatrix; // 64 bytes  
+        //XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
+		FLOAT4X4 modelMatrix; // 64 bytes 
+		FLOAT4X4 projectionViewMatrix; // 64 bytes
 
         //padding:
         float padding[32];

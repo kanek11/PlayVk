@@ -3,8 +3,9 @@
 
 #include "Render/Renderer.h" 
 
-#include "Collision.h" 
+#include "Collision.h"  
 
+using namespace DirectX;  
 
 void PhysicsScene::Tick(float delta)
 {

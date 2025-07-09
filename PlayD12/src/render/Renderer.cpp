@@ -2,10 +2,13 @@
 #include "Renderer.h" 
 
 #include "Application.h"
+using namespace DirectX;
 
 constexpr int instanceCount = 1;
 constexpr float spacing = 5.0f; // Adjust to control sparsity
 constexpr float viewRadius = 20.0f; // Distance from the origin
+
+
 
 D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring name,
     SharedPtr<WindowBase> mainWindow
@@ -973,27 +976,37 @@ void D3D12HelloRenderer::OnUpdate(float delta)
         //auto rotation = XMQuaternionRotationAxis(yAxis, delta);
         //proxy->rotation = XMQuaternionMultiply(rotation, proxy->rotation);
 
-        SceneConstantBuffer constBufferData = {};
+        SceneConstantBuffer constBufferData = {}; 
 
-        //auto modelMatrix_ = MMath::MatrixIdentity<float,4>();
-        //modelMatrix_ = MMath::MatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix_;   
+        auto modelMatrix_ = MMath::MatrixIdentity<float,4>();
+        modelMatrix_ = MMath::MatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix_;   
 
-  //      //translate:
-  //      auto translation = MMath::MatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
-  //      modelMatrix_ = translation * modelMatrix_;
+        auto R_ = XMMatrixRotationQuaternion(proxy->rotation);
+		auto R = MMath::MatrixIdentity<float, 4>();
+		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
+		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
+		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
+		R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };  
+
+		R = MMath::Transpose(R); 
+		modelMatrix_ = R * modelMatrix_; //rotate the model using the quaternion 
+
+        //translate:
+        auto translation = MMath::MatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
+        modelMatrix_ = translation * modelMatrix_;
 
 
-        auto modelMatrix = XMMatrixIdentity();
-        modelMatrix = XMMatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z()) * modelMatrix;
-        modelMatrix = XMMatrixRotationQuaternion(proxy->rotation) * modelMatrix;
-        modelMatrix = XMMatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix;
+        //auto modelMatrix = XMMatrixIdentity();
+        //modelMatrix = XMMatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z()) * modelMatrix;
+        //modelMatrix = XMMatrixRotationQuaternion(proxy->rotation) * modelMatrix;
+        //modelMatrix = XMMatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix;
 
         // Translate the model to its position
         // Rotate the model using the quaternion
 
 
-        XMStoreFloat4x4(&constBufferData.modelMatrix, modelMatrix);
-        //constBufferData.modelMatrix = modelMatrix_; 
+        //XMStoreFloat4x4(&constBufferData.modelMatrix, modelMatrix);
+        constBufferData.modelMatrix = modelMatrix_; 
 
 
         //float eyePosX = cos(angle) * viewRadius;
@@ -1006,33 +1019,33 @@ void D3D12HelloRenderer::OnUpdate(float delta)
 
         //Create view and projection matrices
        //LH = left-handed coordinate system
-        XMMATRIX view = XMMatrixLookAtLH(
-            XMVectorSet(eyePosX, eyePosY, eyePosZ, 1.0f),  // Eye
-            XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),   // At
-            XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // Up
-        );
-
-        //auto view_ = MMath::LookAtLH(
-        //	{ eyePosX, eyePosY, eyePosZ }, // Eye
-        //	{ 0.0f, 0.0f, 0.0f },          // At
-        //	{ 0.0f, 1.0f, 0.0f }           // Up
-        //); 
-
-        XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_aspectRatio, 0.1f, 100.0f);
-        //auto proj_ = MMath::PerspectiveFovLH(
-        //	MMath::ToRadians(45.0f),  
-        //	m_aspectRatio,  
-        //	0.1f,  
-        //	1000.0f  
+        //XMMATRIX view = XMMatrixLookAtLH(
+        //    XMVectorSet(eyePosX, eyePosY, eyePosZ, 1.0f),  // Eye
+        //    XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),   // At
+        //    XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // Up
         //);
 
-        XMMATRIX vp = XMMatrixMultiply(view, proj);
+        auto view_ = MMath::LookAtLH(
+        	{ eyePosX, eyePosY, eyePosZ }, // Eye
+        	{ 0.0f, 0.0f, 0.0f },          // At
+        	{ 0.0f, 1.0f, 0.0f }           // Up
+        ); 
 
-        //auto pv = proj_ * view_;
-        //auto vp = MMath::MatrixMultiply(view, proj);
+        //XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_aspectRatio, 0.1f, 100.0f);
+        auto proj_ = MMath::PerspectiveFovLH(
+        	MMath::ToRadians(45.0f),  
+        	m_aspectRatio,  
+        	0.1f,  
+        	1000.0f  
+        );
 
-        XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
-        // constBufferData.projectionViewMatrix = pv;
+        //XMMATRIX vp = XMMatrixMultiply(view, proj);
+
+        auto pv = proj_ * view_;
+        //auto vp = MatrixMultiply(view, proj);
+
+        //XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
+        constBufferData.projectionViewMatrix = pv;
 
          // Upload the constant buffer data.
         constBufferHandle->UploadData(&constBufferData, sizeof(SceneConstantBuffer));
