@@ -121,7 +121,7 @@ namespace MMath {
 		for (std::size_t c = 0; c < C; ++c) {
 			result[c] = MatrixVectorMultiply(rhs, lhs[c]);  //row-major storage;
 		}
-		result = Transpose(result); // Convert to column-major order
+		result = Transpose(result); 
 		return result;
 	}
 

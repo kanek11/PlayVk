@@ -989,7 +989,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
 		R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };  
 
 		R = MMath::Transpose(R); 
-		modelMatrix_ = R * modelMatrix_; //rotate the model using the quaternion 
+		modelMatrix_ = MatrixMultiply(R,modelMatrix_); //rotate the model using the quaternion 
 
         //translate:
         auto translation = MMath::MatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
