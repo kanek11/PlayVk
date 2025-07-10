@@ -516,10 +516,10 @@ template<class A, class B> [[nodiscard]]
         FLOAT3 pb = SupportVertex(B, bestAxis);
         out.point = (pa + pb) * 0.5f;
 
-        std::cout << "Collided OBB with OBB: "
+ /*       std::cout << "Collided OBB with OBB: "
             << "Penetration: " << out.penetration << '\n'
             << " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << '\n'
-            << " Point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << '\n';
+            << " Point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << '\n';*/
 
         return true; // Boxes intersect.
     }

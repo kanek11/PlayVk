@@ -1,6 +1,6 @@
 #include "PCH.h"
 #include "Window.h"
- 
+
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -18,21 +18,21 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
 
 	switch (message)
 	{
-	//case WM_CREATE:
-	//{ 
-	//	LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
-	//	SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
+		//case WM_CREATE:
+		//{ 
+		//	LPCREATESTRUCT pCreateStruct = reinterpret_cast<LPCREATESTRUCT>(lParam);
+		//	SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
 
-	//	return 0;
-	//} 
+		//	return 0;
+		//} 
 
 	case WM_PAINT:
-	{ 
+	{
 		return 0;
-	} 
+	}
 
 	case WM_SIZE:
-	{  
+	{
 		int width = LOWORD(lParam);
 		int height = HIWORD(lParam);
 		std::cout << "Window resized to: " << width << "x" << height << std::endl;
@@ -40,46 +40,52 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
 	}
 
 	case WM_KEYDOWN:
-	{  
+	{
 		int keyCode = static_cast<int>(wParam);
+		if (self->inputSource)
+		self->inputSource->OnKeyDown(keyCode);
+		//create event:
+		//InputEvent event = KeyEvent{};
 		std::cout << "Key pressed: " << keyCode << std::endl;
 		return 0;
 	}
 
 	case WM_KEYUP:
-	{  
+	{
 		int keyCode = static_cast<int>(wParam);
+		if(self->inputSource)
+		self->inputSource->OnKeyUp(keyCode);
 		std::cout << "Key released: " << keyCode << std::endl;
 		return 0;
-	} 
+	}
 
-	case WM_MOUSEMOVE: 
-	{ 
+	case WM_MOUSEMOVE:
+	{
 		POINTS pt = MAKEPOINTS(lParam);
 		//std::cout << "Mouse moved to: (" << pt.x << ", " << pt.y << ")" << std::endl;
-		return 0; 
+		return 0;
 	}
 
 	case WM_LBUTTONDOWN:
-	{ 
+	{
 		std::cout << "Left button pressed" << std::endl;
 		return 0;
 	}
 
 	case WM_LBUTTONUP:
-	{ 
+	{
 		std::cout << "Left button released" << std::endl;
 		return 0;
 	}
 
 	case WM_RBUTTONDOWN:
-	{ 
+	{
 		std::cout << "Right button pressed" << std::endl;
 		return 0;
 	}
 
 	case WM_RBUTTONUP:
-	{ 
+	{
 		std::cout << "Right button released" << std::endl;
 		return 0;
 	}
@@ -92,18 +98,18 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
 	}
 
 	case WM_CLOSE:
-	{   
+	{
 		std::cout << "Window is closing" << std::endl;
-	    DestroyWindow(hwnd); // This will trigger WM_DESTROYDestroyWindow(hwnd); // This will trigger WM_DESTROY
+		DestroyWindow(hwnd); // This will trigger WM_DESTROYDestroyWindow(hwnd); // This will trigger WM_DESTROY
 		return 0;
-	} 
+	}
 
 	case WM_DESTROY:
 	{
 		std::cout << "Window destroyed" << std::endl;
 		PostQuitMessage(0);  //set the msg.message to WM_QUIT
 		return 0;
-	} 
+	}
 
 	}
 
@@ -134,7 +140,7 @@ Win32Window::Win32Window(const WindowCreateInfo& createInfo)
 	WNDCLASSEX windowClass = { 0 };
 	windowClass.cbSize = sizeof(WNDCLASSEX);
 	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc = WindowProc;  
+	windowClass.lpfnWndProc = WindowProc;
 	windowClass.hInstance = m_hInstance;
 	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	windowClass.lpszClassName = L"TestWindowClass";
@@ -169,18 +175,18 @@ Win32Window::Win32Window(const WindowCreateInfo& createInfo)
 
 	ShowWindow(m_hwnd, SW_SHOW);
 
-	 
+
 }
 
 bool Win32Window::shouldClose()
-{ 
+{
 	return m_msg.message == WM_QUIT;
 	//return false;
 }
 
 void Win32Window::onUpdate()
-{  
-	this->pollEvents(); 
+{
+	this->pollEvents();
 }
 
 void Win32Window::SetCustomWindowText(const std::string& text) const
@@ -198,5 +204,4 @@ void Win32Window::pollEvents()
 		DispatchMessage(&m_msg);
 	}
 }
-
 

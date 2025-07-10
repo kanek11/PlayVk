@@ -7,6 +7,7 @@
 #include "Render/Renderer.h"
 #include "Physics/PhysicsScene.h"
 
+#include "InputSystem.h"
 //the frontend of an application is composed of interactive elements.
 //window is usually considered as the top level UI element.  as a container.
 //layer is a way to group content, visually and logically. 
@@ -108,4 +109,5 @@ public:
 private:
 	D3D12HelloRenderer* m_renderer{ nullptr };
 	PhysicsScene* m_physicsScene{ nullptr };
+	InputSystem* m_inputSystem;
 };

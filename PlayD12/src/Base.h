@@ -2,6 +2,16 @@
 #include <memory>
 
 // basic macros;
+/*
+member function has a implicit parameter, this;
+the best solution for now is to use generic lambda to wrap it;
+*/ 
+#define BIND_MEM_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
+ 
+//variant helper
+//template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+//template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
 
 // see assert
 #define RD_EXPAND_MACRO(x) x

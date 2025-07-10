@@ -37,6 +37,10 @@ void GameApplication::onInit()
 	m_renderer = new D3D12HelloRenderer(m_width, m_height, wideTitle.c_str(), m_mainWindow);
 	m_renderer->OnInit();
 
+	m_inputSystem = new InputSystem();
+
+	//m_mainWindow->InitInputSource(m_inputSystem);
+
 }
 
 void GameApplication::onDestroy()
@@ -54,6 +58,21 @@ void GameApplication::run()
 
 		m_renderer->OnUpdate(0.016f);
 		m_renderer->OnRender();
+
+		m_inputSystem->OnUpdate();
+		if (m_inputSystem->IsKeyJustPressed(KeyCode::A)) {
+			std::cout << "app: A is pressed" << '\n';
+		} 
+		else if (m_inputSystem->IsKeyJustReleased(KeyCode::A)) {
+			std::cout << "app: A is released" << '\n';
+		} 
+		else if (m_inputSystem->IsKeyDown(KeyCode::A)) {
+			//std::cout << "app: A is down" << '\n';
+		}
+		else if (m_inputSystem->IsKeyUp(KeyCode::A)) {
+			//std::cout << "app: A is up" << '\n';
+		}
+		 
 	}
 		
 	 
@@ -88,7 +107,7 @@ bool GameApplication::initWindow()
 
 GameApplication* GameApplication::GetInstance()
 { 
-	return s_instance; 
+	return s_instance;  
 }
 
 std::string GameApplication::GetAssetFullPath(std::string assetName)
