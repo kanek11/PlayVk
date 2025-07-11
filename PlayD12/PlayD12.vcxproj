@@ -160,6 +160,7 @@
     <ClInclude Include="src\Controller.h" />
     <ClInclude Include="src\Delegate.h" />
     <ClInclude Include="src\Event.h" />
+    <ClInclude Include="src\FSM.h" />
     <ClInclude Include="src\InputSystem.h" />
     <ClInclude Include="src\Math\Matrix.h" />
     <ClInclude Include="src\Math\MMath.h" />

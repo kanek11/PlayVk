@@ -35,6 +35,18 @@ struct KeyUp
     KeyCode key;
 };
 
+
+// Event definitions
+struct MouseMove { float x, y; };
+struct MouseDown { float x, y; int button; };
+struct MouseUp { float x, y; int button; };
+struct MouseWheel { float delta; };
+struct Click { /* empty: synthesized in dispatcher */ };
+struct KeyPress { KeyCode key; };
+
+using UIEvent = std::variant<MouseMove, MouseDown, MouseUp, MouseWheel, Click, KeyPress>; 
+
+
 using WindowEvent = std::variant<WindowResize, WindowClose>;
 using InputEvent = std::variant<KeyDown, KeyUp>;
  
