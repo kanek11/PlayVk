@@ -29,6 +29,18 @@ void D3D12HelloRenderer::OnInit()
      
     InitShadowPass();
 	InitRenderPass();
+
+    //
+	RenderContext ctx = 
+	{
+      .device = m_device.Get(), 
+      .cmdList = m_commandList.Get(),
+	  .m_shaderManager = this->m_shaderManager,
+	  .m_psoManager = this->m_psoManager
+	};
+
+	m_debugRenderer = CreateShared<DebugRenderer>();
+	m_debugRenderer->Init(ctx);
 }
 
 
@@ -46,8 +58,10 @@ void D3D12HelloRenderer::OnRender()
     RecordShadowPassCommands(m_commandList.Get());
     EndShadowPass(m_commandList.Get()); 
 
-    BeginRenderPass(m_commandList.Get());
-    RecordRenderPassCommands(m_commandList.Get());
+    BeginRenderPass(m_commandList.Get()); 
+    RecordRenderPassCommands(m_commandList.Get()); 
+
+	//m_debugRenderer->FlushAndRender(m_commandList.Get());
     EndRenderPass(m_commandList.Get());
 
 
@@ -200,7 +214,7 @@ void D3D12HelloRenderer::LoadAssets()
 { 
     m_shaderManager = CreateShared<ShaderLibrary>(m_device, m_rangeHeapAllocator);
 
-    m_psoManager = CreateShared<PSOManager>(m_shaderManager);
+    m_psoManager = CreateShared<PSOManager>(m_device, m_shaderManager);
 }
 
 void D3D12HelloRenderer::InitRenderPass()
@@ -277,7 +291,7 @@ void D3D12HelloRenderer::InitRenderPass()
         //------------
 
 		m_PSO =
-		m_psoManager->GetOrCreate(m_device.Get(),
+		m_psoManager->GetOrCreate(
 			MaterialDesc{ .shaderTag = "Lit"},
 			RenderPassDesc{ .passTag = "Forward" },
 			inputLayers
@@ -396,7 +410,7 @@ void D3D12HelloRenderer::InitShadowPass()
         //------------
 
         m_shadowPSO =
-            m_psoManager->GetOrCreate(m_device.Get(),
+            m_psoManager->GetOrCreate(
                 shadowMaterialDesc,
                 shadowPassDesc,
                 inputLayers
@@ -440,8 +454,7 @@ void D3D12HelloRenderer::BeginShadowPass(ID3D12GraphicsCommandList* commandList)
     // Set the pipeline state and root signature.
     commandList->SetPipelineState(m_shadowPSO.Get());
     commandList->SetGraphicsRootSignature(m_shadowShaderPerm->GetRootSignature().Get());
-
-
+     
     // Set the viewport and scissor rectangle.
     commandList->RSSetViewports(1, &viewport);
     commandList->RSSetScissorRects(1, &scissorRect);
@@ -1039,3 +1052,95 @@ void D3D12HelloRenderer::ClearMesh()
     m_staticMeshes.clear();
 }
 
+void DebugRenderer::Init(RenderContext ctx)
+{ 
+    size_t MaxLines = 200;
+
+	// Create vertex buffer for debug lines
+	m_vertexBuffer = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
+		sizeof(DebugLine) * MaxLines,
+		DXGI_FORMAT_UNKNOWN, 
+		256,  
+		EBufferUsage::Upload | EBufferUsage::Vertex
+		});
+
+	// Reserve CPU space for lines
+	m_lines.reserve(MaxLines);
+
+
+    //the cosntant buffer:
+    m_CB = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
+		sizeof(MVPConstantBuffer),
+		DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
+		256, // Alignment
+		EBufferUsage::Upload | EBufferUsage::Constant
+		});
+
+
+	//shader perm:
+	ShaderPermutationKey key = {
+		.shaderTag = "Debug",
+		.passTag = "Line",
+	};
+    m_shader = ctx.m_shaderManager->GetOrLoad(key);
+    m_shader->CreateRootSignature();
+
+
+    //input layer:
+    std::vector<VertexInputLayer> inputLayers =
+    {
+        VertexInputLayer{
+            .slot = 0,
+            .classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+            .elements = {
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 12 },  
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, 16 } 
+            }
+        }
+    };
+
+	// Create PSO for debug rendering
+	m_PSO = ctx.m_psoManager->GetOrCreate(
+		m_materialDesc,
+		m_renderPassDesc, 
+		inputLayers 
+	);
+
+    //set CBV: 
+	heapOffset = m_shader->RequestAllocationOnHeap(); 
+	m_shader->SetCBV("MVPConstantBuffer",  
+		m_CB->GetRawResource(),
+		m_CB->GetCBVDesc(),
+		heapOffset); 
+
+}
+
+void DebugRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const FLOAT4X4& pv)
+{
+    if (m_lines.empty()) return; 
+
+	// Upload the constant buffer data
+	MVPConstantBuffer cbData = {};
+	cbData.projectionViewMatrix = pv;
+	m_CB->UploadData(&cbData, sizeof(MVPConstantBuffer)); 
+
+
+    //
+	cmdList->SetPipelineState(m_PSO.Get());
+	cmdList->SetGraphicsRootSignature(m_shader->GetRootSignature().Get());
+   
+    // Set the descriptor heap for the command list
+    m_shader->SetDescriptorHeap(cmdList); 
+	m_shader->SetDescriptorTables(cmdList, heapOffset);  
+    //or, e.g., cmd->SetGraphicsRootConstantBufferView(...) 
+      
+	m_vertexBuffer->UploadData(m_lines.data(), m_lines.size() * sizeof(DebugLine));
+
+    cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+    cmdList->IASetVertexBuffers(0, 1, &m_vertexBuffer->GetVertexBufferView());
+     
+     
+    cmdList->DrawInstanced(static_cast<UINT>(m_lines.size() * 2), 1, 0, 0);
+     
+    m_lines.clear();
+}

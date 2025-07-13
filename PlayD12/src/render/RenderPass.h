@@ -64,14 +64,16 @@ namespace std {
  
 class PSOManager {
 public:
-	PSOManager(WeakPtr<ShaderLibrary> shaderLibrary) : library(shaderLibrary) {}
+	PSOManager(ComPtr<ID3D12Device> device, WeakPtr<ShaderLibrary> shaderLibrary) : 
+        m_device(device),library(shaderLibrary) {}
  
 	[[nodiscard]]
-    ComPtr<ID3D12PipelineState> GetOrCreate(ID3D12Device* device, 
+    ComPtr<ID3D12PipelineState> GetOrCreate(
         const MaterialDesc& mat, 
         const RenderPassDesc& pass,
         const std::vector<VertexInputLayer>& layers);
-private:
+private: 
+    ComPtr<ID3D12Device> m_device;
     WeakPtr<ShaderLibrary> library;
     std::unordered_map<PSOKey, ComPtr<ID3D12PipelineState>> cache;
 };

@@ -15,7 +15,68 @@
 #include "Delegate.h"
 
 #include "RenderPass.h"
+
+
+
+
+
+struct RenderContext
+{
+	ID3D12Device* device; 
+    ID3D12GraphicsCommandList* cmdList;
+	 
+    SharedPtr<ShaderLibrary> m_shaderManager; 
+    SharedPtr<PSOManager> m_psoManager;
+};
  
+
+struct DebugLine {
+    FLOAT3 start;
+    FLOAT3 end;
+    FLOAT4 color;
+};
+
+class DebugRenderer {
+public:
+    void Init(RenderContext ctx);
+
+    void AddRay(const FLOAT3& origin, const FLOAT3& direction, const FLOAT4& color);
+    void AddLine(const FLOAT3& start, const FLOAT3& end, const FLOAT4& color);
+
+    void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const FLOAT4X4& pv);
+
+private:
+    void Clear();
+private:
+    std::vector<DebugLine> m_lines;
+    SharedPtr<FD3D12Buffer> m_vertexBuffer;
+    SharedPtr<FD3D12ShaderPermutation> m_shader;
+    ComPtr<ID3D12PipelineState> m_PSO;
+
+    //MVP buffer:
+    SharedPtr<FD3D12Buffer> m_CB;
+    uint32_t heapOffset;
+
+
+	MaterialDesc m_materialDesc = {
+		.shaderTag = "Debug", 
+         
+		.enableAlphaBlend = true,
+		.doubleSided = false,
+		.depthWrite = false
+	};
+
+    RenderPassDesc m_renderPassDesc = {
+        .passTag = "Line",
+        .colorFormat = DXGI_FORMAT_R8G8B8A8_UNORM,
+        .depthFormat = DXGI_FORMAT_D32_FLOAT,
+        .enableDepth = false, 
+        .cullMode = D3D12_CULL_MODE_NONE,
+    };
+        
+};
+
+
 
 struct MVPConstantBuffer
 {
@@ -228,4 +289,12 @@ public:
     void ClearMesh();
     void SetMeshDescriptors();
     bool meshDirty = false;
+
+
+public:
+	SharedPtr<DebugRenderer> m_debugRenderer = CreateShared<DebugRenderer>();
+ 
 };
+
+
+

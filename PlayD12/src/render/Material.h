@@ -11,6 +11,7 @@ struct MaterialDesc {
     //std::unordered_map<std::string, float> scalarParams;
     //std::unordered_map<std::string, bool> keywords; // like USE_NORMAL_MAP
 
+	//todo: other blend mode;
     bool enableAlphaBlend = false;
     bool doubleSided = false;
     bool depthWrite = true;

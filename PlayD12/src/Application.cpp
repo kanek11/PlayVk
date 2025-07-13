@@ -67,7 +67,7 @@ void GameApplication::onInit()
 				//std::cout << " tick mainMenu: " << dt << "\n";
 			});
 
-		m_gameManager->SetInitialState(mainMenuState->GetId());
+		//m_gameManager->SetInitialState(mainMenuState->GetId());
 	}
 
 	
@@ -90,7 +90,7 @@ void GameApplication::onInit()
 				gameWorld->OnUnload(); 
 			});
 
-		//m_gameManager->SetInitialState(playingState->GetId());
+		m_gameManager->SetInitialState(playingState->GetId());
 	}
 
 	  

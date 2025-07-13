@@ -5,7 +5,7 @@
 #include "Mesh.h"
 
 
-ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(ID3D12Device* device, const MaterialDesc& mat, const RenderPassDesc& pass,
+ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(const MaterialDesc& mat, const RenderPassDesc& pass,
     const std::vector<VertexInputLayer>& layers
 ) {
     // Step 1: Build shader permutation key
@@ -68,7 +68,7 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(ID3D12Device* device, const 
 
     // Blend
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-    if (pass.enableBlend) {
+	if (mat.enableAlphaBlend) {
         auto& rt = psoDesc.BlendState.RenderTarget[0];
         rt.BlendEnable = TRUE;
         rt.SrcBlend = D3D12_BLEND_SRC_ALPHA;
@@ -93,7 +93,7 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(ID3D12Device* device, const 
 
     // Create PSO
     ComPtr<ID3D12PipelineState> pipelineState;
-    ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(pipelineState.GetAddressOf())));
+    ThrowIfFailed(m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(pipelineState.GetAddressOf())));
 
     cache[psoKey] = pipelineState;
     return pipelineState;

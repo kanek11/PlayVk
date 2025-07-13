@@ -75,7 +75,7 @@ float4 PSMain(PSInput input) : SV_TARGET
     // Multiply texture color by vertex color and lighting
     //float3 finalColor = input.color.rgb * lighting;
     //float3 finalColor = lighting * input.color.rgb;
-    float3 finalColor = 0 * (texColor.xyz * lighting) + depth.xxx;
+    float3 finalColor = (texColor.xyz * lighting) * depth.xxx;
     
     return float4(finalColor, 1.0f);
     
