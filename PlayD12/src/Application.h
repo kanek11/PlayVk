@@ -8,6 +8,11 @@
 #include "Physics/PhysicsScene.h"
 
 #include "InputSystem.h"
+#include "FSM.h"
+#include "Level.h"
+
+#include "UI.h"
+
 //the frontend of an application is composed of interactive elements.
 //window is usually considered as the top level UI element.  as a container.
 //layer is a way to group content, visually and logically. 
@@ -77,6 +82,10 @@ public:
 	float getAspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 
 	PhysicsScene* GetPhysicalScene() { return m_physicsScene; }
+	D3D12HelloRenderer* GetRenderer() { return  m_renderer; }
+	InputSystem* GetInputSystem() { return  m_inputSystem; }
+	GameStateManager* GetGameStateManager() { return m_gameManager; }
+	UIManager* GetUIManager() { return m_uiManager; }
 
 private:
 	[[nodiscard]] bool initWorkingDirectory();
@@ -84,7 +93,7 @@ private:
 
 protected:
 	//std::vector<SharedPtr<LayerBase>> m_layers;  //add,remove,clear..
-	//hardocde for simplicity.
+	//hardocde for simplicity.  todo:
 	SharedPtr<BaseLayer> m_baseLayer;
 	SharedPtr<GUILayer> m_guiLayer;
 
@@ -109,5 +118,13 @@ public:
 private:
 	D3D12HelloRenderer* m_renderer{ nullptr };
 	PhysicsScene* m_physicsScene{ nullptr };
-	InputSystem* m_inputSystem;
+	InputSystem* m_inputSystem{ nullptr };
+	GameStateManager* m_gameManager{ nullptr };
+
+	UIManager* m_uiManager{ nullptr };
+
+private:
+	//hardcode for now:
+	GamePlayWorld* gameWorld{ nullptr };
+	MainMenuWorld* mainMenuWorld{ nullptr };
 };

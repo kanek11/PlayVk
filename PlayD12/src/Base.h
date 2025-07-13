@@ -9,8 +9,18 @@ the best solution for now is to use generic lambda to wrap it;
 #define BIND_MEM_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
  
 //variant helper
-//template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-//template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+template<class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+
+    // catch-all fallback
+    void operator()(auto&&) const noexcept { 
+		//static_assert(sizeof...(Ts) > 0, "overloaded: no matching function for call");
+		std::cerr << "overloaded: no matching function for call" << '\n';
+    }
+};
+template<class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 
 // see assert

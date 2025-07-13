@@ -13,8 +13,7 @@
 //	uint32_t NumCBVs;
 //	uint32_t NumUAVs; 
 //};
-
-
+ 
 
 //the information of shader parameters,
 struct FShaderParameterMap {
@@ -60,13 +59,16 @@ struct FShaderDescriptorLayout {
 class FDescriptorHeapAllocator {
 
 public:
-	FDescriptorHeapAllocator(ComPtr<ID3D12Device> device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptors)
+	FDescriptorHeapAllocator(ComPtr<ID3D12Device> device, 
+		D3D12_DESCRIPTOR_HEAP_TYPE type, 
+		D3D12_DESCRIPTOR_HEAP_FLAGS Flags,
+		UINT numDescriptors)
 		: m_device(device), m_type(type), m_numDescriptors(numDescriptors)
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 		desc.Type = type;
 		desc.NumDescriptors = numDescriptors;
-		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; // or D3D12_DESCRIPTOR_HEAP_FLAG_NONE
+		desc.Flags = Flags; //D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; or D3D12_DESCRIPTOR_HEAP_FLAG_NONE
 		ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_heap)));
 	}
 
@@ -120,14 +122,11 @@ private:
 class FD3D12ShaderModule {
 public:
 	FD3D12ShaderModule() = default;
-	FD3D12ShaderModule(IDxcUtils* utils, std::string path)
-		: m_shaderBlob(nullptr)
-	{
-
+	FD3D12ShaderModule(IDxcUtils* utils, std::string path) 
+	{ 
 		// Load the shader from file
 		auto widePath = std::wstring(path.begin(), path.end());
-		ThrowIfFailed(utils->LoadFile(widePath.c_str(), nullptr, &m_shaderBlob));
-
+		ThrowIfFailed(utils->LoadFile(widePath.c_str(), nullptr, &m_shaderBlob)); 
 	}
 
 	//getter:
@@ -176,8 +175,8 @@ public:
 public:
 	//similar to VkDescriptorSetLayout, retrieved by reflection; 
 	std::vector<CD3DX12_DESCRIPTOR_RANGE1> ranges;  //for valid scope
-	D3D12_ROOT_PARAMETER1 descriptorTable;
-	FShaderDescriptorLayout tableLayout;
+	D3D12_ROOT_PARAMETER1 descriptorTable{};
+	FShaderDescriptorLayout tableLayout{};
 
 private:
 	ComPtr<IDxcBlobEncoding> m_shaderBlob;
@@ -201,35 +200,32 @@ struct FRootSignatureLayout {
 };
 
 
-class FD3D12GraphicsShaderManager {
+class FD3D12ShaderPermutation {
 public:
-	FD3D12GraphicsShaderManager(ComPtr<ID3D12Device> device,
-		SharedPtr<FDescriptorHeapAllocator> m_rangeHeapAllocator
+	FD3D12ShaderPermutation(ComPtr<ID3D12Device> device,
+		WeakPtr<FDescriptorHeapAllocator> m_rangeHeapAllocator
 	)
 		:m_device(device) , m_rangeHeapAllocator(m_rangeHeapAllocator)
-	{
-		this->Init();
+	{ 
+	} 
+
+	void LoadShaders(IDxcUtils* dxcUtils, const std::string& assetPathVS, const std::string& assetPathPS) {
+		m_vertexShader = CreateShared<FD3D12ShaderModule>(dxcUtils, assetPathVS);
+		m_pixelShader = CreateShared<FD3D12ShaderModule>(dxcUtils, assetPathPS);
 	}
 
-	void Init();
-
-	void LoadShaders(const std::string& assetPathVS, const std::string& assetPathPS) {
-		m_vertexShader = CreateShared<FD3D12ShaderModule>(dxcUtils.Get(), assetPathVS);
-		m_pixelShader = CreateShared<FD3D12ShaderModule>(dxcUtils.Get(), assetPathPS);
-	}
-
-	void PrepareRootSignature();
+	void PrepareRootSignature(IDxcUtils* dxcUtils);
 	void CreateRootSignature();
 
 	//  
-	void SetSRV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& textureDesc, uint32_t baseOffset);
-	void SetCBV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset);
-	void SetUAV(const std::string& name, ComPtr<ID3D12Resource> resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc, uint32_t baseOffset);
+	void SetSRV(const std::string& name, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& textureDesc, uint32_t baseOffset);
+	void SetCBV(const std::string& name, ID3D12Resource* resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset);
+	void SetUAV(const std::string& name, ID3D12Resource* resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& uavDesc, uint32_t baseOffset);
 
 	void SetStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc);
 
-	void SetDescriptorHeap(ComPtr<ID3D12GraphicsCommandList> commandList) const;
-	void SetDescriptorTables(ComPtr<ID3D12GraphicsCommandList> commandList, uint32_t baseOffset) const;
+	void SetDescriptorHeap(ID3D12GraphicsCommandList* commandList) const;
+	void SetDescriptorTables(ID3D12GraphicsCommandList* commandList, uint32_t baseOffset) const;
 
 
 	//getter:
@@ -250,19 +246,16 @@ public:
 
 	//get descriptor heap:
 	ComPtr<ID3D12DescriptorHeap> GetDescriptorHeap() const {
-		return m_rangeHeapAllocator->GetHeap();
+		return m_rangeHeapAllocator.lock()->GetHeap();
 	}
 
 	uint32_t RequestAllocationOnHeap() {
-		return m_rangeHeapAllocator->Allocate(this->m_rootSignatureLayout.numDescriptors);
+		return m_rangeHeapAllocator.lock()->Allocate(this->m_rootSignatureLayout.numDescriptors);
 	}
 
 	//utilis
-public:
-	ComPtr<IDxcUtils> dxcUtils;
-	ComPtr<IDxcCompiler3> dxcCompiler;
-
-	SharedPtr<FDescriptorHeapAllocator> m_rangeHeapAllocator;
+public: 
+	WeakPtr<FDescriptorHeapAllocator> m_rangeHeapAllocator;
 	std::vector<D3D12_STATIC_SAMPLER_DESC> m_staticSamplers; // static samplers for the root signature
 
 	//resources
@@ -274,6 +267,64 @@ public:
 	FRootSignatureLayout m_rootSignatureLayout;
 
 	//owner
-public:
-	ComPtr<ID3D12Device> m_device; // Device to create resources
+private:
+	ComPtr<ID3D12Device> m_device; 
 };
+
+
+
+
+struct ShaderPermutationKey {
+	std::string shaderTag;
+	std::string passTag;
+	//std::set<std::string> defines;
+
+	bool operator==(const ShaderPermutationKey& other) const {
+		return shaderTag == other.shaderTag && passTag == other.passTag; /*&& defines == other.defines;*/
+	}
+};
+
+namespace std {
+	template<>
+	struct hash<ShaderPermutationKey> {
+		size_t operator()(const ShaderPermutationKey& k) const {
+			size_t h1 = hash<std::string>()(k.shaderTag);
+			size_t h2 = hash<std::string>()(k.passTag);
+
+			return (h1 ^ (h2 << 1));
+			//size_t h3 = 0;
+			//for (const auto& d : k.defines) {
+			//    h3 ^= hash<std::string>()(d);
+			//}
+			//return ((h1 ^ (h2 << 1)) ^ (h3 << 2));
+		}
+	};
+}
+ 
+
+class ShaderLibrary {
+public:
+	ShaderLibrary(ComPtr<ID3D12Device> device, SharedPtr<FDescriptorHeapAllocator> rangeHeapAllocator)
+		: m_device(device), m_rangeHeapAllocator(rangeHeapAllocator)
+	{
+		DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxcUtils));
+		DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxcCompiler));
+
+	} 
+
+	[[nodiscard]]
+	SharedPtr<FD3D12ShaderPermutation> GetOrLoad(const ShaderPermutationKey& key);
+	 
+private:
+	ComPtr<IDxcUtils> dxcUtils;
+	ComPtr<IDxcCompiler3> dxcCompiler;
+
+	ComPtr<ID3D12Device> m_device;
+	SharedPtr<FDescriptorHeapAllocator> m_rangeHeapAllocator;
+
+private:
+	std::unordered_map<ShaderPermutationKey, SharedPtr<FD3D12ShaderPermutation>> cache;
+
+
+};
+

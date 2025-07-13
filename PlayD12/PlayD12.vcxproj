@@ -162,25 +162,31 @@
     <ClInclude Include="src\Event.h" />
     <ClInclude Include="src\FSM.h" />
     <ClInclude Include="src\InputSystem.h" />
+    <ClInclude Include="src\Level.h" />
     <ClInclude Include="src\Math\Matrix.h" />
     <ClInclude Include="src\Math\MMath.h" />
     <ClInclude Include="src\Math\MathUtility.h" />
     <ClInclude Include="src\physics\Collision.h" />
     <ClInclude Include="src\physics\PhysicsScene.h" />
     <ClInclude Include="src\physics\Shape.h" />
+    <ClInclude Include="src\render\Material.h" />
     <ClInclude Include="src\render\Mesh.h" />
     <ClInclude Include="src\PCH.h" />
     <ClInclude Include="src\render\Renderer.h" />
+    <ClInclude Include="src\render\RenderPass.h" />
     <ClInclude Include="src\render\Resource.h" />
     <ClInclude Include="src\D12Helper.h" />
     <ClInclude Include="src\render\Shader.h" />
     <ClInclude Include="src\Math\Vector.h" />
+    <ClInclude Include="src\render\Texture.h" />
+    <ClInclude Include="src\UI.h" />
     <ClInclude Include="src\Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Entry.cpp" />
     <ClCompile Include="src\InputSystem.cpp" />
+    <ClCompile Include="src\Level.cpp" />
     <ClCompile Include="src\physics\PhysicsScene.cpp" />
     <ClCompile Include="src\render\Mesh.cpp" />
     <ClCompile Include="src\PCH.cpp">
@@ -190,13 +196,17 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\render\Renderer.cpp" />
+    <ClCompile Include="src\render\RenderPass.cpp" />
     <ClCompile Include="src\render\Resource.cpp" />
     <ClCompile Include="src\render\Shader.cpp" />
+    <ClCompile Include="src\render\Texture.cpp" />
+    <ClCompile Include="src\UI.cpp" />
     <ClCompile Include="src\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="legacy.txt" />
     <Text Include="legacy\legacyImpulse.txt" />
+    <Text Include="legacy\legacyPSO.txt" />
     <Text Include="legacy\OBBVSAABB.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

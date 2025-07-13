@@ -3,7 +3,7 @@
 
 enum class KeyCode : uint16_t {
     Unknown = 0,
-    /*    KeyPH = 64,*/
+
     A, B, C, D, E, F, G, H, I, J, K, L, M,
     N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
 
@@ -11,45 +11,102 @@ enum class KeyCode : uint16_t {
     Space, Enter, Escape, Tab, Backspace,
     Left, Right, Up, Down,
 
-    COUNT,
+    MAX_COUNT,
 };
 
-constexpr size_t MaxKeyCode = static_cast<size_t>(KeyCode::COUNT);
+constexpr size_t MAX_KeyCode = static_cast<size_t>(KeyCode::MAX_COUNT);
 
-struct WindowResize
+
+ 
+enum class MouseButtonCode : uint16_t
+{
+    // From glfw3.h
+    Button0 = 0,
+    Button1 = 1,
+    Button2 = 2,
+    Button3 = 3,
+    Button4 = 4,
+    Button5 = 5,
+    Button6 = 6,
+    Button7 = 7,
+
+    ButtonLast = Button7,
+    ButtonLeft = Button0,
+    ButtonRight = Button1,
+    ButtonMiddle = Button2,
+
+    MAX_COUNT
+};
+
+constexpr size_t MAX_MouseCode = static_cast<size_t>(MouseButtonCode::MAX_COUNT);
+
+
+struct FWindowResize
 {
     uint32_t width, height;
 };
 
-struct WindowClose
+struct FWindowClose
 {
 };
 
-struct KeyDown
-{
-    KeyCode key;
-};
-
-struct KeyUp
+struct FKeyDown
 {
     KeyCode key;
 };
 
-
-// Event definitions
-struct MouseMove { float x, y; };
-struct MouseDown { float x, y; int button; };
-struct MouseUp { float x, y; int button; };
-struct MouseWheel { float delta; };
-struct Click { /* empty: synthesized in dispatcher */ };
-struct KeyPress { KeyCode key; };
-
-using UIEvent = std::variant<MouseMove, MouseDown, MouseUp, MouseWheel, Click, KeyPress>; 
+struct FKeyUp
+{
+    KeyCode key;
+};
 
 
-using WindowEvent = std::variant<WindowResize, WindowClose>;
-using InputEvent = std::variant<KeyDown, KeyUp>;
- 
+struct FMouseMove { int x, y; };
+struct FMouseButtonDown { MouseButtonCode button; int x, y; };
+struct FMouseButtonUp { MouseButtonCode button; int x, y; };
+
+
+
+
+using WindowEvent = std::variant<FWindowResize, FWindowClose>;
+using InputEvent = std::variant<FKeyDown, FKeyUp, FMouseButtonDown, FMouseButtonUp, FMouseMove>;
+
+
+struct UIEventBase
+{ 
+    int x, y;
+    bool handled = false;
+    void StopPropagation() { handled = true; }
+};
+
+struct UIMouseMove : public UIEventBase
+{
+	UIMouseMove(int xPos, int yPos)
+		: UIEventBase{ xPos, yPos } {
+	}
+};
+
+struct UIMouseButtonDown : public UIEventBase
+{
+    MouseButtonCode button; 
+
+	UIMouseButtonDown(MouseButtonCode btn, int xPos, int yPos)
+		: button(btn), UIEventBase{ xPos, yPos, false } {
+	} 
+};
+
+struct UIMouseButtonUp : public UIEventBase
+{
+    MouseButtonCode button; 
+
+	UIMouseButtonUp(MouseButtonCode btn, int xPos, int yPos)
+		: button(btn), UIEventBase{ xPos, yPos, false } {
+	}
+};
+
+
+using UIEvent = std::variant<UIMouseMove, UIMouseButtonDown, UIMouseButtonUp>;
+
 
 class EventQueue {
 public:
@@ -72,5 +129,31 @@ public:
 
 private:
     std::vector<InputEvent> events;
+    //std::mutex mutex;
+};
+
+
+
+class UIEventQueue  {
+public:
+    static UIEventQueue& Get() {
+        static UIEventQueue instance;
+        return instance;
+    }
+
+    void Push(const UIEvent& event) {
+        //std::lock_guard<std::mutex> lock(mutex);
+        events.push_back(event);
+    }
+
+    std::vector<UIEvent> Drain() {
+        //std::lock_guard<std::mutex> lock(mutex);
+        std::vector<UIEvent> out = std::move(events);
+        events.clear();
+        return out;
+    }
+
+private:
+    std::vector<UIEvent> events;
     //std::mutex mutex;
 };

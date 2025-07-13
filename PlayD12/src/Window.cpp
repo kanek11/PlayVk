@@ -63,17 +63,25 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
 	{
 		POINTS pt = MAKEPOINTS(lParam);
 		//std::cout << "Mouse moved to: (" << pt.x << ", " << pt.y << ")" << std::endl;
+		InputEvent event = FMouseMove{ pt.x, pt.y }; 
+		EventQueue::Get().Push(event);
 		return 0;
 	}
 
 	case WM_LBUTTONDOWN:
 	{
-		std::cout << "Left button pressed" << std::endl;
+		POINTS pt = MAKEPOINTS(lParam);
+		InputEvent event = FMouseButtonDown{ MouseButtonCode::ButtonLeft, pt.x,pt.y }; 
+		EventQueue::Get().Push(event);
+		std::cout << "Left button pressed" << std::endl; 
 		return 0;
 	}
 
 	case WM_LBUTTONUP:
 	{
+		POINTS pt = MAKEPOINTS(lParam);
+		InputEvent event = FMouseButtonUp{ MouseButtonCode::ButtonLeft, pt.x, pt.y };
+		EventQueue::Get().Push(event);
 		std::cout << "Left button released" << std::endl;
 		return 0;
 	}

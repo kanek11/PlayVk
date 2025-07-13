@@ -1,0 +1,53 @@
+//struct ShaderMacro {
+//    std::string name;
+//    std::string value;
+//};
+//
+//
+//struct ShaderEntry {
+//    std::string path;
+//    std::string entryPoint = "main";
+//    std::vector<ShaderMacro> macros;
+//};
+//
+//// High-level descriptor
+//struct GraphicsPipelineDesc {
+//    std::string name;
+//    ShaderEntry vertexShader;
+//    ShaderEntry pixelShader;
+//
+//    //D3D12_PRIMITIVE_TOPOLOGY_TYPE topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+//    DXGI_FORMAT rtvFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+//    DXGI_FORMAT dsvFormat = DXGI_FORMAT_D32_FLOAT;
+//
+//    bool enableDepth = true;
+//    bool enableBlend = false;
+//
+//    bool cullBackFace = true;
+//    bool frontCounterClockwise = true;
+//
+//    D3D12_FILL_MODE fillMode = D3D12_FILL_MODE_SOLID;
+//    D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_BACK;
+//
+//    // Input layout defined externally
+//    // std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
+//
+//    // Define operator== and hash for descriptor reuse
+//    //bool operator==(const GraphicsPipelineDesc& other) const;
+//};
+//
+//
+//class GraphicsPipelineState {
+//public:
+//    bool Compile(ID3D12Device* device, const GraphicsPipelineDesc& desc);
+//    ID3D12PipelineState* GetPipelineState() const { return m_pso.Get(); }
+//    ID3D12RootSignature* GetRootSignature() const { return m_rootSignature.Get(); }
+//
+//private:
+//    bool CreateRootSignature(ID3D12Device* device);
+//    bool CreatePSO(ID3D12Device* device, const GraphicsPipelineDesc& desc);
+//    ComPtr<ID3DBlob> LoadShaderBlob(const ShaderEntry& shader);
+//private:
+//    ComPtr<ID3D12PipelineState> m_pso;
+//    ComPtr<ID3D12RootSignature> m_rootSignature;
+//};

@@ -12,6 +12,7 @@
 //using FLOAT3 = XMFLOAT3;
 //using FLOAT2 = XMFLOAT2;
 //using FLOAT4 = XMFLOAT4; 
+ 
 
 using INDEX_FORMAT = uint16_t;
 
@@ -24,6 +25,16 @@ struct FD3D12InputDesc {
 	uint32_t byteSize;
 	uint32_t paddedSize;
 };
+
+ 
+struct VertexInputLayer {
+	std::string name;
+	uint32_t slot = 0;
+	D3D12_INPUT_CLASSIFICATION classification;
+	uint32_t instanceStepRate = 0;
+	std::vector<FD3D12InputDesc> elements;
+};
+
 
 
 struct StaticMeshVertex

@@ -1,5 +1,6 @@
 #include "PCH.h"
 #include "InputSystem.h"
+ 
 
 
 //windows scancode is basically ASCII:
@@ -36,61 +37,113 @@ static const std::unordered_map<int, KeyCode> WindowsKeyMap = {
 };
 
 //initialize known code;
-InputSystem::InputSystem() { 
-     
+InputSystem::InputSystem() {
+
+    keyStateRaw.fill(false);
+    keyState.fill(ButtonFrame{}); 
+
+    mouseButtonStateRaw.fill(false);
+    mouseButtonState.fill(ButtonFrame{}); 
 }
 
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
 
 void InputSystem::OnUpdate()
 {
     auto events = EventQueue::Get().Drain();
-     
+
 
     for (const auto& event : events) {
-        std::visit( overloaded {
-       [this](const KeyDown& e) { OnKeyDown(e.key); },
-       [this](const KeyUp& e) { OnKeyUp(e.key); }, 
+        std::visit(overloaded{
+       [this](const FKeyDown& e) { OnKeyDown(e.key); },
+       [this](const FKeyUp& e) { OnKeyUp(e.key); },
+       [this](const FMouseButtonDown& e) { OnMouseButtonDown(e); },
+       [this](const FMouseButtonUp& e) { OnMouseButtonUp(e); },
+              [this](const FMouseMove& e) { OnMouseMove(e); },
             }, event);
     }
-     
-	for (size_t i = 0; i < MaxKeyCode; ++i) {
-		keyState[i].Update(keyStateRaw[i]);
-	}
+
+    for (size_t i = 0; i < MAX_KeyCode; ++i) {
+        keyState[i].Update(keyStateRaw[i]); 
+    }
+
+    for (size_t i = 0; i < MAX_MouseCode; ++i) {
+        mouseButtonState[i].Update(mouseButtonStateRaw[i]);
+    }
 }
 
 void InputSystem::OnKeyDown(KeyCode key)
-{ 
+{
     keyStateRaw[static_cast<size_t>(key)] = true;
 }
 
 void InputSystem::OnKeyUp(KeyCode key)
 {
-	keyStateRaw[static_cast<size_t>(key)] = false;
-     
+    keyStateRaw[static_cast<size_t>(key)] = false;
+
 }
 
 bool InputSystem::IsKeyJustPressed(KeyCode key) const
-{  
-	return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Pressed;
+{
+    return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Pressed;
 }
 
 bool InputSystem::IsKeyJustReleased(KeyCode key) const
 {
-	return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Released;
+    return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Released;
 }
 
 bool InputSystem::IsKeyDown(KeyCode key) const
-{
-	return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Down ||
-		keyState[static_cast<size_t>(key)].state == ButtonFrameState::Pressed;
+{ 
+    return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Down
+    || keyState[static_cast<size_t>(key)].state == ButtonFrameState::Pressed;
 }
 
 bool InputSystem::IsKeyUp(KeyCode key) const
 {
-	return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Up ||
-		keyState[static_cast<size_t>(key)].state == ButtonFrameState::Released;
+    return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Up ||
+        keyState[static_cast<size_t>(key)].state == ButtonFrameState::Released;
+}
+
+void InputSystem::OnMouseButtonDown(FMouseButtonDown e)
+{
+    mouseButtonStateRaw[static_cast<size_t>(e.button)] = true;
+    std::cout << "input system: button down" << '\n';
+
+    //push a UI event to the queue
+	UIMouseButtonDown uiEvent = UIMouseButtonDown{ e.button, e.x, e.y };
+	UIEventQueue::Get().Push(uiEvent); 
+
+}
+    
+void InputSystem::OnMouseButtonUp(FMouseButtonUp e)
+{
+    mouseButtonStateRaw[static_cast<size_t>(e.button)] = false;
+    std::cout << "input system: button up" << '\n';
+     
+	UIMouseButtonUp uiEvent = UIMouseButtonUp{ e.button, e.x, e.y };
+	UIEventQueue::Get().Push(uiEvent);
+}
+
+void InputSystem::OnMouseMove(FMouseMove e)
+{
+    this->MouseX = e.x;
+    this->MouseY = e.y;
+
+    //std::cout << "input system: mouseX:" << e.x << '\n';
+	UIMouseMove uiEvent = UIMouseMove{ e.x, e.y };
+	UIEventQueue::Get().Push(uiEvent); 
+}
+
+FPointer InputSystem::GetMousePointer()
+{
+    return FPointer(MouseX, MouseY);
+}
+
+bool InputSystem::IsMouseButtonJustPressed(MouseButtonCode button)
+{
+    //std::cout << static_cast<int>(mouseButtonState[static_cast<size_t>(button)].state) << '\n';
+    return mouseButtonState[static_cast<size_t>(button)].state == ButtonFrameState::Pressed; 
 }
 
 
@@ -99,8 +152,8 @@ void WindowsInputSource::OnKeyUp(int key)
 {
     if (WindowsKeyMap.contains(key)) {
         //inputSystem->OnKeyUp(WindowsKeyMap.at(key)); 
- 
-        InputEvent event = KeyUp{ .key = WindowsKeyMap.at(key) };
+
+        InputEvent event = FKeyUp{ .key = WindowsKeyMap.at(key) };
         EventQueue::Get().Push(event);
     }
     else
@@ -113,7 +166,7 @@ void WindowsInputSource::OnKeyDown(int key)
 {
     if (WindowsKeyMap.contains(key)) {
         //inputSystem->OnKeyDown(WindowsKeyMap.at(key)); 
-        InputEvent event = KeyDown{ .key = WindowsKeyMap.at(key) };
+        InputEvent event = FKeyDown{ .key = WindowsKeyMap.at(key) };
         EventQueue::Get().Push(event);
     }
     else

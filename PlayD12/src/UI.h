@@ -1,189 +1,172 @@
-// ui_framework.h — initial skeleton for an extensible UI system
-// NOTE: This is a *header?only* prototype to get you started.  Nothing here is set in stone —
-// add/remove pieces as you validate real requirements.
-// -----------------------------------------------------------------------------
-//  Motivation / Design goals
-//  • Decoupled from platform + renderer (backend selected by dependency?injection).
-//  • Hierarchical scene?graph of UIElement objects.
-//  • Flexible layout (immediate?mode attributes, retained tree updates via layout engine).
-//  • Event system with capture/target/bubble phases and stop?propagation flag.
-//  • Bridge to GameFlow: any element can expose FDelegate signals; GUILayer wires these
-//    to GameStateManager / ParamMap.
-//  • All structs use POD where possible to allow hot?reloading & serialization later.
-// -----------------------------------------------------------------------------
 #pragma once
-#include <vector>
-#include <memory>
-#include <string>
-#include <functional>
-#include <variant>
-#include "Math/MMath.h"    
-#include "Delegate.h"     
-#include "Event.h"        
+#include "PCH.h"
 
-namespace UI {
-    // -----------------------------------------------------------------------------
-    // geometry helpers
-    struct Rect { float x{}, y{}, w{}, h{}; };
-    inline bool PointInRect(const Rect& r, float px, float py) {
-        return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+#include "Base.h"
+#include "Delegate.h"
+#include "Event.h"
+
+
+// geometry helpers
+struct Rect { int x{}, y{}, w{}, h{}; };
+inline bool IsPointInRect(const Rect& r, int px, int py) {
+    return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+} 
+
+//classic four states 
+enum class UIState {
+	Normal,
+	Hovered,
+	Pressed, 
+	Disabled
+};
+
+
+//forward decl:
+class UIRenderer;
+
+class UIElement {
+public:
+	virtual ~UIElement() = default; 
+	 
+	virtual void Render(UIRenderer& renderer) = 0;
+
+	virtual void OnMouseMove(const UIMouseMove& e) {
+		if (HitTest(e.x, e.y)) {
+			//std::cout << "UI: mouse hovered at (" << e.x << ", " << e.y << ")" << '\n';
+			state = UIState::Hovered;
+		}
+		else {
+			state = UIState::Normal;
+		}
+	}
+
+	virtual void OnMouseButtonDown(const UIMouseButtonDown& e) {
+		if (HitTest(e.x, e.y)) {
+			//std::cout << "UI: button pressed at (" << e.x << ", " << e.y << ")" << '\n';
+			state = UIState::Pressed;
+		}
+	}
+
+	virtual void OnMouseButtonUp(const UIMouseButtonUp& e) {
+		if (HitTest(e.x, e.y)) {
+			if (state == UIState::Pressed) {
+				OnClick.BlockingBroadCast(); 
+				state = UIState::Normal;
+			} 
+		}
+		else {
+			state = UIState::Normal;
+			std::cout << "UI: button up outside of button area" << '\n';
+		}
+	}
+
+	virtual bool HitTest(int x, int y) const = 0;
+
+	//todo: implement the tree;
+	virtual std::span<UIElement* const> GetChildren() const { return {}; }
+     
+
+	UIState state = UIState::Normal;
+
+	FDelegate<void()> OnClick;  
+};
+
+
+
+//todo: visible ,enable; blocking;
+class UIButton : public UIElement
+{
+public: 
+	virtual ~UIButton() = default;
+	UIButton(Rect rect): layout(rect) { } 
+
+	virtual void Render(UIRenderer& renderer) override;
+
+	void Tick(float delta); 
+
+	virtual bool HitTest(int x, int y) const override {
+		return IsPointInRect(layout, x, y);
+	}
+
+	Rect layout;  
+};
+
+
+
+
+class UIManager {
+public: 
+    void ProcessEvents() {
+
+		auto uiEvents = UIEventQueue::Get().Drain();
+		//std::cout << "UIManager: processing " << uiEvents.size() << " UI events" << '\n';
+
+        for (UIEvent& e : uiEvents) { 
+			std::visit([&](auto& evt) { DispatchToUIRoots(evt); }, e);
+        }
+        uiEvents.clear(); 
     }
 
-    // -----------------------------------------------------------------------------
-    // Forward declarations
-    class UIElement;
-    class UIContainer;
-    class UILayoutEngine;
-    class GUIRenderer;
-    struct UIContext;
-
-    // -----------------------------------------------------------------------------
-
-    enum class PropagationPhase : uint8_t { Capture, Target, Bubble };
-
-    // Return value of event handler.  If true -> stop propagation.
-    using EventResult = bool;
-
-    // -----------------------------------------------------------------------------
-    // Base element interface
-    class UIElement : public std::enable_shared_from_this<UIElement> {
-    public:
-        virtual ~UIElement() = default;
-
-        // Layout input properties (margins/padding could be added later)
-        MMath::FLOAT2     preferredSize{ 100.f, 30.f };   // default arbitrary
-        bool              visible{ true };
-
-        // Final computed rect after layout
-        Rect              rect{};
-
-        // Hierarchy
-        std::weak_ptr<UIContainer> parent;
-
-        // Rendering
-        virtual void Draw(GUIRenderer& renderer) {}
-
-        // Event dispatch (Capture -> Target -> Bubble)
-        virtual EventResult OnEvent(const UIEvent& e, PropagationPhase phase) { (void)e; (void)phase; return false; }
-    };
-
-    // -----------------------------------------------------------------------------
-    // Container element – holds children and delegates Draw/Layout/Event
-    class UIContainer : public UIElement {
-    public:
-        std::vector<std::shared_ptr<UIElement>> children;
-
-        void Add(const std::shared_ptr<UIElement>& child) {
-            child->parent = shared_from_this();
-            children.emplace_back(child);
-        }
-
-        // Layout is deferred to UILayoutEngine
-        void Draw(GUIRenderer& renderer) override {
-            for (auto& c : children) if (c->visible) c->Draw(renderer);
-        }
-
-        EventResult OnEvent(const UIEvent& e, PropagationPhase phase) override {
-            // Capture phase: traverse children first
-            if (phase == PropagationPhase::Capture) {
-                for (auto it = children.rbegin(); it != children.rend(); ++it) {
-                    if ((*it)->OnEvent(e, phase)) return true;
-                }
-            }
-            // Target/Bubble handled by dispatcher later
-            return false;
-        }
-    };
-
- 
-
-    // -----------------------------------------------------------------------------
-    // Concrete widget example – Button
-    class UIButton : public UIElement {
-    public:
-        std::string text;
-
-        // Exposed signal
-        FDelegate<void()> OnClicked;
-
-        void Draw(GUIRenderer& renderer) override;
-
-        EventResult OnEvent(const UIEvent& e, PropagationPhase phase) override {
-            if (!visible) return false;
-            if (phase != PropagationPhase::Target) return false;
-
-            if (std::holds_alternative<Click>(e)) {
-                OnClicked.BlockingBroadCast();
-                return true; // consume event
-            }
-            return false;
-        }
-    };
-
-    // -----------------------------------------------------------------------------
-    // UI context – owned by GUILayer
-    struct UIContext {
-        std::shared_ptr<UIContainer> root;
-        GUIRenderer* renderer = nullptr; // injected
-
-        // Dispatch entry
-        void ProcessInput(const std::vector<InputEvent>& inputEvents);
-
-    private:
-        void dispatch(UIElement* target, const UIEvent& ev);
-    };
-
-    // -----------------------------------------------------------------------------
-    // GUIRenderer interface – implemented per?backend (e.g., Direct3D12)
-    class GUIRenderer {
-    public:
-        virtual ~GUIRenderer() = default;
-        virtual void DrawQuad(const Rect& r, const MMath::FLOAT4& color) = 0;
-        virtual void DrawText(const Rect& r, const std::string& text) = 0;
-    };
-
-    // Example stub (fill in your D3D12 drawing calls)
-    class D3D12GUIRenderer : public GUIRenderer {
-    public:
-        explicit D3D12GUIRenderer(D3D12HelloRenderer* r) : m_backend(r) {}
-        void DrawQuad(const Rect& r, const MMath::FLOAT4& color) override;
-        void DrawText(const Rect& r, const std::string& text)   override;
-    private:
-        D3D12HelloRenderer* m_backend{};
-    };
-
-    // -----------------------------------------------------------------------------
-    // Implementation stubs (place in .cpp)
-    inline void UIButton::Draw(GUIRenderer& renderer) {
-        MMath::FLOAT4 clr{ 0.2f, 0.2f, 0.2f, 1.0f };
-        renderer.DrawQuad(rect, clr);
-        renderer.DrawText(rect, text);
+    void RegisterRootElement(UIElement* elem) {
+        rootElements.push_back(elem);
     }
 
-    // -----------------------------------------------------------------------------
-    // GUILayer glue – quick sketch (should live in its own .cpp/.h but shown here)
-    class GUILayerImpl : public GUILayer {
-    public:
-        void onInit() override {
-            ctx.renderer = new D3D12GUIRenderer(GameApplication::GetInstance()->m_renderer);
-            ctx.root = std::make_shared<UIStackPanel>(LayoutMode::Vertical);
+private: 
+    std::vector<UIElement*> rootElements;
+    UIElement* mouseCaptured = nullptr;
 
-            auto btn = std::make_shared<UIButton>();
-            btn->text = "Start Game";
-            btn->OnClicked.Add([] {
-                // inject param to GameFlow
-                Param::SetBool("StartClicked", true);
-                });
-            ctx.root->Add(btn);
+    // T must be a UIEvent variant member
+    template<typename T>
+    void DispatchToUIRoots(T& evt) {
+		if (mouseCaptured && !evt.handled) {
+            DispatchToElement(mouseCaptured, evt);
+            return;
         }
-        void onUpdate() override {
-            // convert InputSystem events to UIEvent list then call ctx.ProcessInput(...)
-            ctx.root->Draw(*ctx.renderer);
+
+        for (UIElement* elem : rootElements) {
+            if (DispatchRecursive(elem, evt)) break;
         }
-        void onDestroy() override { delete ctx.renderer; }
-    private:
-        UIContext ctx;
-    };
+    }
 
-} // namespace ui
+	//todo: dispatch within the element;
+    template<typename T>  
+    void DispatchToElement(UIElement* elem, T& evt) {
+        if constexpr (std::is_same_v<T, UIMouseMove>) {
+            elem->OnMouseMove(evt);
+        }
+        else if constexpr (std::is_same_v<T, UIMouseButtonDown>) {
+            elem->OnMouseButtonDown(evt);
+			//capture mouse on down:
+			if (mouseCaptured == nullptr) 
+			mouseCaptured = elem;
 
+        }
+        else if constexpr (std::is_same_v<T, UIMouseButtonUp>) {
+            elem->OnMouseButtonUp(evt);
+			//release capture on up:
+			if (mouseCaptured == elem)  
+				mouseCaptured = nullptr;  
+		} 
+    }
+
+	//DFS dispatch
+    template<typename T> 
+    bool DispatchRecursive(UIElement* elem, T& evt) { 
+		//ignore if the element is handled, or not hit;
+		if (evt.handled)
+            return false;
+
+        for (UIElement* child : elem->GetChildren()) {
+            if (DispatchRecursive(child, evt)) return true;
+        }
+		//std::cout << "UIManager: dispatching event to element" << '\n'; 
+
+		DispatchToElement(elem, evt); 
+		
+		//todo: element-dependent propagation logic;
+		//evt.StopPropagation();
+
+        return true;
+    }
+
+};

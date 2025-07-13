@@ -27,22 +27,7 @@ inline EBufferUsage operator&(EBufferUsage a, EBufferUsage b) {
 //    return static_cast<EBufferUsage>(~static_cast<uint32_t>(a));
 //}
 
-
-static inline D3D12_HEAP_TYPE GetHeapType(const EBufferUsage& usage) {
-    if ((usage & EBufferUsage::Upload) != EBufferUsage{}) return D3D12_HEAP_TYPE_UPLOAD;
-    if ((usage & EBufferUsage::Readback) != EBufferUsage{}) return D3D12_HEAP_TYPE_READBACK;
-    return D3D12_HEAP_TYPE_DEFAULT;
-}
-
-static inline D3D12_RESOURCE_STATES GetInitialState(const EBufferUsage& usage) {
-    if ((usage & EBufferUsage::Upload) != EBufferUsage{}) return D3D12_RESOURCE_STATE_GENERIC_READ;
-    if ((usage & EBufferUsage::Readback) != EBufferUsage{}) return D3D12_RESOURCE_STATE_COPY_DEST;
-    if ((usage & EBufferUsage::CopyDst) != EBufferUsage{}) return D3D12_RESOURCE_STATE_COPY_DEST;
-    return D3D12_RESOURCE_STATE_COMMON;
-}
-
-
-
+ 
 struct FBufferDesc {
     size_t SizeInBytes;
 
@@ -72,7 +57,7 @@ public:
 		return m_resource->GetGPUVirtualAddress();
 	}
      
-    ComPtr<ID3D12Resource> GetResource() const { return m_resource; } 
+    ID3D12Resource* GetRawResource() const { return m_resource.Get(); } 
 
 public:
     //buffer views:
