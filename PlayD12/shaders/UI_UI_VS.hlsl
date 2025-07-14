@@ -24,7 +24,8 @@ PSInput VSMain(VSInput input)
 {
     PSInput result;
 
-    float4 worldPosition = mul(modelMatrix, float4(input.position.xy, 0.0f, 1.0f));
+    //float4 worldPosition = mul(modelMatrix, float4(input.position.xy, 0.0f, 1.0f));
+    float4 worldPosition =  float4(input.position.xy, 0.0f, 1.0f);
     result.position = worldPosition;
     result.color = input.color; 
     result.texCoord = input.texCoord;

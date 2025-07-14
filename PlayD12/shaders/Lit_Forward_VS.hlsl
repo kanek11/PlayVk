@@ -34,7 +34,9 @@ PSInput VSMain(VSInput input)
 
     //result.normal = normalize(mul((float3x3) vpMatrix, input.normal.xyz));
     //we don't have model rotation, so we can just use the normal as is
-    result.normal = input.normal;
+    //result.normal = input.normal;
+    result.normal = normalize(mul((float3x3) modelMatrix, input.normal));
+    
     result.texCoord = input.texCoord;
 
     return result;

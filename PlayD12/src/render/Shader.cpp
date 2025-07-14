@@ -261,9 +261,9 @@ void FD3D12ShaderPermutation::PrepareRootSignature(IDxcUtils* dxcUtils)
 	 
 	m_rootSignatureLayout.numDescriptors = numDescriptors;
 
-	m_rootSignatureLayout.numTables = 2; // Two descriptor tables: one for vertex shader, one for pixel shader
-	m_rootSignatureLayout.tableIndexMap[EShaderStage::VERTEX] = 0; // Vertex Shader Table Index
-	m_rootSignatureLayout.tableIndexMap[EShaderStage::PIXEL] = 1; // Pixel Shader Table Index
+	//m_rootSignatureLayout.numTables = 2; // Two descriptor tables: one for vertex shader, one for pixel shader
+	//m_rootSignatureLayout.tableIndexMap[EShaderStage::VERTEX] = 0; // Vertex Shader Table Index
+	//m_rootSignatureLayout.tableIndexMap[EShaderStage::PIXEL] = 1; // Pixel Shader Table Index
 }
 
 
@@ -287,15 +287,20 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 	//CD3DX12_ROOT_PARAMETER1 rootParameters[1]{};
 	//rootParameters[0].InitAsDescriptorTable(_countof(ranges), ranges, D3D12_SHADER_VISIBILITY_ALL);
 
-	auto numTables = m_rootSignatureLayout.numTables;
-	auto vsTableIndex = m_rootSignatureLayout.tableIndexMap[EShaderStage::VERTEX];
-	auto psTableIndex = m_rootSignatureLayout.tableIndexMap[EShaderStage::PIXEL];
+	auto numTables = m_rootSignatureLayout.numTables; 
 
-	std::vector<D3D12_ROOT_PARAMETER1> rootParameters(numTables); // Create a vector to hold root parameters
-	//rootParameters.push_back(m_vertexShader->descriptorTable);
-	//rootParameters.push_back(m_pixelShader->descriptorTable);
-	rootParameters[vsTableIndex] = m_vertexShader->descriptorTable; 
-	rootParameters[psTableIndex] = m_pixelShader->descriptorTable; 
+	std::vector<D3D12_ROOT_PARAMETER1> rootParameters; 
+
+	if (m_vertexShader->tableLayout.tableSize>0) {
+		rootParameters.push_back(m_vertexShader->descriptorTable);
+		m_rootSignatureLayout.tableIndexMap[EShaderStage::VERTEX] = static_cast<UINT>(rootParameters.size() - 1);
+	}
+
+	if (m_pixelShader->tableLayout.tableSize > 0) {
+		rootParameters.push_back(m_pixelShader->descriptorTable);
+		m_rootSignatureLayout.tableIndexMap[EShaderStage::PIXEL] = static_cast<UINT>(rootParameters.size() - 1);
+	}
+
 
 	// Allow input layout and deny uneccessary access to certain pipeline stages.
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -391,20 +396,27 @@ void FD3D12ShaderPermutation::SetDescriptorHeap(ID3D12GraphicsCommandList* comma
 }
 
 void FD3D12ShaderPermutation::SetDescriptorTables(ID3D12GraphicsCommandList* commandList, uint32_t baseOffset) const
-{
-
+{ 
 	//m_commandList->SetGraphicsRootDescriptorTable(0, m_cbv_srv_heap->GetGPUDescriptorHandleForHeapStart());
 	auto vsTableHeapOffset = m_rootSignatureLayout.vsTableHeapOffset + baseOffset;
 	auto psTableHeapOffset = m_rootSignatureLayout.psTableHeapOffset + baseOffset;
 
 	auto VSGPUHandle = m_rangeHeapAllocator.lock()->GetGPUHandle(vsTableHeapOffset);
 	auto PSGPUHandle = m_rangeHeapAllocator.lock()->GetGPUHandle(psTableHeapOffset);
+	 
+	if (m_rootSignatureLayout.tableIndexMap.contains(EShaderStage::VERTEX)) 
+	{
+		auto vsTableIndex = m_rootSignatureLayout.tableIndexMap.at(EShaderStage::VERTEX);
+		commandList->SetGraphicsRootDescriptorTable(vsTableIndex, VSGPUHandle);
+	}
 
-	auto vsTableIndex = m_rootSignatureLayout.tableIndexMap.at(EShaderStage::VERTEX);
-	auto psTableIndex = m_rootSignatureLayout.tableIndexMap.at(EShaderStage::PIXEL);
-
-	commandList->SetGraphicsRootDescriptorTable(vsTableIndex, VSGPUHandle);
-	commandList->SetGraphicsRootDescriptorTable(psTableIndex, PSGPUHandle);
+	if (m_rootSignatureLayout.tableIndexMap.contains(EShaderStage::PIXEL))
+	{
+		auto psTableIndex = m_rootSignatureLayout.tableIndexMap.at(EShaderStage::PIXEL);
+		commandList->SetGraphicsRootDescriptorTable(psTableIndex, PSGPUHandle);
+	}
+	
+	
 }
 
   

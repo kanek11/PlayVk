@@ -51,6 +51,33 @@ void D3D12HelloRenderer::OnInit()
      
 }
 
+// Render the scene.
+void D3D12HelloRenderer::OnRender()
+{
+    // Record all the commands we need to render the scene into the command list.
+    //PopulateCommandList();
+    BeginFrame();
+
+
+    BeginShadowPass(m_commandList.Get());
+    RecordShadowPassCommands(m_commandList.Get());
+    EndShadowPass(m_commandList.Get());
+
+    BeginRenderPass(m_commandList.Get());
+
+    RecordRenderPassCommands(m_commandList.Get());
+
+    //m_debugRenderer->FlushAndRender(m_commandList.Get());
+    DebugDraw::Get().FlushAndRender(m_commandList.Get());
+
+    uiRenderer->FlushAndRender(m_commandList.Get());
+
+    EndRenderPass(m_commandList.Get());
+
+
+    EndFrame();
+}
+
 
 void DebugDraw::AddRay(const FLOAT3& origin, const FLOAT3& direction, const FLOAT4& color)
 {
@@ -198,32 +225,7 @@ void DebugDraw::OnUpdate(float delta, const FLOAT4X4& pv)
     m_vertexBuffer->UploadData(m_lineData.data(), m_lineData.size() * sizeof(DebugLineVertex));
 }
 
-// Render the scene.
-void D3D12HelloRenderer::OnRender()
-{
-    // Record all the commands we need to render the scene into the command list.
-    //PopulateCommandList();
-    BeginFrame();
 
-
-    BeginShadowPass(m_commandList.Get());
-    RecordShadowPassCommands(m_commandList.Get());
-    EndShadowPass(m_commandList.Get());
-
-    BeginRenderPass(m_commandList.Get());
-
-    RecordRenderPassCommands(m_commandList.Get());
-
-    //m_debugRenderer->FlushAndRender(m_commandList.Get());
-    DebugDraw::Get().FlushAndRender(m_commandList.Get());
-
-    uiRenderer->FlushAndRender(m_commandList.Get());
-
-    EndRenderPass(m_commandList.Get());
-
-
-    EndFrame();
-}
 
 
 
@@ -641,8 +643,7 @@ void D3D12HelloRenderer::RecordShadowPassCommands(ID3D12GraphicsCommandList* com
 
     commandList->ResourceBarrier(1, &srvToDsvBarrier);
 
-
-
+     
     m_shadowShaderPerm->SetDescriptorHeap(m_commandList.Get());
     for (auto& proxy : m_staticMeshes) {
         m_shadowShaderPerm->SetDescriptorTables(m_commandList.Get(), proxy->shadowPassHeapOffset);
