@@ -22,9 +22,3 @@ VSOutput VSMain(VSInput input)
     output.position = mul(lightProjViewMatrix, worldPos);
     return output;
 }
-
-float4 PSMain(VSOutput input) : SV_TARGET
-{
-    // No color output needed for shadow map — use depth only
-    return float4(1.0f, 1.0f, 1.0f, 1.0f);
-}

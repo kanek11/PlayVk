@@ -16,7 +16,7 @@ void GameApplication::onInit()
 	{
 		throw std::runtime_error("Failed to initialize working directory");
 	}
-	 
+
 	std::cout << this->GetAssetFullPath("Shaders/shaders.hlsl") << "\n";
 
 	//----------------------------
@@ -66,11 +66,16 @@ void GameApplication::onInit()
 				mainMenuWorld->OnUpdate(dt);
 				//std::cout << " tick mainMenu: " << dt << "\n";
 			});
+		mainMenuState->OnExit.Add(
+			[&]() {
+				mainMenuWorld->OnUnload();
+				//std::cout << " tick mainMenu: " << dt << "\n";
+			});
 
 		//m_gameManager->SetInitialState(mainMenuState->GetId());
 	}
 
-	
+
 
 	if (auto playingState = m_gameManager->Register<PlayingState>()) {
 		playingState->OnEnter.Add(
@@ -87,16 +92,16 @@ void GameApplication::onInit()
 		playingState->OnExit.Add(
 			[&]() {
 				std::cout << " exit playing state" << "\n";
-				gameWorld->OnUnload(); 
+				gameWorld->OnUnload();
 			});
 
 		m_gameManager->SetInitialState(playingState->GetId());
 	}
 
-	  
+
 	//----------------------------
-	this->gameWorld = new GamePlayWorld(); 
-	this->mainMenuWorld = new MainMenuWorld(); 
+	this->gameWorld = new GamePlayWorld();
+	this->mainMenuWorld = new MainMenuWorld();
 
 
 	m_gameManager->Initialize();
@@ -114,6 +119,26 @@ void GameApplication::run()
 	//todo:  exit condition could be more complex.
 	while (!m_mainWindow->shouldClose()) {
 		m_mainWindow->onUpdate();
+		 
+		DebugDraw::Get().AddRay(
+			FLOAT3(0.0f, 0.0f, 0.0f),
+			FLOAT3(5.0f, 0.0f, 0.0f),
+			Color::Red
+		);
+		 
+		DebugDraw::Get().AddRay(
+			FLOAT3(0.0f, 0.0f, 0.0f),
+			FLOAT3(0.0f, 5.0f, 0.0f),
+			Color::Green
+		); 
+
+
+		DebugDraw::Get().AddRay(
+			FLOAT3(0.0f, 0.0f, 0.0f),
+			FLOAT3(0.0f, 0.0f, 5.0f),
+			Color::Blue
+		);
+
 
 		m_physicsScene->Tick(0.016f);
 
@@ -123,7 +148,7 @@ void GameApplication::run()
 
 		m_inputSystem->OnUpdate();
 
-		m_uiManager->ProcessEvents(); 
+		m_uiManager->ProcessEvents();
 		//if (m_inputSystem->IsKeyJustPressed(KeyCode::A)) {
 		//	std::cout << "app: A is pressed" << '\n';
 		//}
@@ -141,13 +166,16 @@ void GameApplication::run()
 			std::cout << "app: 1 is pressed" << '\n';
 			m_gameManager->TransitState(GameStateId::Playing);
 		}
-		else		
-		if (m_inputSystem->IsKeyJustPressed(KeyCode::Num2)) {
-			std::cout << "app: 2 is pressed" << '\n';
-			m_gameManager->TransitState(GameStateId::MainMenu);
-		}
+		else
+			if (m_inputSystem->IsKeyJustPressed(KeyCode::Num2)) {
+				std::cout << "app: 2 is pressed" << '\n';
+				m_gameManager->TransitState(GameStateId::MainMenu);
+			}
 
 		m_gameManager->Update(0.016f);
+
+
+
 
 	}
 

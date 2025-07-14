@@ -48,7 +48,7 @@ class MainMenuWorld {
 public:
 	virtual ~MainMenuWorld() = default;
 	virtual void OnLoad();
-
+	virtual void OnUnload();
 	virtual void OnUpdate(float delta);
 
 	SharedPtr<UIButton> debugButton;

@@ -5,6 +5,7 @@ rem === CONFIG ==========================================================
 set "SHADER_DIR=shaders"
 set "OUT_DIR=%SHADER_DIR%\bin"
 set "DXC_PATH=dxc"  rem change to the path of your DXC executable if needed
+rem set "DXC_PATH="C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\dxc.exe""
 
 rem DXIL target flags (DXIL)
 set "DXC_FLAGS=-Zi -Qembed_debug -O3"
@@ -30,8 +31,10 @@ for /r "%SHADER_DIR%" %%f in (*.hlsl) do (
             echo Compiling %%f with entry !ENTRY! and target !TARGET!
 
             %DXC_PATH% -T !TARGET! -E !ENTRY! "%%f" %DXC_FLAGS% ^
-                -Fo "%OUT_DIR%\%%~nf_!AFFIX!.cso" ^
-                -Fc "%OUT_DIR%\%%~nf_!AFFIX!_disasm.txt" || goto :CompileError
+                -Fo "%OUT_DIR%\%%~nf.cso" ^
+                -Fc "%OUT_DIR%\%%~nf_disasm.txt" || goto :CompileError
+rem ===                 -Fo "%OUT_DIR%\%%~nf_!AFFIX!.cso" ^
+rem ===                 -Fc "%OUT_DIR%\%%~nf_!AFFIX!_disasm.txt" || goto :CompileError
         )
     )
 )

@@ -13,7 +13,7 @@
 #include "Vector.h"
 
 namespace MMath {
-	 
+
 
 	template <FLOP_t Scalar_t, std::size_t Rows, std::size_t Cols>
 	class Matrix {
@@ -56,9 +56,7 @@ namespace MMath {
 			assert(col < Cols);
 			return m_data[col];
 		}
-
-
-
+		 
 	private:
 		// Column-major: m_data[Col] = Vector<Rows>
 		std::array<Vector<Scalar_t, Rows>, Cols> m_data;
@@ -97,8 +95,8 @@ namespace MMath {
 
 	template <FLOP_t T, std::size_t Rows, std::size_t Cols>
 	Vector<T, Cols> MatrixVectorMultiply(const Matrix<T, Rows, Cols>& mat, const Vector<T, Cols>& vec) {
-		static_assert(Cols == Cols, "Matrix-Vector multiplication requires compatible dimensions.");
-		Vector<T, Rows> result;
+		Vector<T, Cols> result;
+		 
 		for (std::size_t c = 0; c < Cols; ++c) {
 			result[c] = std::inner_product(mat[c].data().begin(), mat[c].data().end(), vec.data().begin(), T{});
 		}
@@ -108,39 +106,34 @@ namespace MMath {
 
 	template <FLOP_t T, std::size_t Rows, std::size_t Cols>
 	Vector<T, Rows> operator*(const Matrix<T, Rows, Cols>& mat, const Vector<T, Cols>& vec) { 
-		static_assert(Cols == Rows, "Matrix-Vector multiplication requires compatible dimensions.");
 		return MatrixVectorMultiply(mat, vec);
 	}
 
 	//----------------------------------------------------------
 	// Matrix-Matrix multiplication; reuse matrix-vector multiplication
 	template <FLOP_t T, std::size_t A, std::size_t B, std::size_t C>
-	Matrix<T, A, C> MatrixMultiply(const Matrix<T, A, B>& lhs, const Matrix<T, B, C>& rhs) {
-		static_assert(B == A, "Matrix multiplication requires compatible dimensions.");
-		Matrix<T, A, C> result;
+	Matrix<T, A, C> MatrixMultiply(const Matrix<T, A, B>& lhs, const Matrix<T, B, C>& rhs) {  
+		Matrix<T, A, C> result; 
+
+		auto lhs_t = Transpose(lhs); // Convert to column-major order 
 		for (std::size_t c = 0; c < C; ++c) {
-			result[c] = MatrixVectorMultiply(rhs, lhs[c]);  //row-major storage;
+			result[c] = MatrixVectorMultiply(lhs_t, rhs[c]);
 		}
-		result = Transpose(result); 
+		 
 		return result;
 	}
 
 
 	template <FLOP_t T, std::size_t A, std::size_t B, std::size_t C>
 	Matrix<T, A, C> operator*(const Matrix<T, A, B>& lhs, const Matrix<T, B, C>& rhs) {
-		static_assert(B == A, "Matrix multiplication requires compatible dimensions.");  
+		static_assert(B == A, "Matrix multiplication requires compatible dimensions.");
 		return MatrixMultiply(lhs, rhs);
 	}
-
-
-
-
 	 
-
 
 	//----------------------------------------------------------
 	using FLOAT2X2 = Matrix<float, 2, 2>;
-	using DOUBLE2X2 = Matrix<double, 2, 2>; 
+	using DOUBLE2X2 = Matrix<double, 2, 2>;
 	using FLOAT3X3 = Matrix<float, 3, 3>;
 	using FLOAT4X4 = Matrix<float, 4, 4>;
 	using DOUBLE3X3 = Matrix<double, 3, 3>;

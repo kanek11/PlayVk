@@ -5,15 +5,14 @@
 
 #include "Collision.h"  
 
-using namespace DirectX;  
+using namespace DirectX;
 
 void PhysicsScene::Tick(float delta)
 {
 	//std::cout << "tick physics: " << delta << '\n';
 
 	float substeps = 1;
-	float substepDelta = delta / substeps;
-
+	float substepDelta = delta / substeps; 
 
 	PreSimulation();
 
@@ -32,7 +31,7 @@ void PhysicsScene::Tick(float delta)
 
 	}
 
-	VelocityPass(delta);
+	VelocityPass(delta); 
 
 	PostSimulation();
 }
@@ -92,7 +91,7 @@ void PhysicsScene::Integrate(float delta)
 		dq = XMQuaternionMultiply(dq, rb->rotation);
 		dq = XMVectorScale(dq, 0.5f * delta);
 
-		rb->predRot += dq; 
+		rb->predRot += dq;
 		rb->predRot = XMQuaternionNormalize(rb->predRot);
 
 
@@ -163,7 +162,7 @@ void PhysicsScene::DetectCollisions()
 void PhysicsScene::SolveConstraints(float delta)
 {
 	//hardcode compliance:
-	constexpr float compliance = 0.0001f; // compliance factor 
+	constexpr float compliance = 0.0005f; // compliance factor 
 	const float inv_dt2 = 1.f / (delta * delta); // 1 / dt²
 
 	auto generalizedInvMass = [&](RigidBody* rb,
@@ -182,6 +181,13 @@ void PhysicsScene::SolveConstraints(float delta)
 
 
 	for (Contact& contact : m_contacts) {
+
+		DebugDraw::Get().AddRay(
+			contact.point,
+			contact.normal * 0.5f,
+			Color::Cyan
+		);
+
 		RigidBody* A = contact.a->body;
 		RigidBody* B = contact.b->body;
 
@@ -232,7 +238,7 @@ void PhysicsScene::SolveConstraints(float delta)
 				XMVECTOR q = rb->predRot;
 				XMVECTOR dq = XMQuaternionMultiply(q,
 					XMVectorSet(dOmega.x(), dOmega.y(), dOmega.z(), 0.f));
-				dq = XMVectorScale(dq,  0.5f * dLambda);
+				dq = XMVectorScale(dq, 0.5f * dLambda);
 				rb->predRot = XMQuaternionNormalize(q + sign * dq);
 			};
 
@@ -256,6 +262,12 @@ void PhysicsScene::PostPBD(float delta)
 		rb->position = rb->predPos; //update position to predicted position 
 		rb->linearVelocity = (rb->predPos - rb->prevPos) / delta;
 
+		DebugDraw::Get().AddRay(
+			rb->position,
+			rb->linearVelocity,
+			Color::Purple
+			);
+
 		//rb->linearVelocity *= 0.999f;  //debug damping;
 		//if (LengthSq(rb->linearVelocity) < 1e-3f)  
 		//	rb->linearVelocity = FLOAT3{}; //reset to zero if too small
@@ -273,6 +285,12 @@ void PhysicsScene::PostPBD(float delta)
 		if (w < 0.f) v = -v;
 		rb->angularVelocity = (2.f / delta) * v;
 
+		DebugDraw::Get().AddRay(
+			rb->position,
+			rb->angularVelocity,
+			Color::Yellow
+		);
+
 		//if (LengthSq(rb->angularVelocity) < 0.1f) {
 		//	rb->angularVelocity = FLOAT3{};
 		//}
@@ -283,8 +301,8 @@ void PhysicsScene::PostPBD(float delta)
 		//<< ", angVel: " << rb->angularVelocity.x() << ", "
 		//<< rb->angularVelocity.y() << ", "
 		//<< rb->angularVelocity.z() << std::endl;
-	    //angular damping:
-	    //rb->angularVelocity *= 0.999f; //test damping;
+		//angular damping:
+		//rb->angularVelocity *= 0.999f; //test damping;
 	}
 
 }
@@ -319,29 +337,29 @@ void PhysicsScene::VelocityPass(float delta)
 		FLOAT3 vRel = vA - vB;
 
 		float vn = Dot(vRel, c.normal);
-		if (vn > 0.f) continue; 
+		if (vn > 0.f) continue;
 
 		//restore the jn by lambda:   dx/dt = mimic v
-		float jn =  c.lambda / delta ; 
+		float jn = c.lambda / delta;
 
 		//---------------------------------
 		//restitution  
 		float eA = A ? A->material.restitution : 0.f;
 		float eB = B ? B->material.restitution : 0.f;
 		float e = std::min(eA, eB);             //avg/max
-		 jn = (1+ e) * jn;
-		 jn /= invMassN; 
+		jn = (1 + e) * jn;
+		jn /= invMassN;
 
 
 
 		//---------------------------------
 		// 4) friction impulse（Coulomb）
-		FLOAT3 vT = vRel - vn * c.normal; 
+		FLOAT3 vT = vRel - vn * c.normal;
 		float vTLength = Length(vT);
 		if (vTLength < 1e-6f) vT = FLOAT3{};
 		else {
-			vT = Normalize(vT); 
-		} 
+			vT = Normalize(vT);
+		}
 
 		auto invEffMass = [&](RigidBody* r, const FLOAT3& rVec, const FLOAT3& dir)->float
 			{
@@ -356,11 +374,11 @@ void PhysicsScene::VelocityPass(float delta)
 
 		//hardcode friction coefficients:
 		float muA_s = A ? A->material.friction : 0.f; // static friction
-		float muB_s = B ? B->material.friction : 0.f; 
+		float muB_s = B ? B->material.friction : 0.f;
 		float muA_k = 0.5f * muA_s; // kinetic friction
-		float muB_k = 0.5f * muB_s;  
+		float muB_k = 0.5f * muB_s;
 
-		float mu_s = std::sqrt(muA_s * muB_s);  
+		float mu_s = std::sqrt(muA_s * muB_s);
 		float mu_k = std::sqrt(muA_k * muB_k);
 
 		float maxStatic = mu_s * jn;
@@ -377,8 +395,8 @@ void PhysicsScene::VelocityPass(float delta)
 		//	//μk·jn
 		//	jt = -mu_k * jn * (desiredJt > 0 ? 1.f : -1.f);
 		//}
-		
- 
+
+
 
 		//--------------------------------- 
 		FLOAT3 impulse = jn * c.normal + jt * vT; // impulse vector
@@ -390,7 +408,7 @@ void PhysicsScene::VelocityPass(float delta)
 				if (!r || !r->simulatePhysics) return;
 				r->linearVelocity += sign * imp * r->invMass;
 				r->angularVelocity += sign * (r->invWorldInertia *
-					Vector3Cross(rVec, imp));
+					Vector3Cross(rVec, imp)); 
 			};
 
 		applyImpulse(A, ra, impulse, +1.f);

@@ -31,10 +31,10 @@ public:
 	LayerBase() = default;
 	virtual ~LayerBase() = default;
 
-	virtual void onInit() = 0; 
+	virtual void onInit() = 0;
 	virtual void onUpdate() = 0;
 	virtual void onDestroy() = 0;
-	 
+
 };
 
 //background for rendering game scene.
@@ -61,10 +61,10 @@ public:
 class ApplicationBase {
 public:
 	ApplicationBase() = default;
-	virtual ~ApplicationBase() = default; 
-	virtual void onInit() = 0; 
-	virtual void onDestroy() = 0; 
-	virtual void run() = 0;  
+	virtual ~ApplicationBase() = default;
+	virtual void onInit() = 0;
+	virtual void onDestroy() = 0;
+	virtual void run() = 0;
 };
 
 
@@ -75,10 +75,12 @@ public:
 	virtual ~GameApplication() = default;
 	virtual void onInit() override;
 	virtual void onDestroy() override;
-	virtual void run() override; 
+	virtual void run() override;
 
 
 	//
+	uint32_t GetWidth() const { return m_width; }
+	uint32_t GetHeight() const { return m_height; }
 	float getAspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 
 	PhysicsScene* GetPhysicalScene() { return m_physicsScene; }
@@ -98,7 +100,7 @@ protected:
 	SharedPtr<GUILayer> m_guiLayer;
 
 private:
-	static GameApplication* s_instance; 
+	static GameApplication* s_instance;
 public:
 	static GameApplication* GetInstance();
 

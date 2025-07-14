@@ -11,9 +11,34 @@ namespace MMath {
 
 	//max possible float value:
 	float constexpr FLOAT_MAX = std::numeric_limits<float>::max();
-     
 
-    //cross product 
+
+	template <typename T, size_t N>
+	std::string ToString(const Vector<T, N>& vec) {
+		std::ostringstream oss;
+		oss << "[";
+		for (size_t i = 0; i < N; ++i) {
+			oss << vec[i];
+			if (i != N - 1) oss << ", ";
+		}
+		oss << "]";
+		return oss.str();
+	}
+
+	template <typename T, size_t Rows, size_t Cols>
+	std::string ToString(const Matrix<T, Rows, Cols>& mat) {
+		std::ostringstream oss;
+		for (int i = 0; i < 4; ++i) {
+			oss << std::format("{: .3f}, {: .3f}, {: .3f}, {: .3f}\n",
+				mat[i][0], mat[i][1], mat[i][2], mat[i][3]);
+		}
+		return oss.str(); 
+	}
+
+
+
+
+	//cross product 
 	inline FLOAT3 Vector3Cross(FLOAT3 a, FLOAT3 b) {
 		return {
 			a.y() * b.z() - a.z() * b.y(),
@@ -31,7 +56,11 @@ namespace MMath {
 	{
 		FLOAT4X4 translation = MatrixIdentity<float, 4>();
 		translation[3] = { x, y, z, 1.0f };
-		translation = Transpose(translation); // Transpose for column-major order
+		
+		//std::cout << "translation matrix: " << ToString(translation) << std::endl;
+
+
+		//translation = Transpose(translation);  
 		return translation;
 	}
 
@@ -51,33 +80,32 @@ namespace MMath {
 
 
 
-    inline FLOAT4X4 LookToLH
-    (
-        FLOAT3 EyePosition,
-        FLOAT3 EyeDirection,
-        FLOAT3 UpDirection
-    )  
-    {
+	inline FLOAT4X4 LookToLH
+	(
+		FLOAT3 EyePosition,
+		FLOAT3 EyeDirection,
+		FLOAT3 UpDirection
+	)
+	{
 
-        FLOAT3 forward = Normalize(EyeDirection);
+		FLOAT3 forward = Normalize(EyeDirection);
 
-        FLOAT3 right_N = Vector3Cross(UpDirection, forward);
-        right_N = Normalize(right_N);
+		FLOAT3 right_N = Vector3Cross(UpDirection, forward);
+		right_N = Normalize(right_N);
 
-        FLOAT3 up_N = Vector3Cross(forward, right_N);
+		FLOAT3 up_N = Vector3Cross(forward, right_N);
 
-		FLOAT4X4 matrix = MatrixIdentity<float,4>();
-         
+		FLOAT4X4 matrix = MatrixIdentity<float, 4>();
+
 		//init by column for convenience:
 		matrix[0] = { right_N.x(), right_N.y(), right_N.z(), -Dot(right_N, EyePosition) };
 		matrix[1] = { up_N.x(), up_N.y(), up_N.z(), -Dot(up_N, EyePosition) };
 		matrix[2] = { forward.x(), forward.y(), forward.z(), -Dot(forward, EyePosition) };
-		matrix[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
-         
-		matrix = Transpose(matrix); 
+		matrix[3] = { 0.0f, 0.0f, 0.0f, 1.0f }; 
 
-        return matrix;
-    }
+		matrix = Transpose(matrix); 
+		return matrix;
+	}
 
 
 	inline FLOAT4X4 LookAtLH
@@ -108,23 +136,11 @@ namespace MMath {
 		float xScale = yScale / aspectRatio;
 		perspectiveMatrix[0] = { xScale, 0.0f, 0.0f, 0.0f };
 		perspectiveMatrix[1] = { 0.0f, yScale, 0.0f, 0.0f };
-		perspectiveMatrix[2] = {
-			0.0f,
-			0.0f,
-			farZ / (farZ - nearZ),             
-			-(nearZ * farZ) / (farZ - nearZ)    
-		};
-		perspectiveMatrix[3] = {
-			0.0f,
-			0.0f,
-			1.0f,                                
-			0.0f                             
-		};
-
-		 
+		perspectiveMatrix[2] = {0.0f,0.0f,farZ / (farZ - nearZ), 1.0 };
+		perspectiveMatrix[3] = {0.0f,0.0f, -(nearZ * farZ) / (farZ - nearZ),0.0f };
 
 		return perspectiveMatrix;
-		 
+
 	}
 
 	inline float ToRadians(float degrees) {
@@ -161,6 +177,20 @@ namespace MMath {
 		};
 
 		return inv;
+	}
+
+
+
+
+
+	inline std::string XMMatrixToString(const DirectX::XMMATRIX& mat) {
+		std::ostringstream oss;
+		for (int i = 0; i < 4; ++i) {
+			oss << std::format("{: .3f}, {: .3f}, {: .3f}, {: .3f}\n",
+				mat.r[i].m128_f32[0], mat.r[i].m128_f32[1],
+				mat.r[i].m128_f32[2], mat.r[i].m128_f32[3]);
+		}
+		return oss.str();
 	}
 
 

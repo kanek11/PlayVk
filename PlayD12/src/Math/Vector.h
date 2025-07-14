@@ -17,14 +17,14 @@ namespace MMath {
 	//concept that is floating point type:
 	template <typename T>
 	concept FLOP_t = std::is_floating_point_v<T>;
-	 
+
 	//----------------------------------------------------------
 	template <FLOP_t Scalar_t, std::size_t Length>
 	class Vector
 	{
 	public:
-		static constexpr std::size_t LengthValue = Length; 
-		static constexpr std::size_t SizeInBytes = Length * sizeof(Scalar_t); 
+		static constexpr std::size_t LengthValue = Length;
+		static constexpr std::size_t SizeInBytes = Length * sizeof(Scalar_t);
 
 		//constructors: 
 		//explicit Zero init 
@@ -44,7 +44,7 @@ namespace MMath {
 		{
 			assert(values.size() == Length && "Span size must match vector length.");
 			std::copy(values.begin(), values.end(), m_data.begin());
-		} 
+		}
 
 		template <typename... Args>
 			requires (sizeof...(Args) == Length && std::conjunction_v<std::is_convertible<Args, Scalar_t>...>)
@@ -58,7 +58,7 @@ namespace MMath {
 		//Vector(Vector&& other) noexcept = default;  
 		//Vector& operator=(const Vector& other) noexcept = default; 
 		//Vector& operator=(Vector&& other) noexcept = default;  
- 
+
 
 
 		//access
@@ -113,7 +113,7 @@ namespace MMath {
 		/*Scalar_t m_data[Length]; */
 		std::array<Scalar_t, Length> m_data; // Using std::array for better safety and performance
 	};
- 
+
 
 
 	//----------------------------------------------------------
@@ -148,7 +148,7 @@ namespace MMath {
 
 		return result;
 	}
-	 
+
 	template <FLOP_t T, std::size_t N>
 	inline Vector<T, N> operator+(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
 		return VectorAdd(lhs, rhs);
@@ -181,7 +181,7 @@ namespace MMath {
 	inline Vector<T, N> operator-(const Vector<T, N>& lhs, const Vector<T, N>& rhs) {
 		return VectorSubtract(lhs, rhs);
 	}
-	 
+
 
 	//-=:
 	template <FLOP_t T, std::size_t N>
@@ -191,12 +191,12 @@ namespace MMath {
 		}
 		return lhs;
 	}
- 
- 
+
+
 	//----------------------------------------------------------
 	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> VectorMultiply(const Vector<Scalar_t, Length>& vector, Scalar_t multipler)
-	{ 
+	{
 		Vector<Scalar_t, Length> result;
 		//for (uint32_t i = 0; i < Length; ++i)
 		//{
@@ -230,13 +230,13 @@ namespace MMath {
 		}
 		return vector;
 	}
- 
+
 	//----------------------------------------------------------
-    //negate
+	//negate
 	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> VectorNegate(const Vector<Scalar_t, Length>& vector)
 	{
-		Vector<Scalar_t, Length> result; 
+		Vector<Scalar_t, Length> result;
 		std::transform(vector.data().begin(), vector.data().end(), result.data().begin(),
 			[](Scalar_t a) { return -a; });
 		return result;
@@ -257,19 +257,19 @@ namespace MMath {
 		Vector<Scalar_t, Length> result = VectorMultiply(vector, Scalar_t{ 1 } / divisor);
 		return result;
 	}
-	 
+
 	template <FLOP_t T, std::size_t N>
 	inline Vector<T, N> operator/(const Vector<T, N>& vector, T divisor)
 	{
 		assert(divisor != 0 && "Division by zero is not allowed.");
 		return VectorDivide(vector, divisor);
 	}
- 
+
 	// HadamardMultiply
 	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> HadamardMultiply(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
 	{
-		Vector<Scalar_t, Length> result; 
+		Vector<Scalar_t, Length> result;
 		std::transform(lhs.data().begin(), lhs.data().end(), rhs.data().begin(), result.data().begin(),
 			[](Scalar_t a, Scalar_t b) { return a * b; });
 		return result;
@@ -279,7 +279,7 @@ namespace MMath {
 	//----------------------------------------------------------
 	template <FLOP_t Scalar_t, size_t Length>
 	inline Scalar_t Dot(const Vector<Scalar_t, Length>& lhs, const Vector<Scalar_t, Length>& rhs)
-	{ 
+	{
 		//Scalar_t result = 0;
 		//for (uint32_t i = 0; i < Length; ++i)
 		//{
@@ -320,18 +320,21 @@ namespace MMath {
 	//get normalized:
 	template <FLOP_t Scalar_t, uint32_t Length>
 	inline Vector<Scalar_t, Length> Normalize(const Vector<Scalar_t, Length>& vector)
-	{ 
+	{
 		Scalar_t length = std::sqrt(LengthSq(vector));
 		assert(length > 0 && "Cannot normalize a zero-length vector.");
 		return VectorDivide(vector, length);
 	}
- 
+
+
+
+
 
 
 	//----------------------------------------------------------
 	using FLOAT2 = Vector<float, 2>;
 	using FLOAT3 = Vector<float, 3>;
-	using FLOAT4 = Vector<float, 4>; 
+	using FLOAT4 = Vector<float, 4>;
 
 	using DOUBLE2 = Vector<double, 2>;
 	using DOUBLE3 = Vector<double, 3>;
@@ -362,3 +365,17 @@ namespace std {
 		return v.template get<I>();
 	}
 }
+
+
+
+namespace Color {
+	using namespace MMath;
+	static FLOAT4 Red = FLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+	static FLOAT4 Green = FLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+	static FLOAT4 Blue = FLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+
+	static FLOAT4 Purple = FLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
+	static FLOAT4 Yellow = FLOAT4(1.0f, 1.0f, 0.0f, 1.0f);
+	static FLOAT4 Cyan = FLOAT4(0.0f, 1.0f, 1.0f, 1.0f);
+};
+

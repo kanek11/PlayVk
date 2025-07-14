@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "PCH.h"
 #include "Math/MMath.h"
 #include "Shape.h"
@@ -7,7 +7,7 @@
 
 //using namespace DirectX;
 
-struct PhysicalMaterial { 
+struct PhysicalMaterial {
 	float restitution;
 	float friction;
 };
@@ -31,16 +31,16 @@ struct RigidBody {
 	bool simulatePhysics{ true };
 	PhysicalMaterial material{ 0.0f,0.0f };
 
-	bool simulateRotation{ false }; 
-	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity()};
+	bool simulateRotation{ false };
+	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity() };
 	FLOAT3 angularVelocity;
 	FLOAT3 torque{};
 
-	FLOAT3X3 RotationMatrix; 
+	FLOAT3X3 RotationMatrix;
 
 	//inertia
-	FLOAT3X3 localInertia;   
-	FLOAT3X3 worldInertia;  
+	FLOAT3X3 localInertia;
+	FLOAT3X3 worldInertia;
 	FLOAT3X3  invWorldInertia;
 
 	DirectX::XMVECTOR prevRot{ DirectX::XMQuaternionIdentity() };
@@ -59,17 +59,17 @@ struct RigidBody {
 
 	//todo: angular;
 	StaticMeshObjectProxy* owner;
-	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position,ShapeType type, DirectX::XMVECTOR rotation)
+	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position, ShapeType type, DirectX::XMVECTOR rotation)
 		: owner(owner), position(position), type(type), rotation(rotation)
 	{
-		 
-		predPos = position;  
-		prevPos = position; 
+
+		predPos = position;
+		prevPos = position;
 
 		predRot = rotation;
-		prevRot = rotation; 
+		prevRot = rotation;
 
-		localInertia = MakeInertiaTensor(type, 10.0f); 
+		localInertia = MakeInertiaTensor(type, 10.0f);
 		//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
 		DirectX::XMMATRIX R_ = DirectX::XMMatrixRotationQuaternion(rotation);
 		FLOAT3X3 R;
@@ -78,6 +78,10 @@ struct RigidBody {
 		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
 		RotationMatrix = R;
 	};
+
+
+	//debug
+	bool showDebug{ false };
 };
 
 /*
@@ -87,7 +91,7 @@ if the collider holds a weak ref of rb,  it directly communicate to it, and noth
 
 
 struct Collider {
-	ShapeType type; 
+	ShapeType type;
 
 	RigidBody* body{ nullptr };
 	StaticMeshObjectProxy* owner;
@@ -96,7 +100,7 @@ struct Collider {
 	{
 	};
 };
- 
+
 //using ColliderPair = std::pair<const Collider* , const Collider* >;
 //class BroadPhaseCollision {
 //public:
@@ -144,6 +148,14 @@ public:
 	void AddRigidBody(RigidBody* rb);
 	void AddCollider(Collider* collider) {
 		m_colliders.push_back(collider);
+	}
+
+	void ClearRigidBody() {
+		m_bodies.clear();
+	}
+
+	void ClearCollider() {
+		m_colliders.clear();
 	}
 
 private:

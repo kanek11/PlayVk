@@ -4,12 +4,26 @@
 #include "Application.h"
 #include "InputSystem.h"
 
-void UIButton::Render(UIRenderer& renderer)
+#include "Render/Renderer.h"
+
+ 
+void UIButton::Render()
 {
+	auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
+	assert(uiRenderer != nullptr); 
+	 
+	FLOAT4 color = { 1.0f, 1.0f, 1.0f, 0.5f }; // White
+	if (state == UIState::Hovered)
+	{
+		color = Color::Red; 
+	}
+
+	uiRenderer->AddQuad(layout, color);
 }
 
 void UIButton::Tick(float delta)
 {
+	this->Render();
 	//auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
 
 	//auto pointer = inputSystem->GetMousePointer();

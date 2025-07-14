@@ -1,9 +1,9 @@
-// DebugDraw.hlsl
+
 cbuffer MVPConstantBuffer : register(b0)
 {
-    float4x4 modelMatrix; 
-    float4x4 vpMatrix;  
-    float4 padding[6];  
+    float4x4 modelMatrix;
+    float4x4 pvMatrix;
+    float4 padding[6];
 };
 struct VSInput
 {
@@ -20,12 +20,7 @@ struct PSInput
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.position = mul(vpMatrix, float4(input.position, 1.0f));
+    output.position = mul(pvMatrix, float4(input.position, 1.0f));
     output.color = input.color;
     return output;
-}
-
-float4 PSMain(PSInput input) : SV_TARGET
-{
-    return input.color;
 }
