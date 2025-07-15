@@ -6,6 +6,8 @@
 
 #include "UI.h"
 
+using namespace DirectX;
+
 void GamePlayWorld::OnLoad()
 {
     auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
@@ -15,7 +17,7 @@ void GamePlayWorld::OnLoad()
 
     auto debugSphere = CreateShared<SphereMesh>();
     auto debugSphereProxy = renderer->InitMesh(debugSphere,
-        { 0.0f, 7.0f, 0.0f },
+        { 0.0f, 2.0f, 0.0f },
         { 1.0f, 1.0f, 1.0f }
     );
 
@@ -27,18 +29,41 @@ void GamePlayWorld::OnLoad()
     debugSphereProxy->collider = sphereCollider0;
     physicsScene->AddCollider(sphereCollider0);
 
-    rigidBodySphere0->debugName = "Sphere";
+    rigidBodySphere0->debugName = "DebugSphere";
     rigidBodySphere0->simulateRotation = true;
 
+    //rigidBodySphere0->angularVelocity = FLOAT3{ 1.0f, 1.0f, 1.0f };
 
+     
+    //-------------------------
+    auto cubeMesh0 = CreateShared<CubeMesh>();
+    auto cubeProxy0 = renderer->InitMesh(cubeMesh0,
+        { 3.0f, 3.0f, 0.0f },
+        { 1.0f, 1.0f, 1.0f }
+    );
 
+    ////a initial rotation of the cube: 
+    auto rotation2 = XMQuaternionRotationAxis(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMConvertToRadians(45.0f));
+    cubeProxy0->rotation = XMQuaternionMultiply(rotation2, cubeProxy0->rotation);
 
+    ////new rigidbody for the cube:
+    auto cubeRB0 = new RigidBody(cubeProxy0, cubeProxy0->position, Box{ cubeProxy0->scale }, cubeProxy0->rotation);
+    cubeProxy0->rigidBody = cubeRB0;
+    physicsScene->AddRigidBody(cubeRB0);
+    auto cubeCollider0 = new Collider(cubeProxy0, Box{ cubeProxy0->scale }, cubeRB0); //half extents
+    cubeProxy0->collider = cubeCollider0;
+    physicsScene->AddCollider(cubeCollider0);
+
+    cubeRB0->simulateRotation = true;
+    cubeRB0->debugName = "debugCube"; 
+     
+	cubeRB0->material.friction = 0.0f;  
 
     //---------------
     auto plane0 = CreateShared<PlaneMesh>();
     auto planeProxy = renderer->InitMesh(plane0,
-        { 0.0f, -4.0f, 0.0f },
-        { 10.0f, 20.0f, 50.0f }
+        { 0.0f, 0.0f, 0.0f },
+        { 50.0f, 50.0f, 50.0f }
     );
 
     //add a rigidbody for the plane:
@@ -57,6 +82,10 @@ void GamePlayWorld::OnLoad()
     rigidBodyPlane->debugName = "DebugPlane";
 
 
+ 
+
+
+
     auto debugBehavior = [=](float delta) {
         //std::cout << "tick behavior" << '\n';
         if (inputSystem == nullptr) {
@@ -64,16 +93,16 @@ void GamePlayWorld::OnLoad()
             return;
         }
         if (inputSystem->IsKeyDown(KeyCode::W)) {
-            rigidBodySphere0->ApplyForce(FLOAT3(0.0f, 0.0f, +10.0f));
+            rigidBodySphere0->ApplyForce(FLOAT3(0.0f, 0.0f, +2.0f));
         }
         if (inputSystem->IsKeyDown(KeyCode::S)) {
-            rigidBodySphere0->ApplyForce(FLOAT3(0.0f, 0.0f, -10.0f));
+            rigidBodySphere0->ApplyForce(FLOAT3(0.0f, 0.0f, -2.0f));
         }
         if (inputSystem->IsKeyDown(KeyCode::A)) {
-            rigidBodySphere0->ApplyForce(FLOAT3(-10.0f, 0.0f, 0.0f));
+            rigidBodySphere0->ApplyForce(FLOAT3(-2.0f, 0.0f, 0.0f));
         }
         if (inputSystem->IsKeyDown(KeyCode::D)) {
-            rigidBodySphere0->ApplyForce(FLOAT3(+10.0f, 0.0f, 0.0f));
+            rigidBodySphere0->ApplyForce(FLOAT3(+2.0f, 0.0f, 0.0f));
         }
 
         if (rigidBodySphere0->position.y() < rigidBodyPlane->position.y()) {
@@ -88,6 +117,8 @@ void GamePlayWorld::OnLoad()
     //---------------
     renderer->SubmitMesh(debugSphereProxy);
     renderer->SubmitMesh(planeProxy);
+
+    renderer->SubmitMesh(cubeProxy0);
 }
 
 void GamePlayWorld::OnUnload()

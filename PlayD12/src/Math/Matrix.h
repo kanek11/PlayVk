@@ -125,8 +125,7 @@ namespace MMath {
 
 
 	template <FLOP_t T, std::size_t A, std::size_t B, std::size_t C>
-	Matrix<T, A, C> operator*(const Matrix<T, A, B>& lhs, const Matrix<T, B, C>& rhs) {
-		static_assert(B == A, "Matrix multiplication requires compatible dimensions.");
+	Matrix<T, A, C> operator*(const Matrix<T, A, B>& lhs, const Matrix<T, B, C>& rhs) { 
 		return MatrixMultiply(lhs, rhs);
 	}
 	 

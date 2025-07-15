@@ -1,9 +1,3 @@
-cbuffer MVPConstantBuffer : register(b0)
-{
-    float4x4 modelMatrix;
-    float4x4 pvMatrix;
-    float4 padding[6];
-};
 
 struct VSInput
 {
@@ -23,8 +17,7 @@ struct PSInput
 PSInput VSMain(VSInput input)
 {
     PSInput result;
-
-    //float4 worldPosition = mul(modelMatrix, float4(input.position.xy, 0.0f, 1.0f));
+     
     float4 worldPosition =  float4(input.position.xy, 0.0f, 1.0f);
     result.position = worldPosition;
     result.color = input.color; 

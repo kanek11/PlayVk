@@ -7,7 +7,7 @@ using namespace DirectX;
 constexpr int instanceCount = 1;
 constexpr float spacing = 5.0f; // Adjust to control sparsity
 constexpr float viewRadius = 20.0f; // Distance from the origin
- 
+
 
 
 D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring name,
@@ -35,20 +35,20 @@ void D3D12HelloRenderer::OnInit()
       .m_shaderManager = this->m_shaderManager,
       .m_psoManager = this->m_psoManager
     };
-     
+
     uiRenderer = CreateShared<UIRenderer>();
     uiRenderer->Init(ctx);
 
 
     InitShadowPass();
     InitRenderPass();
-      
+
 
     DebugDraw::Get().Init(ctx);
     //m_debugRenderer = CreateShared<DebugRenderer>();
     //m_debugRenderer->Init(ctx);
 
-     
+
 }
 
 // Render the scene.
@@ -79,32 +79,27 @@ void D3D12HelloRenderer::OnRender()
 }
 
 
-void DebugDraw::AddRay(const FLOAT3& origin, const FLOAT3& direction, const FLOAT4& color)
+void DebugDraw::AddRay(const FLOAT3& origin, const FLOAT3& direction, 
+    const FLOAT4& color0 ,
+    const FLOAT4& color1
+    )
 {
-    DebugLineVertex vert0 = {
-    .position = origin,
-    .color = color,
-    };
-    DebugLineVertex vert1 = {
-       .position = origin + direction,
-       .color = color,
-    };
-
-    m_lineData.push_back(vert0);
-    m_lineData.push_back(vert1);
+    this->AddLine(origin, origin + direction, color0, color1);
 }
 
-void DebugDraw::AddLine(const FLOAT3& start, const FLOAT3& end, const FLOAT4& color)
+void DebugDraw::AddLine(const FLOAT3& start, const FLOAT3& end, 
+    const FLOAT4& color0,
+    const FLOAT4& color1)
 {
     DebugLineVertex vert0 = {
         .position = start,
-        .color = color, 
+        .color = color0,
     };
     DebugLineVertex vert1 = {
        .position = end,
-       .color = color,
+       .color = color1,
     };
-     
+
     m_lineData.push_back(vert0);
     m_lineData.push_back(vert1);
 }
@@ -114,7 +109,7 @@ void DebugDraw::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
     if (m_lineData.empty()) return;
 
     //std::cout << "flush debug ray num: " << m_lineData.size() /2 << '\n';
-     
+
     //auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(1280), static_cast<float>(720));
     //auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(1280), static_cast<LONG>(720));
 
@@ -132,7 +127,7 @@ void DebugDraw::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
     //or, e.g., cmd->SetGraphicsRootConstantBufferView(...)  
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-    cmdList->IASetVertexBuffers(0, 1, &m_vertexBuffer->GetVertexBufferView()); 
+    cmdList->IASetVertexBuffers(0, 1, &m_vertexBuffer->GetVertexBufferView());
 
     cmdList->DrawInstanced(static_cast<UINT>(m_lineData.size()), 1, 0, 0);
 
@@ -216,12 +211,12 @@ void DebugDraw::Init(RenderContext ctx)
 }
 
 void DebugDraw::OnUpdate(float delta, const FLOAT4X4& pv)
-{ 
+{
     // Upload the constant buffer data
     MVPConstantBuffer cbData = {};
     cbData.projectionViewMatrix = pv;
     m_CB->UploadData(&cbData, sizeof(MVPConstantBuffer));
-     
+
     m_vertexBuffer->UploadData(m_lineData.data(), m_lineData.size() * sizeof(DebugLineVertex));
 }
 
@@ -621,7 +616,7 @@ void D3D12HelloRenderer::EndShadowPass(ID3D12GraphicsCommandList* commandList)
 }
 
 void D3D12HelloRenderer::RecordShadowPassCommands(ID3D12GraphicsCommandList* commandList)
-{ 
+{
     //
     auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_shadowMapWidth), static_cast<float>(m_shadowMapHeight));
     auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_shadowMapWidth), static_cast<LONG>(m_shadowMapHeight));
@@ -643,7 +638,7 @@ void D3D12HelloRenderer::RecordShadowPassCommands(ID3D12GraphicsCommandList* com
 
     commandList->ResourceBarrier(1, &srvToDsvBarrier);
 
-     
+
     m_shadowShaderPerm->SetDescriptorHeap(m_commandList.Get());
     for (auto& proxy : m_staticMeshes) {
         m_shadowShaderPerm->SetDescriptorTables(m_commandList.Get(), proxy->shadowPassHeapOffset);
@@ -723,7 +718,7 @@ void D3D12HelloRenderer::EndFrame()
 
 void D3D12HelloRenderer::BeginRenderPass(ID3D12GraphicsCommandList* commandList)
 {
-     
+
     //CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
     //D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_SC_RTVHeapAllocator->GetCPUHandle(m_frameIndex);
 
@@ -771,7 +766,7 @@ void D3D12HelloRenderer::RecordRenderPassCommands(ID3D12GraphicsCommandList* m_c
     );
     m_commandList->ResourceBarrier(1, &ps_rtv_Barrier);
 
-    
+
 
     //record-------------
     m_shaderPerm->SetDescriptorHeap(m_commandList);
@@ -1059,7 +1054,7 @@ StaticMeshObjectProxy* D3D12HelloRenderer::InitMesh(SharedPtr<UStaticMesh> mesh,
 
     return meshProxy;
 }
- 
+
 
 std::vector<InstanceData> D3D12HelloRenderer::GenerateInstanceData()
 {
@@ -1095,9 +1090,9 @@ std::vector<InstanceData> D3D12HelloRenderer::GenerateInstanceData()
 void D3D12HelloRenderer::OnUpdate(float delta)
 {
     //m_debugRenderer->OnUpdate(delta, dummyCamera.pvMatrix);
-    
+
     {
-         
+
         //eye rotate around the origin
         constexpr float speedDivisor = 50.0f; // Increase this number to slow it down
         float angle = static_cast<float>((GetTickCount64() / static_cast<ULONGLONG>(speedDivisor)) % 360) * XM_PI / 180.0f;
@@ -1106,13 +1101,13 @@ void D3D12HelloRenderer::OnUpdate(float delta)
         //float eyePosY = viewRadius * 0.3;
         //float eyePosZ = sin(angle) * viewRadius;
 
-        float eyePosX = -viewRadius * 0.3;
-        float eyePosY = viewRadius * 0.2;
-        float eyePosZ = -viewRadius * 0.3;
-         
-        //float eyePosX = - 5.0f;
-        //float eyePosY = 0;
-        //float eyePosZ = 0; 
+        //float eyePosX = -viewRadius * 0.3;
+        //float eyePosY = viewRadius * 0.2;
+        //float eyePosZ = -viewRadius * 0.3;
+
+        float eyePosX = -1.0f;
+        float eyePosY = 5.0f;
+        float eyePosZ = -10.0; 
 
         //Create view and projection matrices
        //LH = left-handed coordinate system
@@ -1136,22 +1131,22 @@ void D3D12HelloRenderer::OnUpdate(float delta)
             1000.0f
         );
 
-        XMMATRIX vp = XMMatrixMultiply(view, proj); 
+        XMMATRIX vp = XMMatrixMultiply(view, proj);
 
-		//std::cout << "expected view: " << MMath::XMMatrixToString(view) << std::endl;
-		//std::cout << "expected projection: " << MMath::XMMatrixToString(proj) << std::endl;
-		//std::cout << "expected vp: " << MMath::XMMatrixToString(vp) << std::endl;
+        //std::cout << "expected view: " << MMath::XMMatrixToString(view) << std::endl;
+        //std::cout << "expected projection: " << MMath::XMMatrixToString(proj) << std::endl;
+        //std::cout << "expected vp: " << MMath::XMMatrixToString(vp) << std::endl;
 
         //make sure transpose before present to hlsl;
         //dummyCamera.pvMatrix = Transpose(MatrixMultiply(proj_, view_));
-        dummyCamera.pvMatrix =  MatrixMultiply(proj_, view_);
+        dummyCamera.pvMatrix = MatrixMultiply(proj_, view_);
         //auto vp = MatrixMultiply(view, proj); 
 
-		//std::cout << "view matrix: " << ToString(view_) << std::endl;
-		//std::cout << "projection matrix: " << ToString(proj_) << std::endl; 
-		//std::cout << "pv matrix: " << ToString(dummyCamera.pvMatrix) << std::endl;
+        //std::cout << "view matrix: " << ToString(view_) << std::endl;
+        //std::cout << "projection matrix: " << ToString(proj_) << std::endl; 
+        //std::cout << "pv matrix: " << ToString(dummyCamera.pvMatrix) << std::endl;
     }
-     
+
 
     for (auto& proxy : m_staticMeshes)
     {
@@ -1160,8 +1155,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
         auto mainConstBufferH = proxy->mainMVPConstantBuffer;
         if (mainConstBufferH == nullptr) {
             continue;
-        }
-
+        } 
 
         //auto yAxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
         //auto rotation = XMQuaternionRotationAxis(yAxis, delta);
@@ -1178,20 +1172,19 @@ void D3D12HelloRenderer::OnUpdate(float delta)
         R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
         R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
         R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
-        R[3] = { 0.0f, 0.0f, 0.0f, 1.0f }; 
-          
-          
-        modelMatrix_ = MatrixMultiply(R, modelMatrix_); //rotate the model using the quaternion 
+        R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
          
+        modelMatrix_ = MatrixMultiply(R, modelMatrix_); //rotate the model using the quaternion 
+
         //translate:
         auto translation = MMath::MatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
-		//translation = Transpose(translation); 
+        //translation = Transpose(translation); 
         //std::cout << "translation matrix: " << ToString(translation) << std::endl;
 
         //modelMatrix_ = MatrixMultiply(translation, modelMatrix_); 
-         
-        modelMatrix_ = MatrixMultiply(translation, modelMatrix_); 
-	
+
+        modelMatrix_ = MatrixMultiply(translation, modelMatrix_);
+
         //modelMatrix_ = MMath::MatrixIdentity<float, 4>();
         //modelMatrix_ = Transpose(modelMatrix_); 
 
@@ -1200,7 +1193,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
         //std::cout << "expected translation: " << '\n';
         //std::cout << MMath::XMMatrixToString(translation_) << std::endl;
         //
-        
+
         //modelMatrix = XMMatrixRotationQuaternion(proxy->rotation) * modelMatrix;
         //modelMatrix = XMMatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix;
 
@@ -1213,14 +1206,14 @@ void D3D12HelloRenderer::OnUpdate(float delta)
 
         //make sure transpose before present to hlsl;
         //mainConstBufferData.modelMatrix = Transpose(modelMatrix_);
-        
+
         mainConstBufferData.modelMatrix = modelMatrix_;
 
         //XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
         mainConstBufferData.projectionViewMatrix = dummyCamera.pvMatrix;
 
         // Upload the constant buffer data.
-        mainConstBufferH->UploadData(&mainConstBufferData, sizeof(MVPConstantBuffer)); 
+        mainConstBufferH->UploadData(&mainConstBufferData, sizeof(MVPConstantBuffer));
 
         //shadow pass:
         auto shadowConstBufferH = proxy->shadowMVPConstantBuffer;
@@ -1235,7 +1228,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
         // Upload the shadow constant buffer data.
         shadowConstBufferH->UploadData(&shadowConstBufferData, sizeof(MVPConstantBuffer));
 
-         
+
         DebugDraw::Get().AddRay(
             proxy->position,
             R[0].xyz(),
@@ -1255,7 +1248,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
         );
 
     }
-     
+
 
     DebugDraw::Get().OnUpdate(delta, dummyCamera.pvMatrix);
 
@@ -1287,7 +1280,7 @@ void UIRenderer::Init(RenderContext ctx)
         DXGI_FORMAT_UNKNOWN,
         sizeof(UIVertex),
         EBufferUsage::Upload | EBufferUsage::Vertex
-        }); 
+        });
 
 
     m_indexBuffer = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
@@ -1326,7 +1319,7 @@ void UIRenderer::Init(RenderContext ctx)
         m_materialDesc,
         m_renderPassDesc,
         inputLayers
-    ); 
+    );
 
     //the cosntant buffer:
     m_CB = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
@@ -1360,8 +1353,8 @@ inline FLOAT2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
 void UIRenderer::AddQuad(const Rect& rect, const FLOAT4& color)
 {
     //hardcode:  
-    int screenWidth = 1280;  
-    int screenHeight = 720; 
+    int screenWidth = 1280;
+    int screenHeight = 720;
 
     FLOAT2 tl = ScreenToNDC(rect.x, rect.y, screenWidth, screenHeight);
     FLOAT2 tr = ScreenToNDC(rect.x + rect.w, rect.y, screenWidth, screenHeight);
@@ -1384,8 +1377,8 @@ void UIRenderer::AddQuad(const Rect& rect, const FLOAT4& color)
 
     m_data.indices.push_back(baseVertex + 2);
     m_data.indices.push_back(baseVertex + 1);
-    m_data.indices.push_back(baseVertex + 3); 
-     
+    m_data.indices.push_back(baseVertex + 3);
+
     UIDrawCmd cmd = {
     .indexOffset = baseIndex,
     .indexCount = 6
@@ -1399,13 +1392,13 @@ void UIRenderer::AddQuad(const Rect& rect, const FLOAT4& color)
 void UIRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
 {
     if (m_data.cmds.empty()) return;
-     
+
     if (dirty) {
         m_vertexBuffer->UploadData(m_data.vertices.data(), m_data.vertices.size() * sizeof(UIVertex));
         m_indexBuffer->UploadData(m_data.indices.data(), m_data.indices.size() * sizeof(INDEX_FORMAT));
         dirty = false;
     }
-     
+
     //std::cout << "flush UI draw cmd: " << m_data.cmds.size()  << '\n';
 
     //auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(1280), static_cast<float>(720));
@@ -1424,9 +1417,9 @@ void UIRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
     m_shader->SetDescriptorTables(cmdList, heapOffset);
     //or, e.g., cmd->SetGraphicsRootConstantBufferView(...)  
 
-    cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); 
-   
-    cmdList->IASetVertexBuffers(0, 1, &m_vertexBuffer->GetVertexBufferView()); 
+    cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    cmdList->IASetVertexBuffers(0, 1, &m_vertexBuffer->GetVertexBufferView());
     cmdList->IASetIndexBuffer(&m_indexBuffer->GetIndexBufferView());
 
     for (auto& cmd : m_data.cmds) {
@@ -1435,7 +1428,7 @@ void UIRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
         cmdList->DrawIndexedInstanced((UINT)indexCount, 1, (UINT)indexOffset, 0, 0);
     }
 
-    
+
     this->Clear();
 
     /*m_lineData.clear();*/

@@ -7,6 +7,13 @@
 
 //using namespace DirectX;
 
+/*
+design decision : a rigidbody is optional;
+if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
+*/
+
+
+
 struct PhysicalMaterial {
 	float restitution;
 	float friction;
@@ -29,7 +36,7 @@ struct RigidBody {
 	FLOAT3 force;  //accumulation in the frame; 
 
 	bool simulatePhysics{ true };
-	PhysicalMaterial material{ 0.0f,0.0f };
+	PhysicalMaterial material{ 0.0f, 0.8f };
 
 	bool simulateRotation{ false };
 	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity() };
@@ -61,15 +68,14 @@ struct RigidBody {
 	StaticMeshObjectProxy* owner;
 	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position, ShapeType type, DirectX::XMVECTOR rotation)
 		: owner(owner), position(position), type(type), rotation(rotation)
-	{
-
+	{ 
 		predPos = position;
 		prevPos = position;
 
 		predRot = rotation;
 		prevRot = rotation;
 
-		localInertia = MakeInertiaTensor(type, 10.0f);
+		localInertia = MakeInertiaTensor(type, mass);
 		//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
 		DirectX::XMMATRIX R_ = DirectX::XMMatrixRotationQuaternion(rotation);
 		FLOAT3X3 R;
@@ -83,11 +89,6 @@ struct RigidBody {
 	//debug
 	bool showDebug{ false };
 };
-
-/*
-design decision : a rigidbody is optional;
-if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
-*/
 
 
 struct Collider {
@@ -134,7 +135,7 @@ class Integrator {
 public:
 	void Integrate();
 };
-
+ 
 
 class PhysicsScene {
 public:
@@ -179,10 +180,7 @@ private:
 	void PostPBD(float delta);
 
 	void VelocityPass(float delta);
-
-	//
-	void IntegratePosition(float delta);
-
+	  
 	//update again, signal events,  etc.
 	void PostSimulation();
 
@@ -195,8 +193,10 @@ private:
 	ContactSolver m_contactSolver;
 	Integrator m_integrator;
 
-
-	//experimental
+	 
 public:
 	FLOAT3 gravity{ 0.0f, -9.8f, 0.0f };
+	//FLOAT3 gravity{ 0.0f, 0.0f, 0.0f }; 
 };
+
+

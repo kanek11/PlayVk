@@ -34,7 +34,7 @@ struct RenderContext
 };
 
 
- 
+
 
 struct UIVertex {
     FLOAT2 position;
@@ -55,13 +55,13 @@ struct UIBatchData {
 
 
 class UIRenderer {
-public:  
+public:
     void Init(RenderContext ctx);
 
     void AddQuad(const Rect& rect, const FLOAT4& color);
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList);
- 
+
     void Clear()
     {
         m_data.vertices.clear();
@@ -75,7 +75,7 @@ private:
 
     SharedPtr<FD3D12ShaderPermutation> m_shader;
     ComPtr<ID3D12PipelineState> m_PSO;
-     
+
     SharedPtr<FD3D12Buffer> m_CB;
     uint32_t heapOffset;
 
@@ -110,10 +110,10 @@ private:
 //};
 
 struct DebugLineVertex {
-    FLOAT3 position;  
-    FLOAT4 color;  
+    FLOAT3 position;
+    FLOAT4 color;
 };
- 
+
 
 class DebugDraw {
 public:
@@ -123,8 +123,13 @@ public:
 
     void OnUpdate(float delta, const FLOAT4X4& pv);
 
-    void AddRay(const FLOAT3& origin, const FLOAT3& direction, const FLOAT4& color = FLOAT4(1.0f,1.0f,1.0f,1.0f));
-    void AddLine(const FLOAT3& start, const FLOAT3& end, const FLOAT4& color = FLOAT4(1.0f, 0.0f, 0.0f, 1.0f));
+    void AddRay(const FLOAT3& origin, const FLOAT3& direction, 
+        const FLOAT4& color0 = FLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+        const FLOAT4& color1 = FLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
+    );
+    void AddLine(const FLOAT3& start, const FLOAT3& end, 
+        const FLOAT4& color = FLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
+        const FLOAT4& color1 = FLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList);
 
@@ -385,5 +390,4 @@ public:
     CameraProxy dummyCamera;
 
 };
-
 

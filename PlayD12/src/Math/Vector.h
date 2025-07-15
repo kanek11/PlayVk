@@ -370,6 +370,10 @@ namespace std {
 
 namespace Color {
 	using namespace MMath;
+
+	static FLOAT4 White = FLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	static FLOAT4 Black = FLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+
 	static FLOAT4 Red = FLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 	static FLOAT4 Green = FLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 	static FLOAT4 Blue = FLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
@@ -377,5 +381,11 @@ namespace Color {
 	static FLOAT4 Purple = FLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
 	static FLOAT4 Yellow = FLOAT4(1.0f, 1.0f, 0.0f, 1.0f);
 	static FLOAT4 Cyan = FLOAT4(0.0f, 1.0f, 1.0f, 1.0f);
+
+	static FLOAT4 Orange = FLOAT4(1.0f, 0.5f, 0.0f, 1.0f);
+	static FLOAT4 Pink = FLOAT4(1.0f, 0.75f, 0.8f, 1.0f);
+	static FLOAT4 Brown = FLOAT4(0.6f, 0.3f, 0.1f, 1.0f);
+	static FLOAT4 Olive = FLOAT4(0.5f, 0.5f, 0.0f, 1.0f);
+	static FLOAT4 Teal = FLOAT4(0.0f, 0.5f, 0.5f, 1.0f);
 };
 

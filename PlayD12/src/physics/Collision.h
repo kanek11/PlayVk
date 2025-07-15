@@ -669,38 +669,42 @@ template<class A, class B> [[nodiscard]]
 
     //plane vs OBB
     [[nodiscard]]
-    bool Collide(const OBB& b, const PlaneWS& p, Contact& out) {
-
+    bool Collide(const OBB& b, const PlaneWS& p, Contact& out)
+    {
         auto verts = GetOBBVertices(b);
-        float minDist = FLT_MAX;
-        FLOAT3 deepestV;
+
+        std::vector<FLOAT3> penetratingVerts;
+        std::vector<float> penetrations;
 
         for (const auto& v : verts) {
             float d = SignedDist(p, v);
-            if (d <= 0 && d < minDist) {
-                minDist = d;
-                deepestV = v;
-                //std::cout << "updated penetration = " << minDist << std::endl;
-                //std::cout << "point: " << deepestV.x() << ", " << deepestV.y() << ", " << deepestV.z() << std::endl;
+            if (d <= 0.0f) { // inside or touching
+                penetratingVerts.push_back(v);
+                penetrations.push_back(-d); // store positive penetration
             }
         }
 
-        if (minDist > 0)
+        if (penetratingVerts.empty())
             return false;
 
-        out.normal = p.normal;               //plane->OBB
-        out.penetration = -minDist;
-        out.point = ProjectToPlane(p, deepestV);// //deepestV;  
+        // ---- Manifold aggregation ----
+        FLOAT3 avgPoint = FLOAT3{ 0, 0, 0 };
+        float totalPenetration = 0.0f;
 
-        //std::cout << "Collide OBB with Plane: penetration = " << out.penetration << std::endl;
-        //std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
-        //std::cout << "center: " << b.center.x() << ", " << b.center.y() << ", " << b.center.z() << std::endl;
-        //std::cout << "Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
-        //output the axes:
-        //std::cout << "OBB axes: " << b.axis[0].x() << ", " << b.axis[0].y() << ", " << b.axis[0].z() << std::endl;
-        //std::cout << "OBB axes: " << b.axis[1].x() << ", " << b.axis[1].y() << ", " << b.axis[1].z() << std::endl;
-        //std::cout << "OBB axes: " << b.axis[2].x() << ", " << b.axis[2].y() << ", " << b.axis[2].z() << std::endl;
+        for (size_t i = 0; i < penetratingVerts.size(); ++i) {
+            avgPoint += penetratingVerts[i];
+            totalPenetration += penetrations[i];
+        }
 
+        avgPoint = avgPoint /static_cast<float>(penetratingVerts.size());
+        float avgPenetration = totalPenetration / penetratingVerts.size();
+
+        // You could also use max(penetrations) instead of average if you prefer more conservative correction
+
+        // ---- Output Contact ----
+        out.point = ProjectToPlane(p, avgPoint); // ensure contact point is on plane
+        out.normal = p.normal;
+        out.penetration = avgPenetration;
         return true;
     }
 
