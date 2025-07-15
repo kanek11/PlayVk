@@ -75,14 +75,20 @@ struct RigidBody {
 		predRot = rotation;
 		prevRot = rotation;
 
-		localInertia = MakeInertiaTensor(type, mass);
-		//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
-		DirectX::XMMATRIX R_ = DirectX::XMMatrixRotationQuaternion(rotation);
-		FLOAT3X3 R;
-		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
-		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
-		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
-		RotationMatrix = R;
+		if (simulatePhysics) {
+			localInertia = MakeInertiaTensor(type, mass);
+			//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
+			DirectX::XMMATRIX R_ = DirectX::XMMatrixRotationQuaternion(rotation);
+			FLOAT3X3 R;
+			R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
+			R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
+			R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
+			RotationMatrix = R;
+
+			worldInertia = MatrixMultiply(MatrixMultiply(R, localInertia), Transpose(R));
+			invWorldInertia = Inverse(worldInertia);
+		}
+
 	};
 
 

@@ -43,8 +43,8 @@ void GamePlayWorld::OnLoad()
     );
 
     ////a initial rotation of the cube: 
-    auto rotation2 = XMQuaternionRotationAxis(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMConvertToRadians(45.0f));
-    cubeProxy0->rotation = XMQuaternionMultiply(rotation2, cubeProxy0->rotation);
+    //auto rotation2 = XMQuaternionRotationAxis(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMConvertToRadians(45.0f));
+    //cubeProxy0->rotation = XMQuaternionMultiply(rotation2, cubeProxy0->rotation);
 
     ////new rigidbody for the cube:
     auto cubeRB0 = new RigidBody(cubeProxy0, cubeProxy0->position, Box{ cubeProxy0->scale }, cubeProxy0->rotation);
@@ -54,7 +54,7 @@ void GamePlayWorld::OnLoad()
     cubeProxy0->collider = cubeCollider0;
     physicsScene->AddCollider(cubeCollider0);
 
-    cubeRB0->simulateRotation = true;
+    cubeRB0->simulateRotation = false;
     cubeRB0->debugName = "debugCube"; 
      
 	cubeRB0->material.friction = 0.0f;  

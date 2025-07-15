@@ -1105,8 +1105,8 @@ void D3D12HelloRenderer::OnUpdate(float delta)
         //float eyePosY = viewRadius * 0.2;
         //float eyePosZ = -viewRadius * 0.3;
 
-        float eyePosX = -1.0f;
-        float eyePosY = 5.0f;
+        float eyePosX = 0.0f;
+        float eyePosY = 5.f;
         float eyePosZ = -10.0; 
 
         //Create view and projection matrices

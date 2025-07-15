@@ -49,13 +49,7 @@ void PhysicsScene::AddRigidBody(RigidBody* rb)
 }
 
 void PhysicsScene::PreSimulation()
-{
-	for (auto& rb : m_bodies) {
-
-		//cache the previous position:
-		rb->prevPos = rb->position; 
-
-	}
+{ 
 }
 
 void PhysicsScene::ApplyExternalForce(float delta)
@@ -74,25 +68,26 @@ void PhysicsScene::Integrate(float delta)
 
 		rb->linearVelocity = rb->linearVelocity + rb->force / rb->mass * delta;
 		rb->force = FLOAT3{};
+		 
+		//cache the previous position:
+		rb->prevPos = rb->position;
 
 		//predicated position:
 		rb->predPos = rb->position + rb->linearVelocity * delta; 
 
+		if (!rb->simulateRotation) { 
+			continue;
+		}
 		//new: consider torque:
 		rb->angularVelocity = rb->angularVelocity + Inverse(rb->worldInertia) * rb->torque * delta;
 		rb->torque = FLOAT3{}; //reset torque 
 
-		rb->prevRot = rb->rotation;
+		rb->prevRot = rb->rotation;  
 
-		 
-		XMVECTOR omegaW = XMVectorSet(rb->angularVelocity.x(), rb->angularVelocity.y(), rb->angularVelocity.z(), 0.0f); 
-		 
-		XMVECTOR dq = XMQuaternionMultiply(rb->rotation, omegaW); 
-			 
-		dq = XMVectorScale(dq, 0.5f * delta);
-
-		rb->predRot = XMQuaternionNormalize( XMVectorAdd(dq , rb->predRot));
-
+		XMVECTOR omegaW = XMVectorSet(rb->angularVelocity.x(), rb->angularVelocity.y(), rb->angularVelocity.z(), 0.0f);  
+		XMVECTOR dq = XMQuaternionMultiply(rb->rotation, omegaW);  
+		dq = XMVectorScale(dq, 0.5f * delta); 
+		rb->predRot = XMQuaternionNormalize( XMVectorAdd(dq , rb->predRot)); 
 		 
 		//update pose;
 		//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
@@ -102,19 +97,13 @@ void PhysicsScene::Integrate(float delta)
 		FLOAT3X3 R;
 		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
 		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
-		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
-		//R[0] = { R_.r[0].m128_f32[0], R_.r[1].m128_f32[0], R_.r[2].m128_f32[0] };
-		//R[1] = { R_.r[0].m128_f32[1], R_.r[1].m128_f32[1], R_.r[2].m128_f32[1] };
-		//R[2] = { R_.r[0].m128_f32[2], R_.r[1].m128_f32[2], R_.r[2].m128_f32[2] };
-		// R = Transpose(R);
+		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] }; 
+ 
 		rb->RotationMatrix = R;
-
-		if (!rb->simulateRotation) continue;
+		 
 		auto worldInertia = MatrixMultiply(MatrixMultiply(R, rb->localInertia), Transpose(R));
 		rb->worldInertia = worldInertia;
-		rb->invWorldInertia = Inverse(worldInertia);
-
-
+		rb->invWorldInertia = Inverse(worldInertia); 
 	}
 }
 
@@ -154,7 +143,7 @@ void PhysicsScene::DetectCollisions()
 				}, A.shape, B.shape);
 		}
 
-	//std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
+	std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
 
 }
 
@@ -199,8 +188,7 @@ void PhysicsScene::SolveConstraints(float delta)
 		float C = contact.penetration;
 		if (C <= 0) {  //if (C <= 0.01) {  //
 			continue;
-		}
-
+		} 
 
 		//if (C <= 0.01f ) continue;
 		// XPBD: α = compliance / dt|2
@@ -222,12 +210,9 @@ void PhysicsScene::SolveConstraints(float delta)
 		FLOAT3 corr = dLambda * N;
 		//apply correction to predicted positions:
 		if (A) A->predPos += corr * wA;
-		if (B) B->predPos -= corr * wB;
+		if (B) B->predPos -= corr * wB; 
 
-
-		if (C <= 1e-3) {  //if (C <= 0.01) {  //
-			continue;
-		}
+ 
 		auto applyRot = [&](RigidBody* rb, const FLOAT3& r, const FLOAT3& dir, float lambda, float sign)
 			{
 				if (!rb || !rb->simulatePhysics || !rb->simulateRotation) return;
@@ -254,12 +239,7 @@ void PhysicsScene::SolveConstraints(float delta)
 			applyRot(B, rb, N, dLambda, -1.f); 
 
 	}
-	 
-	// update cache for next frame
-	//for (const Contact& c : m_contacts) {
-	//	ContactKey key = { c.a, c.b };
-	//	m_lambdaCache[key] = c.lambda;
-	//}
+ 
 }
 
 void PhysicsScene::PostPBD(float delta)
@@ -292,29 +272,15 @@ void PhysicsScene::PostPBD(float delta)
 		FLOAT3X3 R;
 		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
 		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
-		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
-		//R[0] = { R_.r[0].m128_f32[0], R_.r[1].m128_f32[0], R_.r[2].m128_f32[0] };
-		//R[1] = { R_.r[0].m128_f32[1], R_.r[1].m128_f32[1], R_.r[2].m128_f32[1] };
-		//R[2] = { R_.r[0].m128_f32[2], R_.r[1].m128_f32[2], R_.r[2].m128_f32[2] };
+		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] }; 
 
 		rb->RotationMatrix = R;
-
-		if (!rb->simulateRotation) continue;
-		auto worldInertia = MatrixMultiply(MatrixMultiply(R, rb->localInertia), Transpose(R));
-		rb->worldInertia = worldInertia;
-		rb->invWorldInertia = Inverse(worldInertia);
-
-
+		  
+		rb->worldInertia = MatrixMultiply(MatrixMultiply(R, rb->localInertia), Transpose(R));
+		rb->invWorldInertia = Inverse(rb->worldInertia);
 		//if (LengthSq(rb->angularVelocity) < 0.1f) {
 		//	rb->angularVelocity = FLOAT3{};
-		//}
-
-		//std::cout << "rb: " << rb->debugName
-		//	<< ",delta q w: " << w
-		//	<< ",delta q xyz: " << v.x() << "," << v.y() << "," << v.z() << '\n';
-		//<< ", angVel: " << rb->angularVelocity.x() << ", "
-		//<< rb->angularVelocity.y() << ", "
-		//<< rb->angularVelocity.z() << std::endl;
+		//} 
 		//angular damping:
 		//rb->angularVelocity *= 0.999f; //test damping;
 	}
@@ -336,6 +302,14 @@ void PhysicsScene::VelocityPass(float delta)
 
 		//--------------------------------- 
 
+		//auto invEffMass = [&](RigidBody* r, const FLOAT3& rVec, const FLOAT3& dir)->float
+		//	{
+		//		if (!r || !r->simulatePhysics) return 0.f;
+		//		FLOAT3 cr = Vector3Cross(rVec, dir);
+		//		return r->invMass + Dot(cr, r->invWorldInertia * cr);
+		//	};
+		//float invMassT = invEffMass(A, ra, vT) + invEffMass(B, rb, vT);
+
 
 		//--------------------------------- 
 		FLOAT3 vA = A ? (A->linearVelocity + Vector3Cross(A->angularVelocity, ra)) : FLOAT3{};
@@ -351,7 +325,7 @@ void PhysicsScene::VelocityPass(float delta)
 		 
 		auto invGenMassT = [&](RigidBody* r, const FLOAT3& rVec, const FLOAT3& dir)->float
 			{
-				if (!r || !r->simulatePhysics) return 0.f;
+				if (!r->simulatePhysics) return 0.f;
 				FLOAT3 cr = Vector3Cross(rVec, dir);
 				return r->invMass + Dot(cr, r->invWorldInertia * cr);
 			};
@@ -366,7 +340,7 @@ void PhysicsScene::VelocityPass(float delta)
 		DebugDraw::Get().AddRay( c.point, vA, Color::Pink ); 
   
 		//DebugDraw::Get().AddRay( B->position, rb, Color::Pink);
-		 DebugDraw::Get().AddRay(c.point, vB, Color::Pink); 
+		DebugDraw::Get().AddRay(c.point, vB, Color::Pink); 
 
 		  
 		//DebugDraw::Get().AddRay(c.point, vRel, Color::Orange);
@@ -385,6 +359,7 @@ void PhysicsScene::VelocityPass(float delta)
 		float eB = B->material.restitution;
 		float e = std::min(eA, eB);             //avg/max
 		jn = (1 + e) * jn; 
+		jn /= invMassSum; // scale by effective mass
 		 
 
 		//---------------------------------
@@ -425,16 +400,18 @@ void PhysicsScene::VelocityPass(float delta)
 
 		//------------------------------ 
 		// composed impulse 
-		FLOAT3 impulse = jn * c.normal + -jt * vT; // impulse vector
-		 
+		//FLOAT3 impulse = jn * c.normal + -jt * vT; // impulse vector
+		FLOAT3 impulse =  -jt * vT; // impulse vector
 		DebugDraw::Get().AddRay(c.point, impulse * 2.0f, Color::Brown); 
 
 		auto applyImpulse = [&](RigidBody* r,
 			const FLOAT3& rVec,
 			const FLOAT3& imp, float sign)
 			{
-				if (!r || !r->simulatePhysics) return;
+				if (!r->simulatePhysics) return;
 				r->linearVelocity += sign * imp * r->invMass;
+
+				if (!r->simulateRotation) return;
 				r->angularVelocity += sign * (r->invWorldInertia *
 					Vector3Cross(rVec, imp));
 			};

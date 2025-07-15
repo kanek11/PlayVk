@@ -668,7 +668,7 @@ template<class A, class B> [[nodiscard]]
 
 
     //plane vs OBB
-    [[nodiscard]]
+    [[nodiscard]] 
     bool Collide(const OBB& b, const PlaneWS& p, Contact& out)
     {
         auto verts = GetOBBVertices(b);
@@ -678,7 +678,7 @@ template<class A, class B> [[nodiscard]]
 
         for (const auto& v : verts) {
             float d = SignedDist(p, v);
-            if (d <= 0.0f) { // inside or touching
+            if (d < 0.0f) { // inside or touching
                 penetratingVerts.push_back(v);
                 penetrations.push_back(-d); // store positive penetration
             }
