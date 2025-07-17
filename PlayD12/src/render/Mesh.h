@@ -7,12 +7,12 @@
 #include "Math/MMath.h"
 
 //abstract of mesh; only consider static mesh for now;
-  
 
-//using FLOAT3 = XMFLOAT3;
-//using FLOAT2 = XMFLOAT2;
-//using FLOAT4 = XMFLOAT4; 
- 
+
+//using Float3 = XMFLOAT3;
+//using Float2 = XMFLOAT2;
+//using Float4 = XMFLOAT4; 
+
 
 using INDEX_FORMAT = uint16_t;
 
@@ -26,7 +26,7 @@ struct FD3D12InputDesc {
 	uint32_t paddedSize;
 };
 
- 
+
 struct VertexInputLayer {
 	std::string name;
 	uint32_t slot = 0;
@@ -39,11 +39,11 @@ struct VertexInputLayer {
 
 struct StaticMeshVertex
 {
-	FLOAT3 position;
-	FLOAT3 normal;
-	FLOAT3 tangent;
-	FLOAT4 color;
-	FLOAT2 texCoord0;
+	Float3 position;
+	Float3 normal;
+	Float3 tangent;
+	Float4 color;
+	Float2 texCoord0;
 };
 
 
@@ -53,11 +53,11 @@ struct StaticMeshInputDesc
 	{
 		static const std::vector<FD3D12InputDesc> table =
 		{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, position), sizeof(FLOAT3), 16 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, normal), sizeof(FLOAT3), 16 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, tangent), sizeof(FLOAT3), 16 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(StaticMeshVertex, color), sizeof(FLOAT4), 16 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(StaticMeshVertex, texCoord0), sizeof(FLOAT2), 16 }
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, position), sizeof(Float3), 16 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, normal), sizeof(Float3), 16 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, tangent), sizeof(Float3), 16 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(StaticMeshVertex, color), sizeof(Float4), 16 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(StaticMeshVertex, texCoord0), sizeof(Float2), 16 }
 		};
 
 		return table;
@@ -68,11 +68,11 @@ struct StaticMeshInputDesc
 
 struct StaticMeshData
 {
-	std::vector<FLOAT3> positions;
-	std::vector<FLOAT2> UVs;
-	std::vector<FLOAT3> normals;
-	std::vector<FLOAT3> tangents;
-	std::vector<FLOAT4> colors;
+	std::vector<Float3> positions;
+	std::vector<Float2> UVs;
+	std::vector<Float3> normals;
+	std::vector<Float3> tangents;
+	std::vector<Float4> colors;
 
 	std::vector<INDEX_FORMAT> indices; // Use 16-bit indices for smaller memory footprint 
 
@@ -190,8 +190,10 @@ public:
 class PlaneMesh : public UStaticMesh {
 public:
 	virtual ~PlaneMesh() = default;
-	PlaneMesh();
+	PlaneMesh(uint32_t subdivisionX, uint32_t subdivisionZ);
 	void CreateMeshData() override;
+	 
+	uint32_t subdivisionX, subdivisionZ;
 };
 
 

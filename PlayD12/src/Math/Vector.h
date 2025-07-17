@@ -332,9 +332,9 @@ namespace MMath {
 
 
 	//----------------------------------------------------------
-	using FLOAT2 = Vector<float, 2>;
-	using FLOAT3 = Vector<float, 3>;
-	using FLOAT4 = Vector<float, 4>;
+	using Float2 = Vector<float, 2>;
+	using Float3 = Vector<float, 3>;
+	using Float4 = Vector<float, 4>;
 
 	using DOUBLE2 = Vector<double, 2>;
 	using DOUBLE3 = Vector<double, 3>;
@@ -371,21 +371,21 @@ namespace std {
 namespace Color {
 	using namespace MMath;
 
-	static FLOAT4 White = FLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	static FLOAT4 Black = FLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	static Float4 White = Float4(1.0f, 1.0f, 1.0f, 1.0f);
+	static Float4 Black = Float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-	static FLOAT4 Red = FLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-	static FLOAT4 Green = FLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
-	static FLOAT4 Blue = FLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+	static Float4 Red = Float4(1.0f, 0.0f, 0.0f, 1.0f);
+	static Float4 Green = Float4(0.0f, 1.0f, 0.0f, 1.0f);
+	static Float4 Blue = Float4(0.0f, 0.0f, 1.0f, 1.0f);
 
-	static FLOAT4 Purple = FLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
-	static FLOAT4 Yellow = FLOAT4(1.0f, 1.0f, 0.0f, 1.0f);
-	static FLOAT4 Cyan = FLOAT4(0.0f, 1.0f, 1.0f, 1.0f);
+	static Float4 Purple = Float4(1.0f, 0.0f, 1.0f, 1.0f);
+	static Float4 Yellow = Float4(1.0f, 1.0f, 0.0f, 1.0f);
+	static Float4 Cyan = Float4(0.0f, 1.0f, 1.0f, 1.0f);
 
-	static FLOAT4 Orange = FLOAT4(1.0f, 0.5f, 0.0f, 1.0f);
-	static FLOAT4 Pink = FLOAT4(1.0f, 0.75f, 0.8f, 1.0f);
-	static FLOAT4 Brown = FLOAT4(0.6f, 0.3f, 0.1f, 1.0f);
-	static FLOAT4 Olive = FLOAT4(0.5f, 0.5f, 0.0f, 1.0f);
-	static FLOAT4 Teal = FLOAT4(0.0f, 0.5f, 0.5f, 1.0f);
+	static Float4 Orange = Float4(1.0f, 0.5f, 0.0f, 1.0f);
+	static Float4 Pink = Float4(1.0f, 0.75f, 0.8f, 1.0f);
+	static Float4 Brown = Float4(0.6f, 0.3f, 0.1f, 1.0f);
+	static Float4 Olive = Float4(0.5f, 0.5f, 0.0f, 1.0f);
+	static Float4 Teal = Float4(0.0f, 0.5f, 0.5f, 1.0f);
 };
 

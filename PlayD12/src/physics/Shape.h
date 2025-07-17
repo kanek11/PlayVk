@@ -18,7 +18,7 @@ struct Sphere {
 };
 
 struct Box {
-	FLOAT3 halfExtents;
+	Float3 halfExtents;
 };
 
 struct Capsule {
@@ -32,19 +32,19 @@ using ShapeType = std::variant<Plane, Sphere, Box>;
 
 //generic fallback:
 template<typename T>
-inline FLOAT3X3 MakeInertiaTensor(const T& shape, float mass)
+inline Float3x3 MakeInertiaTensor(const T& shape, float mass)
 { 
 	std::cerr << "\tMakeInertiaTensor: Unsupported shape type: " << typeid(T).name() << std::endl;
-	return FLOAT3X3{}; //return an empty tensor
+	return Float3x3{}; //return an empty tensor
 }
 
-inline FLOAT3X3 MakeInertiaTensor(const Sphere& s, float mass)
+inline Float3x3 MakeInertiaTensor(const Sphere& s, float mass)
 {
 	//Sphere inertia tensor
 	float r = s.radius;
 	float i = (2.0f / 5.0f) * mass * r * r; //sphere inertia tensor
 	
-	FLOAT3X3 result;
+	Float3x3 result;
 	result[0] = { i, 0, 0 };
 	result[1] = { 0, i, 0 };
 	result[2] = { 0, 0, i };
@@ -53,35 +53,35 @@ inline FLOAT3X3 MakeInertiaTensor(const Sphere& s, float mass)
 }
 
 
-inline FLOAT3X3 MakeInertiaTensor(const Box& b, float mass)
+inline Float3x3 MakeInertiaTensor(const Box& b, float mass)
 {
 	//Box inertia tensor
-	FLOAT3 halfExtents = b.halfExtents; 
+	Float3 halfExtents = b.halfExtents; 
 	float ixx = (1.0f / 12.0f) * mass * (4.0f * halfExtents.y() * halfExtents.y() + 4.0f * halfExtents.z() * halfExtents.z());
 	float iyy = (1.0f / 12.0f) * mass * (4.0f * halfExtents.x() * halfExtents.x() + 4.0f * halfExtents.z() * halfExtents.z());
 	float izz = (1.0f / 12.0f) * mass * (4.0f * halfExtents.x() * halfExtents.x() + 4.0f * halfExtents.y() * halfExtents.y());
-	FLOAT3X3 result;
+	Float3x3 result;
 	result[0] = { ixx, 0, 0 };
 	result[1] = { 0, iyy, 0 };
 	result[2] = { 0, 0, izz };
 	return result;
 }
 
-//FLOAT3X3 MakeInertiaTensor(const Capsule& c, float mass)
+//Float3x3 MakeInertiaTensor(const Capsule& c, float mass)
 //{
 //	//Capsule inertia tensor
 //	float r = c.radius;
 //	float h = c.height;
 //	float i = (1.0f / 12.0f) * mass * (3.0f * r * r + h * h); //capsule inertia tensor
 //
-//	FLOAT3X3 result;
+//	Float3x3 result;
 //	result[0] = { i, 0, 0 };
 //	result[1] = { 0, i, 0 };
 //	result[2] = { 0, 0, i };
 //	return result;
 //}
 
-//inline FLOAT3X3 MakeInertiaTensor(const Plane& p, float mass)
+//inline Float3x3 MakeInertiaTensor(const Plane& p, float mass)
 //{
 //	//Plane inertia tensor
 //	float w = p.width;
@@ -89,7 +89,7 @@ inline FLOAT3X3 MakeInertiaTensor(const Box& b, float mass)
 //	float ixx = (1.0f / 12.0f) * mass * (h * h + w * w);
 //	float iyy = (1.0f / 12.0f) * mass * (h * h + w * w);
 //	float izz = 0.0f; //plane has no rotation around z-axis
-//	FLOAT3X3 result;
+//	Float3x3 result;
 //	result[0] = { ixx, 0, 0 };
 //	result[1] = { 0, iyy, 0 };
 //	result[2] = { 0, 0, izz };
@@ -97,9 +97,9 @@ inline FLOAT3X3 MakeInertiaTensor(const Box& b, float mass)
 //}
 
  
-inline FLOAT3X3 MakeInertiaTensor(const ShapeType& shape, float mass) {
+inline Float3x3 MakeInertiaTensor(const ShapeType& shape, float mass) {
 	return std::visit(
-		[mass](auto const& s) -> FLOAT3X3 { 
+		[mass](auto const& s) -> Float3x3 { 
 			return MakeInertiaTensor(s, mass);
 		},
 		shape

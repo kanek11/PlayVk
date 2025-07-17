@@ -4,11 +4,9 @@
 #include "Application.h"
 using namespace DirectX;
 
-constexpr int instanceCount = 1;
-constexpr float spacing = 5.0f; // Adjust to control sparsity
-constexpr float viewRadius = 20.0f; // Distance from the origin
 
-
+constexpr size_t MaxLines = 1000; 
+constexpr uint32_t descriptorPoolSize = 2048;
 
 D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring name,
     SharedPtr<WindowBase> mainWindow
@@ -28,10 +26,9 @@ void D3D12HelloRenderer::OnInit()
     LoadAssets();
 
     //
-    RenderContext ctx =
+    RenderPassInitContext ctx =
     {
-      .device = m_device.Get(),
-      .cmdList = m_commandList.Get(),
+      .device = m_device.Get(), 
       .m_shaderManager = this->m_shaderManager,
       .m_psoManager = this->m_psoManager
     };
@@ -48,6 +45,12 @@ void D3D12HelloRenderer::OnInit()
     //m_debugRenderer = CreateShared<DebugRenderer>();
     //m_debugRenderer->Init(ctx);
 
+    Render::rendererContext = new RendererFactoryContext{
+        .device = m_device.Get(),
+        .mainShaderPerm = m_shaderPerm,
+        .shadowShaderPerm = m_shadowShaderPerm,
+        .fallBackTexture = m_fallBackTexture, 
+    };
 
 }
 
@@ -79,18 +82,21 @@ void D3D12HelloRenderer::OnRender()
 }
 
 
-void DebugDraw::AddRay(const FLOAT3& origin, const FLOAT3& direction, 
-    const FLOAT4& color0 ,
-    const FLOAT4& color1
+void DebugDraw::AddRay(const Float3& origin, const Float3& direction, 
+    const Float4& color0 ,
+    const Float4& color1
     )
 {
+
     this->AddLine(origin, origin + direction, color0, color1);
+
 }
 
-void DebugDraw::AddLine(const FLOAT3& start, const FLOAT3& end, 
-    const FLOAT4& color0,
-    const FLOAT4& color1)
+void DebugDraw::AddLine(const Float3& start, const Float3& end, 
+    const Float4& color0,
+    const Float4& color1)
 {
+#if defined(_DEBUG)
     DebugLineVertex vert0 = {
         .position = start,
         .color = color0,
@@ -102,6 +108,7 @@ void DebugDraw::AddLine(const FLOAT3& start, const FLOAT3& end,
 
     m_lineData.push_back(vert0);
     m_lineData.push_back(vert1);
+#endif
 }
 
 void DebugDraw::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
@@ -140,9 +147,8 @@ DebugDraw& DebugDraw::Get()
     return instance;
 }
 
-void DebugDraw::Init(RenderContext ctx)
+void DebugDraw::Init(RenderPassInitContext ctx)
 {
-    size_t MaxLines = 100;
     size_t MaxVertices = 2 * MaxLines;
 
     // Create vertex buffer for debug lines
@@ -174,8 +180,8 @@ void DebugDraw::Init(RenderContext ctx)
             .slot = 0,
             .classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
             .elements = {
-                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(DebugLineVertex, position), sizeof(FLOAT3), D3D12_APPEND_ALIGNED_ELEMENT },
-                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(DebugLineVertex, color), sizeof(FLOAT4), D3D12_APPEND_ALIGNED_ELEMENT }
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(DebugLineVertex, position), sizeof(Float3), D3D12_APPEND_ALIGNED_ELEMENT },
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(DebugLineVertex, color), sizeof(Float4), D3D12_APPEND_ALIGNED_ELEMENT }
             }
         }
     };
@@ -210,7 +216,7 @@ void DebugDraw::Init(RenderContext ctx)
 
 }
 
-void DebugDraw::OnUpdate(float delta, const FLOAT4X4& pv)
+void DebugDraw::OnUpdate(float delta, const Float4x4& pv)
 {
     // Upload the constant buffer data
     MVPConstantBuffer cbData = {};
@@ -323,7 +329,6 @@ void D3D12HelloRenderer::LoadPipeline()
         m_SC_RTVHeapAllocator = CreateShared<FDescriptorHeapAllocator>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, numRTVDescriptors);
 
 
-        constexpr uint32_t descriptorPoolSize = 128;
         m_rangeHeapAllocator = CreateShared<FDescriptorHeapAllocator>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, descriptorPoolSize);
 
 
@@ -380,9 +385,13 @@ void D3D12HelloRenderer::InitRenderPass()
         sampler0.ShaderRegister = 0;
         sampler0.RegisterSpace = 0;
         sampler0.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-        sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+ /*       sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
         sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-        sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;*/
+        sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+
         sampler0.MipLODBias = 0;
         sampler0.MaxAnisotropy = 0;
         sampler0.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
@@ -439,7 +448,7 @@ void D3D12HelloRenderer::InitRenderPass()
         instanceLayer.slot = 1;
         instanceLayer.classification = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
         instanceLayer.instanceStepRate = 1;
-        instanceLayer.elements.push_back({ "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 12 }); // 12 bytes for FLOAT3
+        instanceLayer.elements.push_back({ "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 12 }); // 12 bytes for Float3
         inputLayers.push_back(instanceLayer);
 
         //------------
@@ -602,7 +611,17 @@ void D3D12HelloRenderer::BeginShadowPass(ID3D12GraphicsCommandList* commandList)
 {
 
     // Bind only depth target  
-    assert(m_shadowBindings.dsv.has_value());
+    assert(m_shadowBindings.dsv.has_value()); 
+
+    // Indicate that the shadow map will be used as a depth stencil target.
+    auto srvToDsvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_shadowMap->GetRawResource(),
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE
+    );
+
+    commandList->ResourceBarrier(1, &srvToDsvBarrier);
+
 
     auto dsvHandle = m_shadowBindings.dsv.value();
     commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
@@ -612,7 +631,14 @@ void D3D12HelloRenderer::BeginShadowPass(ID3D12GraphicsCommandList* commandList)
 
 void D3D12HelloRenderer::EndShadowPass(ID3D12GraphicsCommandList* commandList)
 {
-
+    // barrier to SRV
+// Transition the shadow map back to a shader resource state.
+    auto dsvToSrvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_shadowMap->GetRawResource(),
+        D3D12_RESOURCE_STATE_DEPTH_WRITE,
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+    );
+    commandList->ResourceBarrier(1, &dsvToSrvBarrier);
 }
 
 void D3D12HelloRenderer::RecordShadowPassCommands(ID3D12GraphicsCommandList* commandList)
@@ -628,15 +654,6 @@ void D3D12HelloRenderer::RecordShadowPassCommands(ID3D12GraphicsCommandList* com
     // Set the viewport and scissor rectangle.
     commandList->RSSetViewports(1, &viewport);
     commandList->RSSetScissorRects(1, &scissorRect);
-
-    // Indicate that the shadow map will be used as a depth stencil target.
-    auto srvToDsvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        m_shadowMap->GetRawResource(),
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-        D3D12_RESOURCE_STATE_DEPTH_WRITE
-    );
-
-    commandList->ResourceBarrier(1, &srvToDsvBarrier);
 
 
     m_shadowShaderPerm->SetDescriptorHeap(m_commandList.Get());
@@ -654,14 +671,7 @@ void D3D12HelloRenderer::RecordShadowPassCommands(ID3D12GraphicsCommandList* com
 
 
 
-    // barrier to SRV
-    // Transition the shadow map back to a shader resource state.
-    auto dsvToSrvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        m_shadowMap->GetRawResource(),
-        D3D12_RESOURCE_STATE_DEPTH_WRITE,
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-    );
-    commandList->ResourceBarrier(1, &dsvToSrvBarrier);
+
 }
 
 
@@ -681,15 +691,12 @@ void D3D12HelloRenderer::OnDestroy()
 
 
 void D3D12HelloRenderer::BeginFrame()
-{
-
+{ 
     //new: 
     if (meshDirty) {
         this->SetMeshDescriptors();
         meshDirty = false;
-    }
-
-
+    } 
     // Command list allocators can only be reset when the associated 
  // command lists have finished execution on the GPU; apps should use 
  // fences to determine GPU execution progress. 
@@ -725,6 +732,17 @@ void D3D12HelloRenderer::BeginRenderPass(ID3D12GraphicsCommandList* commandList)
     assert(m_bindings.rtvs.size() == FrameCount);
     auto rtvHandle = m_bindings.rtvs[m_frameIndex];
 
+
+    // Indicate that the back buffer will be used as a render target.
+    auto ps_rtv_Barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_renderTargets[m_frameIndex].Get(),
+        D3D12_RESOURCE_STATE_PRESENT,
+        D3D12_RESOURCE_STATE_RENDER_TARGET
+    );
+    m_commandList->ResourceBarrier(1, &ps_rtv_Barrier);
+
+
+
     const float clearColor[] = { 0.1f, 0.1f, 0.1f, 1.0f };
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
@@ -750,22 +768,13 @@ void D3D12HelloRenderer::RecordRenderPassCommands(ID3D12GraphicsCommandList* m_c
     auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height));
 
     // 
-//begin---------------  
+   //begin---------------  
     m_commandList->SetPipelineState(m_PSO.Get());
     // Set necessary state.
     m_commandList->SetGraphicsRootSignature(m_shaderPerm->GetRootSignature().Get());
 
     m_commandList->RSSetViewports(1, &viewport);
     m_commandList->RSSetScissorRects(1, &scissorRect);
-
-    // Indicate that the back buffer will be used as a render target.
-    auto ps_rtv_Barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        m_renderTargets[m_frameIndex].Get(),
-        D3D12_RESOURCE_STATE_PRESENT,
-        D3D12_RESOURCE_STATE_RENDER_TARGET
-    );
-    m_commandList->ResourceBarrier(1, &ps_rtv_Barrier);
-
 
 
     //record-------------
@@ -973,288 +982,23 @@ void D3D12HelloRenderer::SetMeshDescriptors()
     }
 }
 
-StaticMeshObjectProxy* D3D12HelloRenderer::InitMesh(SharedPtr<UStaticMesh> mesh,
-    FLOAT3 position,
-    FLOAT3 scale
-)
-{
-    mesh->CreateGPUResource(m_device.Get());
-
-    //------------------------------  
-    auto shadowPassOffset = m_shadowShaderPerm->RequestAllocationOnHeap();
-    std::cout << "Heap start offset for shadow pass: " << shadowPassOffset << std::endl;
-
-    auto mainPassOffset = m_shaderPerm->RequestAllocationOnHeap();
-    std::cout << "Heap start offset for main: " << mainPassOffset << std::endl;
-
-
-    //------------------------------
-    MVPConstantBuffer constantBufferData{};
-
-    auto constBuffer = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
-        sizeof(MVPConstantBuffer),
-        DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
-        256, // Alignment
-        EBufferUsage::Upload | EBufferUsage::Constant
-        });
-
-    //update the constant buffer data:
-    constBuffer->UploadData(&constantBufferData, sizeof(constantBufferData));
-
-
-    //--------------------------
-    MVPConstantBuffer shadowConstantBufferData{};
-    auto shadowConstBuffer = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
-        sizeof(MVPConstantBuffer),
-        DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
-        256, // Alignment
-        EBufferUsage::Upload | EBufferUsage::Constant
-        });
-
-    shadowConstBuffer->UploadData(&shadowConstantBufferData, sizeof(shadowConstantBufferData));
-
-
-    //------------------------------
-    auto instanceData = GenerateInstanceData();
-    UINT instanceBufferSize = static_cast<UINT>(sizeof(InstanceData) * instanceData.size());
-
-    auto instanceBuffer = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
-        instanceBufferSize,
-        DXGI_FORMAT_UNKNOWN, // Not used for instance buffers
-        sizeof(InstanceData),
-        EBufferUsage::Upload | EBufferUsage::Vertex
-        });
-
-    instanceBuffer->UploadData(instanceData.data(), instanceBufferSize);
-
-    //------------------------------
-    auto meshProxy = new StaticMeshObjectProxy{
-        .position = position,
-        .scale = scale,
-
-        .mesh = mesh,
-        .mainPassHeapOffset = mainPassOffset,
-
-        //.material = CreateShared<FMaterialProxy>(m_fallBackTexture, m_fallBackSRVDesc),
-        .material = CreateShared<FMaterialProxy>(m_fallBackTexture),
-
-        .mainMVPConstantBuffer = constBuffer,
-
-        .shadowPassHeapOffset = shadowPassOffset,
-        .shadowMVPConstantBuffer = shadowConstBuffer,
-
-
-        .instanceProxy = CreateShared<FInstanceProxy>(
-            FInstanceProxy{
-                .instanceData = instanceData,
-                .instanceBuffer = instanceBuffer
-            }
-        )
-    };
-
-    return meshProxy;
-}
-
-
-std::vector<InstanceData> D3D12HelloRenderer::GenerateInstanceData()
-{
-    std::vector<InstanceData> instanceData;
-
-    // Estimate cube grid dimensions (cubical or close)
-    int gridSize = static_cast<int>(std::ceil(std::cbrt(instanceCount)));
-    const float halfGrid = (gridSize - 1) * spacing * 0.5f;
-
-    for (int i = 0; i < instanceCount; ++i)
-    {
-        int x = i % gridSize;
-        int y = (i / gridSize) % gridSize;
-        int z = i / (gridSize * gridSize);
-
-        InstanceData _data;
-
-        _data.offset = {
-            x * spacing - halfGrid,
-            y * spacing - halfGrid,
-            z * spacing - halfGrid
-        };
-
-        instanceData.push_back(_data);
-    }
-
-    return instanceData;
-}
-
-
 
 // Update frame-based values.
 void D3D12HelloRenderer::OnUpdate(float delta)
-{
-    //m_debugRenderer->OnUpdate(delta, dummyCamera.pvMatrix);
+{ 
 
-    {
-
-        //eye rotate around the origin
-        constexpr float speedDivisor = 50.0f; // Increase this number to slow it down
-        float angle = static_cast<float>((GetTickCount64() / static_cast<ULONGLONG>(speedDivisor)) % 360) * XM_PI / 180.0f;
-
-        //float eyePosX = cos(angle) * viewRadius;
-        //float eyePosY = viewRadius * 0.3;
-        //float eyePosZ = sin(angle) * viewRadius;
-
-        //float eyePosX = -viewRadius * 0.3;
-        //float eyePosY = viewRadius * 0.2;
-        //float eyePosZ = -viewRadius * 0.3;
-
-        float eyePosX = 0.0f;
-        float eyePosY = 5.f;
-        float eyePosZ = -10.0; 
-
-        //Create view and projection matrices
-       //LH = left-handed coordinate system
-        XMMATRIX view = XMMatrixLookAtLH(
-            XMVectorSet(eyePosX, eyePosY, eyePosZ, 1.0f),  // Eye
-            XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),   // At
-            XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)    // Up
-        );
-
-        auto view_ = MMath::LookAtLH(
-            { eyePosX, eyePosY, eyePosZ }, // Eye
-            { 0.0f, 0.0f, 0.0f },          // At
-            { 0.0f, 1.0f, 0.0f }           // Up
-        );
-
-        XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, m_aspectRatio, 0.1f, 100.0f);
-        auto proj_ = MMath::PerspectiveFovLH(
-            MMath::ToRadians(45.0f),
-            m_aspectRatio,
-            0.1f,
-            1000.0f
-        );
-
-        XMMATRIX vp = XMMatrixMultiply(view, proj);
-
-        //std::cout << "expected view: " << MMath::XMMatrixToString(view) << std::endl;
-        //std::cout << "expected projection: " << MMath::XMMatrixToString(proj) << std::endl;
-        //std::cout << "expected vp: " << MMath::XMMatrixToString(vp) << std::endl;
-
-        //make sure transpose before present to hlsl;
-        //dummyCamera.pvMatrix = Transpose(MatrixMultiply(proj_, view_));
-        dummyCamera.pvMatrix = MatrixMultiply(proj_, view_);
-        //auto vp = MatrixMultiply(view, proj); 
-
-        //std::cout << "view matrix: " << ToString(view_) << std::endl;
-        //std::cout << "projection matrix: " << ToString(proj_) << std::endl; 
-        //std::cout << "pv matrix: " << ToString(dummyCamera.pvMatrix) << std::endl;
+    //DebugDraw::Get().OnUpdate(delta, dummyCamera.pvMatrix);
+    if (mainCamera) {
+        DebugDraw::Get().OnUpdate(delta, mainCamera->pvMatrix);
     }
-
-
-    for (auto& proxy : m_staticMeshes)
+    else
     {
-        proxy->onUpdate.BlockingBroadCast(delta);
-
-        auto mainConstBufferH = proxy->mainMVPConstantBuffer;
-        if (mainConstBufferH == nullptr) {
-            continue;
-        } 
-
-        //auto yAxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-        //auto rotation = XMQuaternionRotationAxis(yAxis, delta);
-        //proxy->rotation = XMQuaternionMultiply(rotation, proxy->rotation);
-
-        MVPConstantBuffer mainConstBufferData = {};
-
-        auto modelMatrix_ = MMath::MatrixIdentity<float, 4>();
-        auto scaleMatrix = MMath::MatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z());
-        modelMatrix_ = MatrixMultiply(scaleMatrix, modelMatrix_);
-
-        auto R_ = XMMatrixRotationQuaternion(proxy->rotation);
-        auto R = MMath::MatrixIdentity<float, 4>();
-        R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
-        R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
-        R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
-        R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
-         
-        modelMatrix_ = MatrixMultiply(R, modelMatrix_); //rotate the model using the quaternion 
-
-        //translate:
-        auto translation = MMath::MatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
-        //translation = Transpose(translation); 
-        //std::cout << "translation matrix: " << ToString(translation) << std::endl;
-
-        //modelMatrix_ = MatrixMultiply(translation, modelMatrix_); 
-
-        modelMatrix_ = MatrixMultiply(translation, modelMatrix_);
-
-        //modelMatrix_ = MMath::MatrixIdentity<float, 4>();
-        //modelMatrix_ = Transpose(modelMatrix_); 
-
-        //auto modelMatrix = XMMatrixIdentity();
-        //auto translation_ = XMMatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
-        //std::cout << "expected translation: " << '\n';
-        //std::cout << MMath::XMMatrixToString(translation_) << std::endl;
-        //
-
-        //modelMatrix = XMMatrixRotationQuaternion(proxy->rotation) * modelMatrix;
-        //modelMatrix = XMMatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix;
-
-
-
-        // Translate the model to its position
-        // Rotate the model using the quaternion 
-
-        //XMStoreFloat4x4(&mainConstBufferData.modelMatrix, modelMatrix);
-
-        //make sure transpose before present to hlsl;
-        //mainConstBufferData.modelMatrix = Transpose(modelMatrix_);
-
-        mainConstBufferData.modelMatrix = modelMatrix_;
-
-        //XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
-        mainConstBufferData.projectionViewMatrix = dummyCamera.pvMatrix;
-
-        // Upload the constant buffer data.
-        mainConstBufferH->UploadData(&mainConstBufferData, sizeof(MVPConstantBuffer));
-
-        //shadow pass:
-        auto shadowConstBufferH = proxy->shadowMVPConstantBuffer;
-        if (shadowConstBufferH == nullptr) {
-            continue;
-        }
-
-        MVPConstantBuffer shadowConstBufferData = {};
-        shadowConstBufferData.modelMatrix = modelMatrix_;
-        shadowConstBufferData.projectionViewMatrix = dummyCamera.pvMatrix;
-
-        // Upload the shadow constant buffer data.
-        shadowConstBufferH->UploadData(&shadowConstBufferData, sizeof(MVPConstantBuffer));
-
-
-        DebugDraw::Get().AddRay(
-            proxy->position,
-            R[0].xyz(),
-            Color::Red
-        );
-
-        DebugDraw::Get().AddRay(
-            proxy->position,
-            R[1].xyz(),
-            Color::Green
-        );
-
-        DebugDraw::Get().AddRay(
-            proxy->position,
-            R[2].xyz(),
-            Color::Blue
-        );
-
+        //std::cout << "no camera" << '\n';
     }
-
-
-    DebugDraw::Get().OnUpdate(delta, dummyCamera.pvMatrix);
-
+    
 }
 
-void D3D12HelloRenderer::SubmitMesh(StaticMeshObjectProxy* mesh)
+void D3D12HelloRenderer::SubmitMesh(StaticMeshActorProxy* mesh)
 {
     m_staticMeshes.push_back(mesh);
     meshDirty = true;
@@ -1268,9 +1012,9 @@ void D3D12HelloRenderer::ClearMesh()
 
 
 
-void UIRenderer::Init(RenderContext ctx)
+void UIRenderer::Init(RenderPassInitContext ctx)
 {
-    size_t MaxUI = 1;
+    size_t MaxUI = 20;
     size_t MaxVertices = 4 * MaxUI;
     size_t MaxIndices = 6 * MaxUI;
 
@@ -1307,9 +1051,9 @@ void UIRenderer::Init(RenderContext ctx)
             .slot = 0,
             .classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
             .elements = {
-                { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, position), sizeof(FLOAT2), D3D12_APPEND_ALIGNED_ELEMENT },
-                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, UV), sizeof(FLOAT2), D3D12_APPEND_ALIGNED_ELEMENT },
-                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(UIVertex, color), sizeof(FLOAT4), D3D12_APPEND_ALIGNED_ELEMENT }
+                { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, position), sizeof(Float2), D3D12_APPEND_ALIGNED_ELEMENT },
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, UV), sizeof(Float2), D3D12_APPEND_ALIGNED_ELEMENT },
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(UIVertex, color), sizeof(Float4), D3D12_APPEND_ALIGNED_ELEMENT }
             }
         }
     };
@@ -1344,22 +1088,23 @@ void UIRenderer::Init(RenderContext ctx)
 
 
 
-inline FLOAT2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
-    float ndcX = (2.0f * x / screenWidth) - 1.0f;
-    float ndcY = 1.0f - (2.0f * y / screenHeight); // Invert Y for top-left  
+inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
+    float ndcX = (2.0f * static_cast<float>(x+0.5f) / static_cast<float>(screenWidth)) - 1.0f;
+    float ndcY = 1.0f - (2.0f * static_cast<float>(y+0.5f) / static_cast<float>(screenHeight)); // Invert Y for top-left 
+    //std::cout << "get ndc:" << ndcX << " " << ndcY << '\n';
     return { ndcX, ndcY };
 }
 
-void UIRenderer::AddQuad(const Rect& rect, const FLOAT4& color)
-{
-    //hardcode:  
-    int screenWidth = 1280;
-    int screenHeight = 720;
+void UIRenderer::AddQuad(const Rect& rect, const Float4& color)
+{ 
+    int screenWidth = GameApplication::GetInstance()->GetWidth();
+    int screenHeight = GameApplication::GetInstance()->GetHeight();
 
-    FLOAT2 tl = ScreenToNDC(rect.x, rect.y, screenWidth, screenHeight);
-    FLOAT2 tr = ScreenToNDC(rect.x + rect.w, rect.y, screenWidth, screenHeight);
-    FLOAT2 bl = ScreenToNDC(rect.x, rect.y + rect.h, screenWidth, screenHeight);
-    FLOAT2 br = ScreenToNDC(rect.x + rect.w, rect.y + rect.h, screenWidth, screenHeight);
+
+    Float2 tl = ScreenToNDC(rect.x, rect.y, screenWidth, screenHeight);
+    Float2 tr = ScreenToNDC(rect.x + rect.w, rect.y, screenWidth, screenHeight);
+    Float2 bl = ScreenToNDC(rect.x, rect.y + rect.h, screenWidth, screenHeight);
+    Float2 br = ScreenToNDC(rect.x + rect.w, rect.y + rect.h, screenWidth, screenHeight);
 
     uint32_t baseVertex = static_cast<uint32_t>(m_data.vertices.size());
 
@@ -1409,8 +1154,7 @@ void UIRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
     cmdList->SetGraphicsRootSignature(m_shader->GetRootSignature().Get());
 
     //cmdList->RSSetViewports(1, &viewport);
-    //cmdList->RSSetScissorRects(1, &scissorRect);
-
+    //cmdList->RSSetScissorRects(1, &scissorRect); 
 
     // Set the descriptor heap for the command list
     m_shader->SetDescriptorHeap(cmdList);

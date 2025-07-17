@@ -131,10 +131,10 @@ namespace MMath {
 	 
 
 	//----------------------------------------------------------
-	using FLOAT2X2 = Matrix<float, 2, 2>;
+	using Float2x2 = Matrix<float, 2, 2>;
 	using DOUBLE2X2 = Matrix<double, 2, 2>;
-	using FLOAT3X3 = Matrix<float, 3, 3>;
-	using FLOAT4X4 = Matrix<float, 4, 4>;
+	using Float3x3 = Matrix<float, 3, 3>;
+	using Float4x4 = Matrix<float, 4, 4>;
 	using DOUBLE3X3 = Matrix<double, 3, 3>;
 	using DOUBLE4X4 = Matrix<double, 4, 4>;
 }

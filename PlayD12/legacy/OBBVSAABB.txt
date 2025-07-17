@@ -2,19 +2,19 @@
 [[nodiscard]] 
 bool Collide(const AABB& a, const OBB& b, Contact& out) {
     // convert the AABB
-    FLOAT3 aCenter = (a.min + a.max) * 0.5f;
-    FLOAT3 aExtent = (a.max - a.min) * 0.5f;
+    Float3 aCenter = (a.min + a.max) * 0.5f;
+    Float3 aExtent = (a.max - a.min) * 0.5f;
 
     // constant axis;
-    const FLOAT3 aAxes[3] = {
-        FLOAT3{1,0,0}, FLOAT3{0,1,0}, FLOAT3{0,0,1}
+    const Float3 aAxes[3] = {
+        Float3{1,0,0}, Float3{0,1,0}, Float3{0,0,1}
     };
 
     float   minOverlap = FLT_MAX;
-    FLOAT3  bestAxis = FLOAT3{ 0,0,0 };
+    Float3  bestAxis = Float3{ 0,0,0 };
      
 	//capture by reference
-    auto testAxis = [&](const FLOAT3& axis) {
+    auto testAxis = [&](const Float3& axis) {
 
         Interval aProj = AABBProject(a, axis);
         Interval bProj = OBBProject(b, axis);
@@ -52,7 +52,7 @@ bool Collide(const AABB& a, const OBB& b, Contact& out) {
     // 5. 测试 9 条棱–棱交叉轴
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
-            FLOAT3 axis = Vector3Cross(aAxes[i], b.axis[j]);
+            Float3 axis = Vector3Cross(aAxes[i], b.axis[j]);
             float len2 = Dot(axis, axis);
             if (len2 < 1e-6f)
                 continue;   // 共线，跳过
@@ -74,12 +74,12 @@ bool Collide(const AABB& a, const OBB& b, Contact& out) {
 
     // 6. 近似计算接触点（在 A 与 B 表面之间做中点）
     {
-		FLOAT3 contactPointA = aCenter - bestAxis * (
+		Float3 contactPointA = aCenter - bestAxis * (
             aExtent.x() * std::abs(bestAxis.x()) +
 			aExtent.y() * std::abs(bestAxis.y()) +
 			aExtent.z() * std::abs(bestAxis.z())
             );
-		FLOAT3 contactPointB = b.center + bestAxis * (
+		Float3 contactPointB = b.center + bestAxis * (
             b.halfExtents.x() * std::abs(Dot(b.axis[0], bestAxis)) +
 			b.halfExtents.y() * std::abs(Dot(b.axis[1], bestAxis)) +
 			b.halfExtents.z() * std::abs(Dot(b.axis[2], bestAxis))

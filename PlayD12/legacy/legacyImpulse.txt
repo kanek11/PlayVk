@@ -51,7 +51,7 @@ void PhysicsScene::PreSimulation()
 
 		if (!rb->enableRotation) continue;
 		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->rotation);
-		FLOAT3X3 R;
+		Float3x3 R;
 		R[0] = { R_.r[0].m128_f32[0], R_.r[1].m128_f32[0], R_.r[2].m128_f32[0] };
 		R[1] = { R_.r[0].m128_f32[1], R_.r[1].m128_f32[1], R_.r[2].m128_f32[1] };
 		R[2] = { R_.r[0].m128_f32[2], R_.r[1].m128_f32[2], R_.r[2].m128_f32[2] };
@@ -80,7 +80,7 @@ void PhysicsScene::Integrate(float delta)
 
 		rb->linearVelocity = rb->linearVelocity + rb->force / rb->mass * delta ;
 		//rb->linearVelocity *= 0.99f;  //test damping;
-		rb->force = FLOAT3{};
+		rb->force = Float3{};
 		 
 		//predicated position:
 		rb->predPosition = rb->position + rb->linearVelocity * delta;  
@@ -90,7 +90,7 @@ void PhysicsScene::Integrate(float delta)
 		//new: consider torque:
 		if (!rb->enableRotation) continue; //skip if not enabled
 		rb->angularVelocity = rb->angularVelocity + Inverse(rb->worldInertia) * rb->torque * delta; 
-		rb->torque = FLOAT3{}; //reset torque
+		rb->torque = Float3{}; //reset torque
 		 
 		//angular damping: 
 //	rb->angularVelocity *= 0.98f; //test damping;
@@ -158,31 +158,31 @@ void PhysicsScene::SolveConstraints(float dt)
 			if (invMassSum == 0.f) continue;
 
 			// B 2 A 
-			FLOAT3 normal = contact.normal;
+			Float3 normal = contact.normal;
 
 			// --- relative vel
-			//FLOAT3 velA = A ? A->linearVelocity : FLOAT3{ 0,0,0 };
-			//FLOAT3 velB = B ? B->linearVelocity : FLOAT3{ 0,0,0 };
+			//Float3 velA = A ? A->linearVelocity : Float3{ 0,0,0 };
+			//Float3 velB = B ? B->linearVelocity : Float3{ 0,0,0 };
 			//new: consider rotation and position of the rigidbodies: the contact point velocity =
-			FLOAT3 velA = FLOAT3{ 0,0,0 };
+			Float3 velA = Float3{ 0,0,0 };
 			if (A ) {
 				velA = A->linearVelocity;
 				if (A->enableRotation) {
-					FLOAT3 curr_offset = contact.point - A->position;
+					Float3 curr_offset = contact.point - A->position;
 					velA += Vector3Cross(A->angularVelocity, curr_offset);
 				}
 
 			} 
 
-			FLOAT3 velB = FLOAT3{ 0,0,0 };
+			Float3 velB = Float3{ 0,0,0 };
 			if (B) {
 				velB = B->linearVelocity; 
 				if (B->enableRotation) {
-					FLOAT3 Rr = contact.point - B->position;
+					Float3 Rr = contact.point - B->position;
 					velB += Vector3Cross(B->angularVelocity, Rr);
 				} 
 			} 
-			FLOAT3 relVel = velA - velB;            
+			Float3 relVel = velA - velB;            
 
 			//normal component ;  
 			//bug fix: approaching if negative;  
@@ -218,19 +218,19 @@ void PhysicsScene::SolveConstraints(float dt)
 			}
 
 			// apply impulse on normal direction
-			FLOAT3 impulseN = normal * jn;
+			Float3 impulseN = normal * jn;
 		    //if (A) A->linearVelocity += impulseN * invMassA;
 			//if (B) B->linearVelocity -= impulseN * invMassB;
 
 
 			//tangent direction:
-			FLOAT3 vt = relVel - normal * vn_mag; 
-			FLOAT3 impulseT = FLOAT3{ 0,0,0 };  
+			Float3 vt = relVel - normal * vn_mag; 
+			Float3 impulseT = Float3{ 0,0,0 };  
 			//end loop when too small;
 			if (LengthSq(vt) < 1e-6f) {
 				//continue;
-				//impulseT = FLOAT3{ 0,0,0 }; // no tangential impulse
-				//vt = FLOAT3{ 0,0,0 }; // no tangential impulse
+				//impulseT = Float3{ 0,0,0 }; // no tangential impulse
+				//vt = Float3{ 0,0,0 }; // no tangential impulse
 		
 			}
 			else
@@ -252,7 +252,7 @@ void PhysicsScene::SolveConstraints(float dt)
 				//if (B) B->linearVelocity -= impulseT * invMassB; 
 			}
 			 
-			FLOAT3 impulse = impulseN + impulseT; // total impulse
+			Float3 impulse = impulseN + impulseT; // total impulse
 
 			if (A) A->linearVelocity += impulseN * invMassA;
 		    if (B) B->linearVelocity -= impulseN * invMassB;
@@ -265,10 +265,10 @@ void PhysicsScene::SolveConstraints(float dt)
 
 			
 			if (A && A->enableRotation) { 
-				FLOAT3 Rr = contact.point - A->position;
-				FLOAT3 angularImpulse = Vector3Cross(Rr, impulse);
+				Float3 Rr = contact.point - A->position;
+				Float3 angularImpulse = Vector3Cross(Rr, impulse);
 				 
-				FLOAT3X3 I_inv = Inverse(A->worldInertia);
+				Float3x3 I_inv = Inverse(A->worldInertia);
 				A->angularVelocity += I_inv * angularImpulse;
 	/*			std::cout << A->debugName << "\tangular velocity: " << A->angularVelocity.x() << ", "
 					<< A->angularVelocity.y() << ", "
@@ -276,11 +276,11 @@ void PhysicsScene::SolveConstraints(float dt)
 			}
 
 			if (B && B->enableRotation) { 
-				FLOAT3 Rr =  contact.point - B->position;
-				FLOAT3 angularImpulse = Vector3Cross(Rr, impulse);
+				Float3 Rr =  contact.point - B->position;
+				Float3 angularImpulse = Vector3Cross(Rr, impulse);
 
 
-				FLOAT3X3 I_inv = Inverse(B->worldInertia);
+				Float3x3 I_inv = Inverse(B->worldInertia);
 				B->angularVelocity -= I_inv * angularImpulse; //note: minus here, because B is moving in opposite direction
 				//std::cout << B->debugName << " angular velocity : " << B->angularVelocity.x() << ", "
 				//	<< B->angularVelocity.y() << ", "

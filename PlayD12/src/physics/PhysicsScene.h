@@ -19,7 +19,7 @@ struct PhysicalMaterial {
 	float friction;
 };
 
-struct StaticMeshObjectProxy;
+struct StaticMeshActorProxy;
 
 struct RigidBody {
 
@@ -28,27 +28,27 @@ struct RigidBody {
 	float mass = 1.0f;   //or inverseMass
 	float invMass = 1.0f; //inverse mass, 0 means infinite mass (static body)
 
-	FLOAT3 position;
-	FLOAT3 prevPos; //for previous
-	FLOAT3 predPos; //for prediction
+	Float3 position;
+	Float3 prevPos; //for previous
+	Float3 predPos; //for prediction
 
-	FLOAT3 linearVelocity;
-	FLOAT3 force;  //accumulation in the frame; 
+	Float3 linearVelocity;
+	Float3 force;  //accumulation in the frame; 
 
-	bool simulatePhysics{ true };
+	bool simulatePhysics{ false };
 	PhysicalMaterial material{ 0.0f, 0.8f };
 
 	bool simulateRotation{ false };
 	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity() };
-	FLOAT3 angularVelocity;
-	FLOAT3 torque{};
+	Float3 angularVelocity;
+	Float3 torque{};
 
-	FLOAT3X3 RotationMatrix;
+	Float3x3 RotationMatrix;
 
 	//inertia
-	FLOAT3X3 localInertia;
-	FLOAT3X3 worldInertia;
-	FLOAT3X3  invWorldInertia;
+	Float3x3 localInertia;
+	Float3x3 worldInertia;
+	Float3x3  invWorldInertia;
 
 	DirectX::XMVECTOR prevRot{ DirectX::XMQuaternionIdentity() };
 	DirectX::XMVECTOR predRot{ DirectX::XMQuaternionIdentity() };
@@ -56,41 +56,16 @@ struct RigidBody {
 	ShapeType type;
 
 	//bool isKenematic;  
-	void ApplyForce(FLOAT3 force) {
+	void ApplyForce(Float3 force) {
 		this->force += force;
 	}
 
-	void ApplyTorque(const FLOAT3& torque) {
+	void ApplyTorque(const Float3& torque) {
 		this->torque += torque;
 	}
-
-	//todo: angular;
-	StaticMeshObjectProxy* owner;
-	RigidBody(StaticMeshObjectProxy* owner, FLOAT3 position, ShapeType type, DirectX::XMVECTOR rotation)
-		: owner(owner), position(position), type(type), rotation(rotation)
-	{ 
-		predPos = position;
-		prevPos = position;
-
-		predRot = rotation;
-		prevRot = rotation;
-
-		if (simulatePhysics) {
-			localInertia = MakeInertiaTensor(type, mass);
-			//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
-			DirectX::XMMATRIX R_ = DirectX::XMMatrixRotationQuaternion(rotation);
-			FLOAT3X3 R;
-			R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
-			R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
-			R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
-			RotationMatrix = R;
-
-			worldInertia = MatrixMultiply(MatrixMultiply(R, localInertia), Transpose(R));
-			invWorldInertia = Inverse(worldInertia);
-		}
-
-	};
-
+	 
+	StaticMeshActorProxy* owner;
+	RigidBody(StaticMeshActorProxy* owner, ShapeType type);
 
 	//debug
 	bool showDebug{ false };
@@ -101,8 +76,8 @@ struct Collider {
 	ShapeType type;
 
 	RigidBody* body{ nullptr };
-	StaticMeshObjectProxy* owner;
-	Collider(StaticMeshObjectProxy* owner, ShapeType type, RigidBody* body)
+	StaticMeshActorProxy* owner;
+	Collider(StaticMeshActorProxy* owner, ShapeType type, RigidBody* body)
 		: owner(owner), type(type), body(body)
 	{
 	};
@@ -116,8 +91,8 @@ struct Collider {
 
 
 struct Contact {
-	FLOAT3 point;
-	FLOAT3 normal;
+	Float3 point;
+	Float3 normal;
 	float penetration;
 
 	Collider* a{};
@@ -201,8 +176,8 @@ private:
 
 	 
 public:
-	FLOAT3 gravity{ 0.0f, -9.8f, 0.0f };
-	//FLOAT3 gravity{ 0.0f, 0.0f, 0.0f }; 
+	Float3 gravity{ 0.0f, -9.8f, 0.0f };
+	//Float3 gravity{ 0.0f, 0.0f, 0.0f }; 
 };
 
 

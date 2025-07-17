@@ -41,72 +41,19 @@ void GameApplication::onInit()
 	//----------------------------
 	m_inputSystem = new InputSystem();
 
-	//m_mainWindow->InitInputSource(m_inputSystem);
-
-
+	//m_mainWindow->InitInputSource(m_inputSystem); 
 
 
 	//-----------------------------
-	m_uiManager = new UIManager();
-
+	m_uiManager = new UIManager(); 
 
 
 	//----------------------------
 	m_gameManager = new GameStateManager();
 
-	if (auto mainMenuState = m_gameManager->Register<MainMenuState>()) {
-		mainMenuState->OnEnter.Add(
-			[&]() {
-				std::cout << " enter mainMenu state" << "\n";
-				mainMenuWorld->OnLoad();
-			});
-
-		mainMenuState->OnUpdate.Add(
-			[&](float dt) {
-				mainMenuWorld->OnUpdate(dt);
-				//std::cout << " tick mainMenu: " << dt << "\n";
-			});
-		mainMenuState->OnExit.Add(
-			[&]() {
-				mainMenuWorld->OnUnload();
-				//std::cout << " tick mainMenu: " << dt << "\n";
-			});
-
-		//m_gameManager->SetInitialState(mainMenuState->GetId());
-	}
-
-
-
-	if (auto playingState = m_gameManager->Register<PlayingState>()) {
-		playingState->OnEnter.Add(
-			[&]() {
-				std::cout << " enter playing state" << "\n";
-				gameWorld->OnLoad();
-			});
-
-		playingState->OnUpdate.Add(
-			[&](float dt) {
-				gameWorld->OnUpdate(dt);
-				//std::cout << " tick playing: " << dt << "\n";
-			});
-		playingState->OnExit.Add(
-			[&]() {
-				std::cout << " exit playing state" << "\n";
-				gameWorld->OnUnload();
-			});
-
-		m_gameManager->SetInitialState(playingState->GetId());
-	}
-
-
-	//----------------------------
-	this->gameWorld = new GamePlayWorld();
-	this->mainMenuWorld = new MainMenuWorld();
-
-
-	m_gameManager->Initialize();
-
-
+	//---------------------- 
+	m_worldManager = new WorldManager();
+	 
 }
 
 void GameApplication::onDestroy()
@@ -118,27 +65,9 @@ void GameApplication::run()
 {
 	//todo:  exit condition could be more complex.
 	while (!m_mainWindow->shouldClose()) {
-		m_mainWindow->onUpdate();
-		 
-		DebugDraw::Get().AddRay(
-			FLOAT3(0.0f, 0.0f, 0.0f),
-			FLOAT3(5.0f, 0.0f, 0.0f),
-			Color::Red
-		);
-		 
-		DebugDraw::Get().AddRay(
-			FLOAT3(0.0f, 0.0f, 0.0f),
-			FLOAT3(0.0f, 5.0f, 0.0f),
-			Color::Green
-		); 
 
-
-		DebugDraw::Get().AddRay(
-			FLOAT3(0.0f, 0.0f, 0.0f),
-			FLOAT3(0.0f, 0.0f, 5.0f),
-			Color::Blue
-		);
-
+		//std::cout << "tick app" << '\n';
+		m_mainWindow->onUpdate(); 
 
 		m_physicsScene->Tick(0.016f);
 
@@ -175,35 +104,80 @@ void GameApplication::run()
 		m_gameManager->Update(0.016f);
 
 
-
+		m_worldManager->Update(0.016f);
 
 	}
 
 
 }
 
+void GameApplication::onBeginGame()
+{
+
+	m_worldManager->RegisterWorld("gameplay", CreateShared<GamePlayWorld>());
+	m_worldManager->RegisterWorld("mainMenu", CreateShared<MainMenuWorld>()); 
 
 
-//HMODULE LoadDXCompilerDLL()
-//{
-//	std::filesystem::path dllPath = "C:/Program Files (x86)/Windows Kits/10/bin/10.0.22621.0/x64/dxcompiler.dll";
-//
-//	std::wcout << L"Trying to load " << dllPath.wstring() << '\n';
-//	HMODULE hModule = LoadLibraryW(dllPath.wstring().c_str());
-//
-//	if (!hModule) {
-//		DWORD err = GetLastError();
-//		
-//		std::cout << "fail loading dxcompiler.dll" << '\n';
-//		return nullptr;
-//	}
-//
-//	return hModule; 
-//}
+	if (auto mainMenuState = m_gameManager->Register<MainMenuState>()) {
+		mainMenuState->OnEnter.Add(
+			[&]() {
+				std::cout << " enter mainMenu state" << "\n";
+				m_worldManager->TransitWorld("mainMenu");
+				//mainMenuWorld->OnLoad();
+			});
+
+		mainMenuState->OnUpdate.Add(
+			[&](float dt) {
+				//mainMenuWorld->OnUpdate(dt);
+				//std::cout << " tick mainMenu: " << dt << "\n";
+			});
+		mainMenuState->OnExit.Add(
+			[&]() {
+				//mainMenuWorld->OnUnload();
+				//std::cout << " tick mainMenu: " << dt << "\n";
+			});
+
+		m_gameManager->SetInitialState(mainMenuState->GetId());
+	}
+
+
+
+	if (auto playingState = m_gameManager->Register<PlayingState>()) {
+		 
+		playingState->OnEnter.Add(
+			[&]() {
+				std::cout << " enter playing state" << "\n";
+				//gameWorld->OnLoad();
+
+				m_worldManager->TransitWorld("gameplay");
+			});
+		
+		playingState->OnUpdate.Add(
+			[&](float dt) {
+				//gameWorld->OnUpdate(dt);
+				//std::cout << " tick playing: " << dt << "\n";
+			});
+		playingState->OnExit.Add(
+			[&]() {
+				std::cout << " exit playing state" << "\n";
+				//gameWorld->OnUnload();
+			});
+
+		//m_gameManager->SetInitialState(playingState->GetId());
+	}
+
+
+	//----------------------------
+
+	m_gameManager->Initialize(); 
+
+}
+
+
+
 
 bool GameApplication::initWorkingDirectory()
-{
-	//LoadDXCompilerDLL();
+{ 
 
 	auto src_path = std::source_location::current();
 	std::filesystem::path this_file = src_path.file_name(); //required conversion
@@ -213,9 +187,7 @@ bool GameApplication::initWorkingDirectory()
 	this->m_workingDirectory = std::filesystem::current_path().string();
 
 	std::cout << "Current working directory: " << this->m_workingDirectory << "\n";
-
-
-
+	 
 
 	return true;
 }

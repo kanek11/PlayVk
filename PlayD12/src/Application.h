@@ -77,6 +77,7 @@ public:
 	virtual void onDestroy() override;
 	virtual void run() override;
 
+	void onBeginGame();
 
 	//
 	uint32_t GetWidth() const { return m_width; }
@@ -123,10 +124,7 @@ private:
 	InputSystem* m_inputSystem{ nullptr };
 	GameStateManager* m_gameManager{ nullptr };
 
-	UIManager* m_uiManager{ nullptr };
+	UIManager* m_uiManager{ nullptr }; 
 
-private:
-	//hardcode for now:
-	GamePlayWorld* gameWorld{ nullptr };
-	MainMenuWorld* mainMenuWorld{ nullptr };
+	WorldManager* m_worldManager{ nullptr };
 };

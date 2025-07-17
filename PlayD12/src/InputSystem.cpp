@@ -1,6 +1,6 @@
 #include "PCH.h"
 #include "InputSystem.h"
- 
+
 
 
 //windows scancode is basically ASCII:
@@ -40,17 +40,21 @@ static const std::unordered_map<int, KeyCode> WindowsKeyMap = {
 InputSystem::InputSystem() {
 
     keyStateRaw.fill(false);
-    keyState.fill(ButtonFrame{}); 
+    keyState.fill(ButtonFrame{});
 
     mouseButtonStateRaw.fill(false);
-    mouseButtonState.fill(ButtonFrame{}); 
+    mouseButtonState.fill(ButtonFrame{});
 }
 
 
 
 void InputSystem::OnUpdate()
-{
+{ 
+    m_gamepad.Update(); //update gamepad state
+
+
     auto events = EventQueue::Get().Drain();
+    //std::cout << "input sys: cached event number:" << events.size() << '\n';
 
 
     for (const auto& event : events) {
@@ -64,11 +68,33 @@ void InputSystem::OnUpdate()
     }
 
     for (size_t i = 0; i < MAX_KeyCode; ++i) {
-        keyState[i].Update(keyStateRaw[i]); 
+        keyState[i].Update(keyStateRaw[i]);
     }
 
     for (size_t i = 0; i < MAX_MouseCode; ++i) {
         mouseButtonState[i].Update(mouseButtonStateRaw[i]);
+    }
+
+
+    //new:
+	for (auto& [axis, binds] : DefaultAxisBindings){ 
+		if (binds.empty()) continue;  
+		m_axisState[(size_t)axis] = 0.f;
+
+        for (const auto& bind : binds) {
+            if (IsKeyDown(bind.key)) { 
+                m_axisState[(size_t)axis] += bind.buttonScale;
+            }
+			if (m_gamepad.GetButtonState(bind.gamepadButton)) {
+				m_axisState[(size_t)axis] += bind.buttonScale;
+			} 
+			if (bind.gamepadAxis != GamepadAxis::COUNT) {
+				m_axisState[(size_t)axis] += m_gamepad.GetAxis(bind.gamepadAxis);
+			}  
+            //clamp the value to [-1, 1]
+            m_axisState[(size_t)axis] = std::clamp(m_axisState[(size_t)axis], -1.f, 1.f);
+        }
+    
     }
 }
 
@@ -94,9 +120,9 @@ bool InputSystem::IsKeyJustReleased(KeyCode key) const
 }
 
 bool InputSystem::IsKeyDown(KeyCode key) const
-{ 
+{
     return keyState[static_cast<size_t>(key)].state == ButtonFrameState::Down
-    || keyState[static_cast<size_t>(key)].state == ButtonFrameState::Pressed;
+        || keyState[static_cast<size_t>(key)].state == ButtonFrameState::Pressed;
 }
 
 bool InputSystem::IsKeyUp(KeyCode key) const
@@ -111,18 +137,18 @@ void InputSystem::OnMouseButtonDown(FMouseButtonDown e)
     std::cout << "input system: button down" << '\n';
 
     //push a UI event to the queue
-	UIMouseButtonDown uiEvent = UIMouseButtonDown{ e.button, e.x, e.y };
-	UIEventQueue::Get().Push(uiEvent); 
+    UIMouseButtonDown uiEvent = UIMouseButtonDown{ e.button, e.x, e.y };
+    UIEventQueue::Get().Push(uiEvent);
 
 }
-    
+
 void InputSystem::OnMouseButtonUp(FMouseButtonUp e)
 {
     mouseButtonStateRaw[static_cast<size_t>(e.button)] = false;
     std::cout << "input system: button up" << '\n';
-     
-	UIMouseButtonUp uiEvent = UIMouseButtonUp{ e.button, e.x, e.y };
-	UIEventQueue::Get().Push(uiEvent);
+
+    UIMouseButtonUp uiEvent = UIMouseButtonUp{ e.button, e.x, e.y };
+    UIEventQueue::Get().Push(uiEvent);
 }
 
 void InputSystem::OnMouseMove(FMouseMove e)
@@ -131,8 +157,8 @@ void InputSystem::OnMouseMove(FMouseMove e)
     this->MouseY = e.y;
 
     //std::cout << "input system: mouseX:" << e.x << '\n';
-	UIMouseMove uiEvent = UIMouseMove{ e.x, e.y };
-	UIEventQueue::Get().Push(uiEvent); 
+    UIMouseMove uiEvent = UIMouseMove{ e.x, e.y };
+    UIEventQueue::Get().Push(uiEvent);
 }
 
 FPointer InputSystem::GetMousePointer()
@@ -143,7 +169,13 @@ FPointer InputSystem::GetMousePointer()
 bool InputSystem::IsMouseButtonJustPressed(MouseButtonCode button)
 {
     //std::cout << static_cast<int>(mouseButtonState[static_cast<size_t>(button)].state) << '\n';
-    return mouseButtonState[static_cast<size_t>(button)].state == ButtonFrameState::Pressed; 
+    return mouseButtonState[static_cast<size_t>(button)].state == ButtonFrameState::Pressed;
+}
+
+float InputSystem::GetAxis(EAxis axis) const
+{
+	std::cout << "get axis value :" << m_axisState[static_cast<size_t>(axis)] << '\n';
+	return m_axisState[static_cast<size_t>(axis)];
 }
 
 

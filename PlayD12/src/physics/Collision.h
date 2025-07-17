@@ -14,27 +14,27 @@
 */
 
 
-struct AABB { FLOAT3 min, max; };
+struct AABB { Float3 min, max; };
 
 struct OBB {
-    FLOAT3 center;
-    FLOAT3 axis[3];
-    FLOAT3 halfExtents;
+    Float3 center;
+    Float3 axis[3];
+    Float3 halfExtents;
 };
 
 
-struct SphereWS { FLOAT3 center; float radius; };
-struct CapsuleWS { FLOAT3 p0, p1; float radius; };
+struct SphereWS { Float3 center; float radius; };
+struct CapsuleWS { Float3 p0, p1; float radius; };
 
 // dot(p,n)+d = 0
 struct PlaneWS {
-    FLOAT3 normal;
+    Float3 normal;
     float d;
     float width;
     float height;
-    FLOAT3 center;
-    FLOAT3 right = { 1, 0, 0 };
-    FLOAT3 forward = { 0, 0, 1 };
+    Float3 center;
+    Float3 right = { 1, 0, 0 };
+    Float3 forward = { 0, 0, 1 };
 };
 
 using WorldShape = std::variant<SphereWS, AABB, PlaneWS, OBB>;
@@ -53,7 +53,7 @@ WorldShape MakeWorldShape(const Collider& c)
 
         if constexpr (std::is_same_v<Shape, Sphere>)
         {
-            const FLOAT3 center = (c.body ? c.body->predPos : FLOAT3{});
+            const Float3 center = (c.body ? c.body->predPos : Float3{});
             return SphereWS{ center, s.radius };
         }
         else if constexpr (std::is_same_v<Shape, Box>)
@@ -63,15 +63,15 @@ WorldShape MakeWorldShape(const Collider& c)
                 return OBB{};
             }
 
-            //if (!c.body->simulateRotation && XMQuaternionEqual(c.body->rotation, XMQuaternionIdentity())) {
-            //    //if the body is not rotating, we can use AABB
-            //    const FLOAT3 center = c.body->predPos;
-            //    return AABB{ center - s.halfExtents, center + s.halfExtents };
-            //}
+            if (!c.body->simulateRotation && XMQuaternionEqual(c.body->rotation, XMQuaternionIdentity())) {
+                //if the body is not rotating, we can use AABB
+                const Float3 center = c.body->predPos;
+                return AABB{ center - s.halfExtents, center + s.halfExtents };
+            }
 
-            const FLOAT3 center = c.body->predPos;
+            const Float3 center = c.body->predPos;
             //return as OBB:
-            FLOAT3X3 R = c.body->RotationMatrix;
+            Float3x3 R = c.body->RotationMatrix;
             OBB obb;
             obb.center = center;
             obb.halfExtents = s.halfExtents;
@@ -82,15 +82,15 @@ WorldShape MakeWorldShape(const Collider& c)
         }
         else if constexpr (std::is_same_v<Shape, Capsule>)
         {
-            const FLOAT3 p0 = (c.body ? c.body->position : FLOAT3{});
-            const FLOAT3 p1 = p0 + FLOAT3{ 0, s.height, 0 }; //assuming vertical capsule for now
+            const Float3 p0 = (c.body ? c.body->position : Float3{});
+            const Float3 p1 = p0 + Float3{ 0, s.height, 0 }; //assuming vertical capsule for now
             return CapsuleWS{ p0, p1, s.radius };
         }
         else if constexpr (std::is_same_v<Shape, Plane>)
         {
-            const FLOAT3 n = FLOAT3{ 0, 1, 0 }; //assuming the plane is horizontal for now  
-            const float  d = -Dot(n, (c.body ? c.body->position : FLOAT3{}));
-            const FLOAT3 center = (c.body ? c.body->position : FLOAT3{});
+            const Float3 n = Float3{ 0, 1, 0 }; //assuming the plane is horizontal for now  
+            const float  d = -Dot(n, (c.body ? c.body->position : Float3{}));
+            const Float3 center = (c.body ? c.body->position : Float3{});
 
             return PlaneWS{ n, d , s.width, s.height, center };
         }
@@ -151,32 +151,32 @@ template<class A, class B> [[nodiscard]]
         //dz = std::min(a.max.z() - b.min.z(), b.max.z() - a.min.z());
 
 
-        FLOAT3 normal;
+        Float3 normal;
         float penetration;
 
         //decide on minimum overlap and normal dir.
         //pass the overlap test means the values are positive.
 
         if (dx < dy && dx < dz) {
-            normal = (a.min.x() < b.min.x()) ? FLOAT3{ -1, 0, 0 } : FLOAT3{ 1, 0, 0 };
+            normal = (a.min.x() < b.min.x()) ? Float3{ -1, 0, 0 } : Float3{ 1, 0, 0 };
             penetration = dx;
         }
         else if (dy < dz) {
-            normal = (a.min.y() < b.min.y()) ? FLOAT3{ 0, -1, 0 } : FLOAT3{ 0, 1, 0 };
+            normal = (a.min.y() < b.min.y()) ? Float3{ 0, -1, 0 } : Float3{ 0, 1, 0 };
             penetration = dy;
             //std::cout << "penetration Y: " << penetration << '\n';
         }
         else {
-            normal = (a.min.z() < b.min.z()) ? FLOAT3{ 0, 0, -1 } : FLOAT3{ 0, 0, 1 };
+            normal = (a.min.z() < b.min.z()) ? Float3{ 0, 0, -1 } : Float3{ 0, 0, 1 };
             penetration = dz;
-            std::cout << "penetration Z: " << penetration << '\n';
+            //std::cout << "penetration Z: " << penetration << '\n';
         }
 
-        FLOAT3 point = (FLOAT3{
+        Float3 point = (Float3{
             std::max(a.min.x(), b.min.x()),
             std::max(a.min.y(), b.min.y()),
             std::max(a.min.z(), b.min.z())
-            } + FLOAT3{
+            } + Float3{
                 std::min(a.max.x(), b.max.x()),
                 std::min(a.max.y(), b.max.y()),
                 std::min(a.max.z(), b.max.z())
@@ -198,7 +198,7 @@ template<class A, class B> [[nodiscard]]
     {
         //std::cout << "Collide Sphere with Sphere" << std::endl;
 
-        FLOAT3 a2b = b.center - a.center;
+        Float3 a2b = b.center - a.center;
         float  distSq = LengthSq(a2b);
         float  r_sum = a.radius + b.radius;
 
@@ -210,16 +210,16 @@ template<class A, class B> [[nodiscard]]
 
         //defensive check.
         //bug fix : if the direction is negative; the spheres will get entangled;
-        FLOAT3 normal;
+        Float3 normal;
         if (dist > 1e-6f)
             normal = Normalize(-1.0f * a2b);
         else
-            normal = FLOAT3{ 1, 0, 0 }; //meaningless fallback; todo:
+            normal = Float3{ 1, 0, 0 }; //meaningless fallback; todo:
 
         //take the middle:
-        FLOAT3 surfaceA = a.center - normal * a.radius;
-        FLOAT3 surfaceB = b.center + normal * b.radius;
-        FLOAT3 contactPoint = (surfaceA + surfaceB) * 0.5f;
+        Float3 surfaceA = a.center - normal * a.radius;
+        Float3 surfaceB = b.center + normal * b.radius;
+        Float3 contactPoint = (surfaceA + surfaceB) * 0.5f;
 
         out.normal = normal;
         out.point = contactPoint;
@@ -228,8 +228,8 @@ template<class A, class B> [[nodiscard]]
     }
 
 
-    FLOAT3 ClosedPoint(const AABB& box, const FLOAT3& point) {
-        FLOAT3 closestPoint{
+    Float3 ClosedPoint(const AABB& box, const Float3& point) {
+        Float3 closestPoint{
     std::clamp(point.x(), box.min.x(), box.max.x()),
     std::clamp(point.y(), box.min.y(), box.max.y()),
     std::clamp(point.z(), box.min.z(), box.max.z())
@@ -243,16 +243,16 @@ template<class A, class B> [[nodiscard]]
     {
         //std::cout << "Collide Sphere with AABB" << std::endl;
 
-        FLOAT3 closestPoint = ClosedPoint(box, s.center);
+        Float3 closestPoint = ClosedPoint(box, s.center);
 
-        FLOAT3 offset = s.center - closestPoint;
+        Float3 offset = s.center - closestPoint;
         float distSq = LengthSq(offset);
 
         if (distSq > s.radius * s.radius) return false;
 
         float dist = std::sqrt(distSq);
-        FLOAT3 normal = dist > 0.0001f ? offset / dist : FLOAT3{ 0, 1, 0 };
-        FLOAT3 point = closestPoint;
+        Float3 normal = dist > 0.0001f ? offset / dist : Float3{ 0, 1, 0 };
+        Float3 point = closestPoint;
 
         out.normal = normal;
         out.point = point;
@@ -283,16 +283,16 @@ template<class A, class B> [[nodiscard]]
     {
         //std::cout << "Collide Sphere with OBB" << std::endl;
         //project the sphere onto the OBB's axes
-        FLOAT3 closestPoint = box.center;
+        Float3 closestPoint = box.center;
         for (int i = 0; i < 3; ++i) {
             closestPoint += box.axis[i] * std::clamp(Dot(s.center - box.center, box.axis[i]), -box.halfExtents[i], box.halfExtents[i]);
         }
-        FLOAT3 offset = s.center - closestPoint;
+        Float3 offset = s.center - closestPoint;
         float distSq = LengthSq(offset);
         if (distSq > s.radius * s.radius) return false;
         float dist = std::sqrt(distSq);
-        FLOAT3 normal = dist > 0.0001f ? offset / dist : FLOAT3{ 0, 1, 0 };
-        FLOAT3 point = closestPoint;
+        Float3 normal = dist > 0.0001f ? offset / dist : Float3{ 0, 1, 0 };
+        Float3 point = closestPoint;
         out.normal = normal;
         out.point = point;
         out.penetration = s.radius - dist;
@@ -318,8 +318,8 @@ template<class A, class B> [[nodiscard]]
     [[nodiscard]]
     bool Collide(const AABB& box, const PlaneWS& plane, Contact& out)
     {
-        const FLOAT3 center = (box.min + box.max) * 0.5f;
-        const FLOAT3 extents = (box.max - box.min) * 0.5f;
+        const Float3 center = (box.min + box.max) * 0.5f;
+        const Float3 extents = (box.max - box.min) * 0.5f;
 
         float r =
             extents.x() * std::abs(plane.normal.x()) +
@@ -331,8 +331,8 @@ template<class A, class B> [[nodiscard]]
         if (std::abs(d) > r)
             return false;  // no intersection
 
-        FLOAT3 projected = center - plane.normal * d;
-        FLOAT3 localVec = projected - plane.center;
+        Float3 projected = center - plane.normal * d;
+        Float3 localVec = projected - plane.center;
 
         //------------------------------
         float u = Dot(localVec, plane.right);
@@ -361,7 +361,7 @@ template<class A, class B> [[nodiscard]]
     }
 
 
-    inline float SignedDist(const PlaneWS& plane, const FLOAT3& point) {
+    inline float SignedDist(const PlaneWS& plane, const Float3& point) {
 
         return Dot(plane.normal, point) + plane.d;
     }
@@ -380,8 +380,8 @@ template<class A, class B> [[nodiscard]]
 
 
         //----------------------- 
-        FLOAT3 max = plane.center + 0.5f * plane.right * plane.width + 0.5f * plane.forward * plane.height;
-        FLOAT3 min = plane.center - 0.5f * plane.right * plane.width - 0.5f * plane.forward * plane.height;
+        Float3 max = plane.center + 0.5f * plane.right * plane.width + 0.5f * plane.forward * plane.height;
+        Float3 min = plane.center - 0.5f * plane.right * plane.width - 0.5f * plane.forward * plane.height;
         AABB mimicAABB = AABB{ min, max };
 
         if (!Collide(s, mimicAABB, out))
@@ -411,14 +411,14 @@ template<class A, class B> [[nodiscard]]
 
 
     // Projects an oriented box onto an arbitrary axis and returns its radius on that axis.
-    static float ProjectOBB(const OBB& obb, const FLOAT3& n)
+    static float ProjectOBB(const OBB& obb, const Float3& n)
     {
         return obb.halfExtents.x() * std::abs(Dot(obb.axis[0], n)) +
             obb.halfExtents.y() * std::abs(Dot(obb.axis[1], n)) +
             obb.halfExtents.z() * std::abs(Dot(obb.axis[2], n));
     }
 
-    inline Interval OBBProject(const OBB& obb, const FLOAT3& axis) {
+    inline Interval OBBProject(const OBB& obb, const Float3& axis) {
         //project the OBB onto a given axis
 
         float center = Dot(obb.center, axis);
@@ -431,10 +431,10 @@ template<class A, class B> [[nodiscard]]
         return { center - radius, center + radius };
     }
 
-    inline Interval AABBProject(const AABB& aabb, const FLOAT3& axis) {
+    inline Interval AABBProject(const AABB& aabb, const Float3& axis) {
         //project the AABB onto a given axis
-        FLOAT3 aCenter = (aabb.min + aabb.max) * 0.5f;
-        FLOAT3 aExtent = (aabb.max - aabb.min) * 0.5f;
+        Float3 aCenter = (aabb.min + aabb.max) * 0.5f;
+        Float3 aExtent = (aabb.max - aabb.min) * 0.5f;
 
         float center = Dot(aCenter, axis);
         float radius = 0.0f;
@@ -446,9 +446,9 @@ template<class A, class B> [[nodiscard]]
     }
 
     // Returns an extreme vertex on obb in direction "dir" (support mapping).
-    static FLOAT3 SupportVertex(const OBB& obb, const FLOAT3& dir)
+    static Float3 SupportVertex(const OBB& obb, const Float3& dir)
     {
-        FLOAT3 res = obb.center;
+        Float3 res = obb.center;
         res += obb.axis[0] * obb.halfExtents.x() * ((Dot(dir, obb.axis[0]) >= 0.f) ? 1.f : -1.f);
         res += obb.axis[1] * obb.halfExtents.y() * ((Dot(dir, obb.axis[1]) >= 0.f) ? 1.f : -1.f);
         res += obb.axis[2] * obb.halfExtents.z() * ((Dot(dir, obb.axis[2]) >= 0.f) ? 1.f : -1.f);
@@ -460,20 +460,20 @@ template<class A, class B> [[nodiscard]]
     {
         constexpr float kEps = 1e-6f;
 
-        const FLOAT3 A2B = B.center - A.center;
+        const Float3 A2B = B.center - A.center;
 
-        const FLOAT3 axesA[3] = { A.axis[0], A.axis[1], A.axis[2] };
-        const FLOAT3 axesB[3] = { B.axis[0], B.axis[1], B.axis[2] };
+        const Float3 axesA[3] = { A.axis[0], A.axis[1], A.axis[2] };
+        const Float3 axesB[3] = { B.axis[0], B.axis[1], B.axis[2] };
 
         float   minOverlap = FLT_MAX;
-        FLOAT3  bestAxis = { 0,0,0 };
+        Float3  bestAxis = { 0,0,0 };
 
         // Helper lambda for the 15 SAT axes.
-        auto TestAxis = [&](const FLOAT3& n) -> bool
+        auto TestAxis = [&](const Float3& n) -> bool
             {
                 if (LengthSq(n) < kEps) return true; // degenerate / parallel axis？
 
-                const FLOAT3 axis = Normalize(n);
+                const Float3 axis = Normalize(n);
 
                 //float dist = std::abs(Dot(A2B, axis));
                 //float ra = ProjectOBB(A, axis);
@@ -512,14 +512,14 @@ template<class A, class B> [[nodiscard]]
         out.penetration = minOverlap;
 
         // Approximate a single contact point – midpoint of extreme vertices along the normal.
-        FLOAT3 pa = SupportVertex(A, -bestAxis);
-        FLOAT3 pb = SupportVertex(B, bestAxis);
+        Float3 pa = SupportVertex(A, -bestAxis);
+        Float3 pb = SupportVertex(B, bestAxis);
         out.point = (pa + pb) * 0.5f;
 
- /*       std::cout << "Collided OBB with OBB: "
-            << "Penetration: " << out.penetration << '\n'
-            << " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << '\n'
-            << " Point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << '\n';*/
+        /*       std::cout << "Collided OBB with OBB: "
+                   << "Penetration: " << out.penetration << '\n'
+                   << " Normal: " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << '\n'
+                   << " Point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << '\n';*/
 
         return true; // Boxes intersect.
     }
@@ -532,9 +532,9 @@ template<class A, class B> [[nodiscard]]
     //    OBB mimicOBB;
     //    mimicOBB.center = (a.min + a.max) * 0.5f;
     //    mimicOBB.halfExtents = (a.max - a.min) * 0.5f;
-    //    mimicOBB.axis[0] = FLOAT3{ 1, 0, 0 };
-    //    mimicOBB.axis[1] = FLOAT3{ 0, 1, 0 };
-    //    mimicOBB.axis[2] = FLOAT3{ 0, 0, 1 };
+    //    mimicOBB.axis[0] = Float3{ 1, 0, 0 };
+    //    mimicOBB.axis[1] = Float3{ 0, 1, 0 };
+    //    mimicOBB.axis[2] = Float3{ 0, 0, 1 };
     //    return Collide(mimicOBB, b, out);
     //}
 
@@ -543,19 +543,19 @@ template<class A, class B> [[nodiscard]]
     //[[nodiscard]] 
     //bool Collide(const AABB& a, const OBB& b, Contact& out) {
     //    // convert the AABB
-    //    FLOAT3 aCenter = (a.min + a.max) * 0.5f;
-    //    FLOAT3 aExtent = (a.max - a.min) * 0.5f;
+    //    Float3 aCenter = (a.min + a.max) * 0.5f;
+    //    Float3 aExtent = (a.max - a.min) * 0.5f;
     //
     //    // constant axis;
-    //    const FLOAT3 aAxes[3] = {
-    //        FLOAT3{1,0,0}, FLOAT3{0,1,0}, FLOAT3{0,0,1}
+    //    const Float3 aAxes[3] = {
+    //        Float3{1,0,0}, Float3{0,1,0}, Float3{0,0,1}
     //    };
     //
     //    float   minOverlap = FLT_MAX;
-    //    FLOAT3  bestAxis = FLOAT3{ 0,0,0 };
+    //    Float3  bestAxis = Float3{ 0,0,0 };
     //     
     //	//capture by reference
-    //    auto testAxis = [&](const FLOAT3& axis) {
+    //    auto testAxis = [&](const Float3& axis) {
     //
     //        Interval aProj = AABBProject(a, axis);
     //        Interval bProj = OBBProject(b, axis);
@@ -590,7 +590,7 @@ template<class A, class B> [[nodiscard]]
     // 
     //    for (int i = 0; i < 3; i++) {
     //        for (int j = 0; j < 3; j++) {
-    //            FLOAT3 axis = Vector3Cross(aAxes[i], b.axis[j]);
+    //            Float3 axis = Vector3Cross(aAxes[i], b.axis[j]);
     //            float len2 = Dot(axis, axis);
     //            if (len2 < 1e-6f)
     //                continue;   // 共线，跳过
@@ -611,12 +611,12 @@ template<class A, class B> [[nodiscard]]
     //
     //    // 6. 近似计算接触点（在 A 与 B 表面之间做中点）
     //    {
-    //		FLOAT3 contactPointA = aCenter - bestAxis * (
+    //		Float3 contactPointA = aCenter - bestAxis * (
     //            aExtent.x() * std::abs(bestAxis.x()) +
     //			aExtent.y() * std::abs(bestAxis.y()) +
     //			aExtent.z() * std::abs(bestAxis.z())
     //            );
-    //		FLOAT3 contactPointB = b.center + bestAxis * (
+    //		Float3 contactPointB = b.center + bestAxis * (
     //            b.halfExtents.x() * std::abs(Dot(b.axis[0], bestAxis)) +
     //			b.halfExtents.y() * std::abs(Dot(b.axis[1], bestAxis)) +
     //			b.halfExtents.z() * std::abs(Dot(b.axis[2], bestAxis))
@@ -645,14 +645,14 @@ template<class A, class B> [[nodiscard]]
 
 
 
-    inline FLOAT3 ProjectToPlane(const PlaneWS& plane, const FLOAT3& point) {
+    inline Float3 ProjectToPlane(const PlaneWS& plane, const Float3& point) {
         //project a point onto the plane
         float dist = SignedDist(plane, point);
         return point - plane.normal * dist;
     }
 
-    inline std::array<FLOAT3, 8> GetOBBVertices(const OBB& b) {
-        std::array<FLOAT3, 8> verts;
+    inline std::array<Float3, 8> GetOBBVertices(const OBB& b) {
+        std::array<Float3, 8> verts;
         int idx = 0;
         for (int sx = -1; sx <= 1; sx += 2)
             for (int sy = -1; sy <= 1; sy += 2)
@@ -668,12 +668,12 @@ template<class A, class B> [[nodiscard]]
 
 
     //plane vs OBB
-    [[nodiscard]] 
+    [[nodiscard]]
     bool Collide(const OBB& b, const PlaneWS& p, Contact& out)
     {
         auto verts = GetOBBVertices(b);
 
-        std::vector<FLOAT3> penetratingVerts;
+        std::vector<Float3> penetratingVerts;
         std::vector<float> penetrations;
 
         for (const auto& v : verts) {
@@ -688,7 +688,7 @@ template<class A, class B> [[nodiscard]]
             return false;
 
         // ---- Manifold aggregation ----
-        FLOAT3 avgPoint = FLOAT3{ 0, 0, 0 };
+        Float3 avgPoint = Float3{ 0, 0, 0 };
         float totalPenetration = 0.0f;
 
         for (size_t i = 0; i < penetratingVerts.size(); ++i) {
@@ -696,7 +696,7 @@ template<class A, class B> [[nodiscard]]
             totalPenetration += penetrations[i];
         }
 
-        avgPoint = avgPoint /static_cast<float>(penetratingVerts.size());
+        avgPoint = avgPoint / static_cast<float>(penetratingVerts.size());
         float avgPenetration = totalPenetration / penetratingVerts.size();
 
         // You could also use max(penetrations) instead of average if you prefer more conservative correction

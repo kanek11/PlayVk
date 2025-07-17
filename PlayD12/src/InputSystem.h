@@ -4,13 +4,65 @@
 #include "Base.h"
 #include "Event.h"
 
+#include "Controller.h"
+
+
+enum class EAxis { MoveX, MoveY, MoveZ, COUNT };
+constexpr size_t MAX_Axis = static_cast<size_t>(EAxis::COUNT);
+
+enum class EAction { Jump };
+
+struct Binding { 
+	KeyCode key;  
+
+    GamepadButton gamepadButton;  
+    float buttonScale = 1.0f;
+
+	GamepadAxis gamepadAxis;  
+};
+
+inline std::unordered_map<EAxis, std::vector<Binding>> DefaultAxisBindings = {
+    
+{
+    EAxis::MoveX,
+    {
+       Binding{ .key = KeyCode::A, .buttonScale =-1.0f },
+       Binding{ .key = KeyCode::D, .buttonScale =1.0f }, 
+	   Binding {.key = KeyCode::Left, .buttonScale = -1.0f }, 
+	   Binding {.key = KeyCode::Right, .buttonScale = 1.0f }, 
+      
+	   Binding {.gamepadButton = GamepadButton::DPadLeft, .buttonScale = -1.0f },
+	   Binding {.gamepadButton = GamepadButton::DPadRight, .buttonScale = 1.0f }, 
+  //   	{ GamepadAxis::LX },
+		//{ GamepadAxis::RX },  
+
+    },
+},
+
+{
+    EAxis::MoveZ,
+    {
+        Binding{ .key = KeyCode::W, .buttonScale = 1.0f },
+        Binding{ .key = KeyCode::S, .buttonScale = -1.0f },
+		Binding{.key = KeyCode::Up, .buttonScale = 1.0f },
+		Binding{.key = KeyCode::Down, .buttonScale = -1.0f }, 
+
+		Binding{.gamepadButton = GamepadButton::DPadUp, .buttonScale = 1.0f },
+		Binding{.gamepadButton = GamepadButton::DPadDown, .buttonScale = -1.0f }, 
+		//{ GamepadAxis::LY },
+		//{ GamepadAxis::RY },
+    },
+},
+
+};
+
 
 struct FPointer
 {
     int x, y;
 };
 
-struct BoolEdgeDetector { 
+struct BoolEdgeDetector {
 
     bool previous = false;
     bool risingEdge = false;
@@ -34,7 +86,7 @@ enum class ButtonFrameState {
     Released // just released
 };
 
-struct ButtonFrame { 
+struct ButtonFrame {
 
     void Update(bool pressed) {
         edgeDetector.Update(pressed);
@@ -80,7 +132,8 @@ public:
     FPointer GetMousePointer();
 
     bool IsMouseButtonJustPressed(MouseButtonCode button);
-    
+
+
 
 private:
     std::array<ButtonFrame, MAX_KeyCode> keyState;
@@ -90,6 +143,15 @@ private:
     std::array<ButtonFrame, MAX_MouseCode> mouseButtonState;
     std::array<bool, MAX_MouseCode> mouseButtonStateRaw;
     int MouseX, MouseY;
+
+
+//new:controller:
+	GamepadInput m_gamepad;
+
+//new:
+public:
+    float  GetAxis(EAxis axis) const;
+    std::array<float, (size_t)EAxis::COUNT> m_axisState{};
 };
 
 

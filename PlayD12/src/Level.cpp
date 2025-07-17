@@ -3,152 +3,388 @@
 
 #include "Application.h"
 #include "Render/Renderer.h"
-
-#include "UI.h"
-
+ 
 using namespace DirectX;
+
+
+#include <random>
+void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount)
+{
+
+    auto renderer = GameApplication::GetInstance()->GetRenderer();
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    // Position ranges: X around center (say Å}5), Y height fixed, Z along the road from 0 to roadLength
+    std::uniform_real_distribution<float> distX(-roadWidth, roadWidth);
+    std::uniform_real_distribution<float> distZ(0.0f, roadLength);
+
+    // Random choice between sphere or box
+    std::uniform_int_distribution<int> shapeChoice(0, 1);
+
+    for (uint32_t i = 0; i < obstacleCount; i++)
+    {
+        float x = distX(gen);
+        float y = 1.0f; // height so itÅfs above ground (adjust as needed)
+        float z = distZ(gen);
+
+        if (shapeChoice(gen) == 0)
+        {
+            // Create Sphere obstacle
+            auto sphereProxy = CreateSphereActor({ x, y, z });
+            sphereProxy->rigidBody->simulatePhysics = false;
+            sphereProxy->rigidBody->simulateRotation = false; 
+            sphereProxy->rigidBody->material.friction = 5.0f;  
+
+            m_staticMeshActors.push_back(sphereProxy);
+            renderer->SubmitMesh(sphereProxy.get());
+
+        }
+        else
+        {
+            // Create Box obstacle with random size
+            std::uniform_real_distribution<float> sizeDist(0.5f, 2.0f);
+            float sizeX = sizeDist(gen);
+            float sizeY = sizeDist(gen);
+            float sizeZ = sizeDist(gen);
+
+            auto boxProxy = CreateBoxActor({ x, y, z }, { sizeX, sizeY, sizeZ });
+            boxProxy->rigidBody->simulatePhysics = false;
+            boxProxy->rigidBody->simulateRotation = false; 
+            boxProxy->rigidBody->material.friction = 0.3f;
+
+
+            m_staticMeshActors.push_back(boxProxy); 
+            renderer->SubmitMesh(boxProxy.get()); 
+        }
+    }
+}
+
 
 void GamePlayWorld::OnLoad()
 {
+
+	std::cout << "load game world" << '\n';
+
     auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
     auto renderer = GameApplication::GetInstance()->GetRenderer();
     auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
     auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
-
-    auto debugSphere = CreateShared<SphereMesh>();
-    auto debugSphereProxy = renderer->InitMesh(debugSphere,
-        { 0.0f, 2.0f, 0.0f },
-        { 1.0f, 1.0f, 1.0f }
-    );
-
-    ////new rigidbody for the sphere: todo
-    auto rigidBodySphere0 = new RigidBody(debugSphereProxy, debugSphereProxy->position, Sphere{ debugSphereProxy->scale.x() }, debugSphereProxy->rotation);
-    debugSphereProxy->rigidBody = rigidBodySphere0;
-    physicsScene->AddRigidBody(rigidBodySphere0);
-    auto sphereCollider0 = new Collider(debugSphereProxy, Sphere{ debugSphereProxy->scale.x() }, rigidBodySphere0); //sphere radius
-    debugSphereProxy->collider = sphereCollider0;
-    physicsScene->AddCollider(sphereCollider0);
-
-    rigidBodySphere0->debugName = "DebugSphere";
-    rigidBodySphere0->simulateRotation = true;
-
-    //rigidBodySphere0->angularVelocity = FLOAT3{ 1.0f, 1.0f, 1.0f };
-
      
-    //-------------------------
-    auto cubeMesh0 = CreateShared<CubeMesh>();
-    auto cubeProxy0 = renderer->InitMesh(cubeMesh0,
-        { 3.0f, 3.0f, 0.0f },
-        { 1.0f, 1.0f, 1.0f }
-    );
+    auto debugSphereProxy = CreateSphereActor({ 0.0f, 2.0f, 0.0f });
+    debugSphereProxy->rigidBody->simulatePhysics = true;
+    debugSphereProxy->rigidBody->simulateRotation = true; 
 
-    ////a initial rotation of the cube: 
-    //auto rotation2 = XMQuaternionRotationAxis(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMConvertToRadians(45.0f));
-    //cubeProxy0->rotation = XMQuaternionMultiply(rotation2, cubeProxy0->rotation);
+    debugSphereProxy->rigidBody->debugName = "debug sphere";
+    debugSphereProxy->rigidBody->material.friction = 10.0f;
 
-    ////new rigidbody for the cube:
-    auto cubeRB0 = new RigidBody(cubeProxy0, cubeProxy0->position, Box{ cubeProxy0->scale }, cubeProxy0->rotation);
-    cubeProxy0->rigidBody = cubeRB0;
-    physicsScene->AddRigidBody(cubeRB0);
-    auto cubeCollider0 = new Collider(cubeProxy0, Box{ cubeProxy0->scale }, cubeRB0); //half extents
-    cubeProxy0->collider = cubeCollider0;
-    physicsScene->AddCollider(cubeCollider0);
+    //------------------------- 
+    auto debugCubeProxy = CreateBoxActor({ 3.0f, 3.0f, 0.0f }, { 1.0f, 1.0f, 1.0f} );
+    debugCubeProxy->rigidBody->simulatePhysics = true;
+    debugCubeProxy->rigidBody->simulateRotation = false;
+    debugCubeProxy->rigidBody->material.friction = 0.1f; 
 
-    cubeRB0->simulateRotation = false;
-    cubeRB0->debugName = "debugCube"; 
-     
-	cubeRB0->material.friction = 0.0f;  
+    //--------------- 
+    auto planeProxy = CreatePlaneActor( { 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, static_cast<uint32_t>(roadWidth), static_cast<uint32_t>(goalLength));
+
+    //auto debugPlayer = debugCubeProxy;
+    auto debugPlayer = debugSphereProxy; 
+
 
     //---------------
-    auto plane0 = CreateShared<PlaneMesh>();
-    auto planeProxy = renderer->InitMesh(plane0,
-        { 0.0f, 0.0f, 0.0f },
-        { 50.0f, 50.0f, 50.0f }
-    );
+    //this->GenerateObstacles(roadWidth/2, goalLength, 50);
 
-    //add a rigidbody for the plane:
-    auto rigidBodyPlane = new RigidBody(planeProxy, planeProxy->position, Plane{ planeProxy->scale.x(), planeProxy->scale.z() }, planeProxy->rotation);
-    planeProxy->rigidBody = rigidBodyPlane;
-    physicsScene->AddRigidBody(rigidBodyPlane);
-
-    rigidBodyPlane->mass = MMath::FLOAT_MAX;
-    rigidBodyPlane->simulatePhysics = false;
-
-    auto planeCollider = new Collider(planeProxy, Plane{ planeProxy->scale.x(), planeProxy->scale.z() }, rigidBodyPlane);
-    planeProxy->collider = planeCollider;
-    physicsScene->AddCollider(planeCollider);
-
-    rigidBodyPlane->simulateRotation = false;
-    rigidBodyPlane->debugName = "DebugPlane";
-
-
- 
-
+    //--------------------------
 
 
     auto debugBehavior = [=](float delta) {
         //std::cout << "tick behavior" << '\n';
+        //std::cout << "debugSphereProxy speed:" << ToString(debugSphereProxy->rigidBody->linearVelocity) << '\n';
         if (inputSystem == nullptr) {
             std::cerr << "empty input system" << '\n';
             return;
         }
-        if (inputSystem->IsKeyDown(KeyCode::W)) {
-            rigidBodySphere0->ApplyForce(FLOAT3(0.0f, 0.0f, +2.0f));
-        }
-        if (inputSystem->IsKeyDown(KeyCode::S)) {
-            rigidBodySphere0->ApplyForce(FLOAT3(0.0f, 0.0f, -2.0f));
-        }
-        if (inputSystem->IsKeyDown(KeyCode::A)) {
-            rigidBodySphere0->ApplyForce(FLOAT3(-2.0f, 0.0f, 0.0f));
-        }
-        if (inputSystem->IsKeyDown(KeyCode::D)) {
-            rigidBodySphere0->ApplyForce(FLOAT3(+2.0f, 0.0f, 0.0f));
+        //if (inputSystem->IsKeyDown(KeyCode::W)) {
+        //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, +5.0f));
+        //}
+        //if (inputSystem->IsKeyDown(KeyCode::S)) {
+        //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, -5.0f));
+        //}
+        //if (inputSystem->IsKeyDown(KeyCode::S)) {
+        //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, -5.0f));
+        //}
+        //if (inputSystem->IsKeyDown(KeyCode::A)) {
+        //    debugPlayer->rigidBody->ApplyForce(Float3(-5.0f, 0.0f, 0.0f));
+        //}
+		float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
+		debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, axisZ * 5.0f));
+
+		float axisX = inputSystem->GetAxis(EAxis::MoveX); 
+		debugPlayer->rigidBody->ApplyForce(Float3(axisX * 5.0f, 0.0f, 0.0f));
+			 
+         
+        //if (inputSystem->IsKeyDown(KeyCode::D)) {
+        //    debugPlayer->rigidBody->ApplyForce(Float3(+5.0f, 0.0f, 0.0f));
+        //}
+
+        //if (inputSystem->IsKeyDown(KeyCode::E)) {
+        //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, +30.0f, 0.0f));
+        //}
+
+        if (debugPlayer->position.y() < planeProxy->position.y()) {
+            std::cout << "game over? " << '\n';
+            debugPlayer->position = { 0.0f, 2.0f, 0.0f };
+            debugPlayer->rigidBody->linearVelocity = Float3{};
+            debugPlayer->rigidBody->angularVelocity = Float3{};
+            //gameManager->RequestTransitState(GameStateId::MainMenu);
         }
 
-        if (rigidBodySphere0->position.y() < rigidBodyPlane->position.y()) {
-            std::cout << "game over? " << '\n';
-            gameManager->TransitState(GameStateId::MainMenu);
+        else if (debugPlayer->position.z() > goalLength/2 - 20) {
+            std::cout << "goal?" << '\n';
+            gameManager->RequestTransitState(GameStateId::MainMenu);
         }
 
         };
 
-    debugSphereProxy->onUpdate.Add(debugBehavior);
+    debugPlayer->onUpdate.Add(debugBehavior);
+     
 
     //---------------
-    renderer->SubmitMesh(debugSphereProxy);
-    renderer->SubmitMesh(planeProxy);
+    renderer->SubmitMesh(debugSphereProxy.get());
+    renderer->SubmitMesh(planeProxy.get()); 
+    renderer->SubmitMesh(debugCubeProxy.get());
 
-    renderer->SubmitMesh(cubeProxy0);
+
+    m_staticMeshActors.push_back(debugSphereProxy);
+    m_staticMeshActors.push_back(planeProxy);
+    m_staticMeshActors.push_back(debugCubeProxy);  
+
+    //
+    dummyCamera = new FollowCameraProxy();
+    dummyCamera->target = debugPlayer;  
+
+    renderer->SubmitCamera(dummyCamera);
+
+
+    // 
+    auto uiManager = GameApplication::GetInstance()->GetUIManager(); 
+
+    Rect buttonRect = { 0, 0, 300, 150 };   
+    auto debugButton = CreateShared<UIButton>(buttonRect); 
+     
+     
+    Rect buttonRect1 = { 0, 170, 300, 150 }; 
+    auto debugButton1 = CreateShared<UIButton>(buttonRect1); 
+
+    m_HUDs.push_back(debugButton);
+    m_HUDs.push_back(debugButton1);
+      
+    //todo:  manually submit 
+    uiManager->RegisterRootElement(debugButton.get());
+    uiManager->RegisterRootElement(debugButton1.get());
 }
 
 void GamePlayWorld::OnUnload()
-{
+{  
+    std::cout << "unload game world" << '\n';
+
+
     auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
     auto renderer = GameApplication::GetInstance()->GetRenderer();
     renderer->ClearMesh();
     physicsScene->ClearCollider();
     physicsScene->ClearRigidBody();
 
-    std::cout << "unload game world" << '\n';
+    //
+    auto uiManager = GameApplication::GetInstance()->GetUIManager();
+    auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
+    assert(uiRenderer != nullptr);
+
+    uiRenderer->Clear(); 
+    uiManager->ClearRoot();
+     
+    //
+    m_staticMeshActors.clear();
+    m_HUDs.clear();
+    dummyCamera = nullptr;
 }
 
 void GamePlayWorld::OnUpdate(float delta)
 {
+
+    DebugDraw::Get().AddRay(
+        Float3(0.0f, 0.0f, 0.0f),
+        Float3(1.0f, 0.0f, 0.0f),
+        Color::Red
+    );
+
+    DebugDraw::Get().AddRay(
+        Float3(0.0f, 0.0f, 0.0f),
+        Float3(0.0f, 1.0f, 0.0f),
+        Color::Green
+    );
+
+
+    DebugDraw::Get().AddRay(
+        Float3(0.0f, 0.0f, 0.0f),
+        Float3(0.0f, 0.0f, 1.0f),
+        Color::Blue
+    );
+
+
+    //--------------
+    for (auto& HUD : m_HUDs) {
+        HUD->Tick(delta);
+    }
+     
+
+    //--------------
+    //m_debugRenderer->OnUpdate(delta, dummyCamera.pvMatrix); 
+    {
+
+        dummyCamera->Tick(delta);
+    }
+
+     
+    //--------------
+    for (auto& proxy : m_staticMeshActors)
+    {
+        proxy->onUpdate.BlockingBroadCast(delta);
+
+        auto mainConstBufferH = proxy->mainMVPConstantBuffer;
+        if (mainConstBufferH == nullptr) {
+            continue;
+        }
+
+        //auto yAxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+        //auto rotation = XMQuaternionRotationAxis(yAxis, delta);
+        //proxy->rotation = XMQuaternionMultiply(rotation, proxy->rotation);
+
+        MVPConstantBuffer mainConstBufferData = {};
+
+        auto modelMatrix_ = MMath::MatrixIdentity<float, 4>();
+        auto scaleMatrix = MMath::MatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z());
+        modelMatrix_ = MatrixMultiply(scaleMatrix, modelMatrix_);
+
+        auto R_ = XMMatrixRotationQuaternion(proxy->rotation);
+        auto R = MMath::MatrixIdentity<float, 4>();
+        R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
+        R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
+        R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
+        R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+        modelMatrix_ = MatrixMultiply(R, modelMatrix_); //rotate the model using the quaternion 
+
+        //translate: 
+        auto translation = MMath::MatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
+        //translation = Transpose(translation); 
+        //std::cout << "translation matrix: " << ToString(translation) << std::endl;
+
+        //modelMatrix_ = MatrixMultiply(translation, modelMatrix_); 
+
+        modelMatrix_ = MatrixMultiply(translation, modelMatrix_);
+
+        //modelMatrix_ = MMath::MatrixIdentity<float, 4>();
+        //modelMatrix_ = Transpose(modelMatrix_); 
+
+        //auto modelMatrix = XMMatrixIdentity();
+        //auto translation_ = XMMatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
+        //std::cout << "expected translation: " << '\n';
+        //std::cout << MMath::XMMatrixToString(translation_) << std::endl;
+        //
+
+        //modelMatrix = XMMatrixRotationQuaternion(proxy->rotation) * modelMatrix;
+        //modelMatrix = XMMatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix;
+
+        // Translate the model to its position
+        // Rotate the model using the quaternion 
+
+        //XMStoreFloat4x4(&mainConstBufferData.modelMatrix, modelMatrix);
+
+        //make sure transpose before present to hlsl;
+        //mainConstBufferData.modelMatrix = Transpose(modelMatrix_);
+
+        mainConstBufferData.modelMatrix = modelMatrix_;
+
+        //XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
+        mainConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
+
+        // Upload the constant buffer data.
+        mainConstBufferH->UploadData(&mainConstBufferData, sizeof(MVPConstantBuffer));
+
+        //shadow pass:
+        auto shadowConstBufferH = proxy->shadowMVPConstantBuffer;
+        if (shadowConstBufferH == nullptr) {
+            continue;
+        }
+
+        MVPConstantBuffer shadowConstBufferData = {};
+        shadowConstBufferData.modelMatrix = modelMatrix_;
+        shadowConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
+
+        // Upload the shadow constant buffer data.
+        shadowConstBufferH->UploadData(&shadowConstBufferData, sizeof(MVPConstantBuffer));
+
+
+        DebugDraw::Get().AddRay(
+            proxy->position,
+            R[0].xyz(),
+            Color::Red
+        );
+
+        DebugDraw::Get().AddRay(
+            proxy->position,
+            R[1].xyz(),
+            Color::Green
+        );
+
+        DebugDraw::Get().AddRay(
+            proxy->position,
+            R[2].xyz(),
+            Color::Blue
+        );
+
+    }
+
+
+
+
 }
+
+
+
+
 
 void MainMenuWorld::OnLoad()
 {
+	std::cout << "load main menu world" << '\n';
+
     auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
-    Rect rect = { 200,200,500,500 };
-    debugButton = CreateShared<UIButton>(rect);
+    int screenWidth = GameApplication::GetInstance()->GetWidth();
+    int screenHeight = GameApplication::GetInstance()->GetHeight();
+
+    Rect buttonRect = { 0, 0, 500, 300}; // Width and height of button
+    Rect centeredRect = CenterRect(screenWidth, screenHeight, buttonRect);
+     
+    debugButton = CreateShared<UIButton>(centeredRect);
 
     auto click_cb = [=] {
-        gameManager->TransitState(GameStateId::Playing);
+        gameManager->RequestTransitState(GameStateId::Playing);
         };
 
+    //auto hover_cb = [=] {
+    //    auto color = Color::Red;
+    //    color[3] = 0.5f;
+
+    //    debugButton->baseColor = color;
+
+    //    };
+
     debugButton->OnClick.Add(click_cb);
+    //debugButton->OnHover.Add(hover_cb);
 
     //todo:  manually submit
     //debugButton->Render(); 
@@ -157,6 +393,8 @@ void MainMenuWorld::OnLoad()
 
 void MainMenuWorld::OnUnload()
 {
+	std::cout << "unload main menu world" << '\n';
+
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
     auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
     assert(uiRenderer != nullptr);
@@ -164,6 +402,9 @@ void MainMenuWorld::OnUnload()
     uiRenderer->Clear();
 
     uiManager->ClearRoot();
+
+
+    debugButton.reset();
 }
 
 void MainMenuWorld::OnUpdate(float delta)

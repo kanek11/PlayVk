@@ -74,6 +74,11 @@ public:
 		return statePtr;
 	}
 
+	void RequestTransitState(GameStateId newState) {
+		if (newState == current) return; 
+		target = newState;
+	}
+
 
 	void TransitState(GameStateId newState) override {
 		if (newState == current) return;
@@ -85,6 +90,7 @@ public:
 
 	void SetInitialState(GameStateId state) {
 		current = state;
+		//target = state;
 	}
 
 	void Initialize() { 
@@ -95,6 +101,7 @@ public:
 	}
 
 	void Update(float dt) override {
+		if (target != current) this->TransitState(target);
 		if (states.contains(current)) states[current]->OnStateUpdate(dt);
 	}
 
@@ -106,6 +113,8 @@ public:
 private:
 	std::unordered_map<GameStateId, SharedPtr<GameState>> states;
 	GameStateId current = GameStateId::MainMenu;
+
+	GameStateId target;
 };
 
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "PCH.h"
 
+#include "Math/MMath.h"
 #include "Base.h"
 #include "Delegate.h"
 #include "Event.h"
@@ -11,6 +12,14 @@ struct Rect { int x{}, y{}, w{}, h{}; };
 inline bool IsPointInRect(const Rect& r, int px, int py) {
 	return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
 }
+
+inline Rect CenterRect(int screenWidth, int screenHeight, const Rect& rectSize) {
+	int cornerX = (screenWidth - rectSize.w) / 2;
+	int cornerY = (screenHeight - rectSize.h) / 2;
+	return Rect{ cornerX, cornerY, rectSize.w, rectSize.h };
+}
+
+
 
 //classic four states 
 enum class UIState {
@@ -31,8 +40,12 @@ public:
 	virtual void Render() = 0;
 
 	virtual void OnMouseMove(const UIMouseMove& e) {
+
+		//std::cout << "UI: handle move, curr state:" << (int)state << '\n';
+
 		if (HitTest(e.x, e.y)) {
 			//std::cout << "UI: mouse hovered at (" << e.x << ", " << e.y << ")" << '\n';
+			if (state != UIState::Pressed)
 			state = UIState::Hovered;
 		}
 		else {
@@ -41,15 +54,19 @@ public:
 	}
 
 	virtual void OnMouseButtonDown(const UIMouseButtonDown& e) {
+		//std::cout << "UI: handle hit down, curr state:" << (int)state << '\n';
 		if (HitTest(e.x, e.y)) {
-			//std::cout << "UI: button pressed at (" << e.x << ", " << e.y << ")" << '\n';
+			std::cout << "UI: button pressed at (" << e.x << ", " << e.y << ")" << '\n';
 			state = UIState::Pressed;
 		}
 	}
 
 	virtual void OnMouseButtonUp(const UIMouseButtonUp& e) {
-		if (HitTest(e.x, e.y)) {
+		//std::cout << "UI: handle hit release, curr state:" << (int)state << '\n';
+		if (HitTest(e.x, e.y)) { 
+			 
 			if (state == UIState::Pressed) {
+				std::cout << "UI: button clicked" << '\n';
 				OnClick.BlockingBroadCast();
 				state = UIState::Normal;
 			}
@@ -68,7 +85,10 @@ public:
 
 	UIState state = UIState::Normal;
 
+	Float4 baseColor = Color::White;
+
 	FDelegate<void()> OnClick;
+	FDelegate<void()> OnHover;
 };
 
 

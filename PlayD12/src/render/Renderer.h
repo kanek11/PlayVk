@@ -8,38 +8,43 @@
 #include "Mesh.h"
 #include "Shader.h"
 
-#include "Physics/PhysicsScene.h"
-
 #include "Math/MMath.h"
-
-#include "Delegate.h"
 
 #include "RenderPass.h"
 
 #include "UI.h"
 
+#include "StaticMeshActor.h"
 
-struct CameraProxy {
-    FLOAT4X4 pvMatrix;
+
+struct RendererFactoryContext {
+    ID3D12Device* device;
+    SharedPtr<FD3D12ShaderPermutation> mainShaderPerm;
+    SharedPtr<FD3D12ShaderPermutation> shadowShaderPerm;
+    SharedPtr<FD3D12Texture> fallBackTexture;
 };
 
+ 
+namespace Render { 
+    inline RendererFactoryContext* rendererContext = nullptr;
 
-struct RenderContext
+}
+ 
+
+struct RenderPassInitContext
 {
     ID3D12Device* device;
-    ID3D12GraphicsCommandList* cmdList;
+    //ID3D12GraphicsCommandList* cmdList;
 
     SharedPtr<ShaderLibrary> m_shaderManager;
     SharedPtr<PSOManager> m_psoManager;
 };
-
-
-
+ 
 
 struct UIVertex {
-    FLOAT2 position;
-    FLOAT2 UV;
-    FLOAT4 color;
+    Float2 position;
+    Float2 UV;
+    Float4 color;
 };
 
 struct UIDrawCmd {
@@ -56,9 +61,9 @@ struct UIBatchData {
 
 class UIRenderer {
 public:
-    void Init(RenderContext ctx);
+    void Init(RenderPassInitContext ctx);
 
-    void AddQuad(const Rect& rect, const FLOAT4& color);
+    void AddQuad(const Rect& rect, const Float4& color);
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList);
 
@@ -103,15 +108,15 @@ private:
 
 
 //struct DebugLine {
-//    FLOAT3 start;
-//    FLOAT4 color0;
-//    FLOAT3 end;
-//    FLOAT4 color1;
+//    Float3 start;
+//    Float4 color0;
+//    Float3 end;
+//    Float4 color1;
 //};
 
 struct DebugLineVertex {
-    FLOAT3 position;
-    FLOAT4 color;
+    Float3 position;
+    Float4 color;
 };
 
 
@@ -119,17 +124,17 @@ class DebugDraw {
 public:
     static DebugDraw& Get();
 
-    void Init(RenderContext ctx);
+    void Init(RenderPassInitContext ctx);
 
-    void OnUpdate(float delta, const FLOAT4X4& pv);
+    void OnUpdate(float delta, const Float4x4& pv);
 
-    void AddRay(const FLOAT3& origin, const FLOAT3& direction, 
-        const FLOAT4& color0 = FLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-        const FLOAT4& color1 = FLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
+    void AddRay(const Float3& origin, const Float3& direction, 
+        const Float4& color0 = Float4(1.0f, 1.0f, 1.0f, 1.0f),
+        const Float4& color1 = Float4(1.0f, 1.0f, 1.0f, 1.0f)
     );
-    void AddLine(const FLOAT3& start, const FLOAT3& end, 
-        const FLOAT4& color = FLOAT4(1.0f, 0.0f, 0.0f, 1.0f),
-        const FLOAT4& color1 = FLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+    void AddLine(const Float3& start, const Float3& end, 
+        const Float4& color = Float4(1.0f, 0.0f, 0.0f, 1.0f),
+        const Float4& color1 = Float4(1.0f, 1.0f, 1.0f, 1.0f));
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList);
 
@@ -174,62 +179,14 @@ struct MVPConstantBuffer
 {
     //XMFLOAT4X4 modelMatrix; // 64 bytes  
     //XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
-    FLOAT4X4 modelMatrix; // 64 bytes 
-    FLOAT4X4 projectionViewMatrix; // 64 bytes
+    Float4x4 modelMatrix; // 64 bytes 
+    Float4x4 projectionViewMatrix; // 64 bytes
 
     //padding:
     float padding[32];
 };
 
-struct InstanceData
-{
-    MMath::FLOAT3 offset;
-};
 
-struct FInstanceProxy {
-    std::vector<InstanceData> instanceData;
-    SharedPtr<FD3D12Buffer> instanceBuffer;
-};
-
-struct FMaterialProxy {
-
-    SharedPtr<FD3D12Texture> baseMap;
-};
-
-//strip out the minimum to render a static mesh:
-struct StaticMeshObjectProxy {
-    FLOAT3 position = { 0.0f, 0.0f, 0.0f };
-    DirectX::XMVECTOR rotation = DirectX::XMQuaternionIdentity();
-    FLOAT3 scale = { 1.0f, 1.0f, 1.0f };
-
-    SharedPtr<UStaticMesh> mesh;
-
-    //material. 
-    uint32_t mainPassHeapOffset = 0;
-    SharedPtr<FMaterialProxy> material;
-    SharedPtr<FD3D12Buffer> mainMVPConstantBuffer;
-
-    uint32_t shadowPassHeapOffset = 0; // for shadow pass
-    SharedPtr<FD3D12Buffer> shadowMVPConstantBuffer; // for shadow pass
-
-
-    SharedPtr<FInstanceProxy> instanceProxy;
-
-    //new: for physics:
-    RigidBody* rigidBody{ nullptr };
-    Collider* collider{ nullptr };
-
-    void SetWorldPosition(const FLOAT3& newPosition) {
-        position = newPosition;
-    }
-
-    void SetWorldRotation(const DirectX::XMVECTOR& newRotation) {
-        rotation = newRotation;
-    }
-
-
-    FDelegate<void(float)> onUpdate;
-};
 
 
 class D3D12HelloRenderer
@@ -365,29 +322,29 @@ private:
 
     SharedPtr<FD3D12Texture> m_fallBackTexture;
     std::vector<UINT8> GenerateFallBackTextureData();
+     
+    std::vector<StaticMeshActorProxy*> m_staticMeshes; 
 
+    CameraProxy* mainCamera;
 
-    std::vector<StaticMeshObjectProxy*> m_staticMeshes;
-
-    //todo:
-
-    std::vector<InstanceData> GenerateInstanceData();
 
 public:
-    StaticMeshObjectProxy* InitMesh(SharedPtr<UStaticMesh> mesh, FLOAT3 position = { 0.0f, 0.0f, 0.0f }, FLOAT3 scale = { 1.0f, 1.0f, 1.0f });
 
     //todo:
-    void SubmitMesh(StaticMeshObjectProxy* mesh);
+    void SubmitMesh(StaticMeshActorProxy* mesh);
     void ClearMesh();
     void SetMeshDescriptors();
     bool meshDirty = false;
 
 
+    void SubmitCamera(CameraProxy* camera) {
+        mainCamera = camera;
+    }
+
+
 public:
     //SharedPtr<DebugRenderer> m_debugRenderer;
     SharedPtr<UIRenderer> uiRenderer;
-public:
-    CameraProxy dummyCamera;
 
 };
 

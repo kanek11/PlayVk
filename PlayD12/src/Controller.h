@@ -1,15 +1,13 @@
 #pragma once
-
-#include "PCH.h"
-
-#include "Xinput.h" 
+#include <array>
+#include <bitset>
+#include <cstdint>
+#include <xinput.h>     // Windows XInput
 #pragma comment(lib, "Xinput9_1_0.lib")
 
-//#define XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE 7849
-//#define XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE 8689
-
-
-enum class GamepadButton : int {
+//----------------------
+ 
+enum class GamepadButton : uint8_t {
     A, B, X, Y,
     LeftShoulder, RightShoulder,
     Back, Start,
@@ -17,56 +15,42 @@ enum class GamepadButton : int {
     DPadUp, DPadDown, DPadLeft, DPadRight,
     COUNT
 };
-static constexpr int ButtonCount = static_cast<int>(GamepadButton::COUNT);
+
+static constexpr size_t ButtonCount = static_cast<size_t>(GamepadButton::COUNT);
 
 
+enum class GamepadAxis { LX, LY, RX, RY, LT, RT, COUNT };
+
+
+
+
+//---------------------- 
 struct GamepadState {
     bool connected = false;
-    std::array<bool, ButtonCount> buttons{};
-    float leftTrigger = 0.0f;
-    float rightTrigger = 0.0f;
-    float thumbLX = 0.0f;
-    float thumbLY = 0.0f;
-    float thumbRX = 0.0f;
-    float thumbRY = 0.0f;
+    std::bitset<ButtonCount> buttons;
+   
+	std::array<float, static_cast<size_t>(GamepadAxis::COUNT)> axes{};
 };
 
+//---------------------- 
 class GamepadInput {
 public:
-    void Update();
-    const GamepadState& GetState(int index) const { return m_states[index]; }
+    void Update();                              
+    const GamepadState& GetState(int i) const;   
+
+	bool GetButtonState(GamepadButton button, int i = 0) const {
+		if (i < 0 || i >= m_states.size()) return false;
+		return m_states[i].buttons.test(static_cast<size_t>(button));
+	}
+     
+	float GetAxis(GamepadAxis axis, int i = 0) const {
+		if (i < 0 || i >= m_states.size()) return 0.f;
+		return m_states[i].axes[static_cast<size_t>(axis)];
+	}
 
 private:
-    GamepadState m_states[4]; //up to 4
+    std::array<GamepadState, 4> m_states;
+
+    // Mapping from enum to XInput
+    void FillState(GamepadState& dst, const XINPUT_GAMEPAD& src);
 };
-
-
-void GamepadInput::Update() {
-    for (DWORD i = 0; i < 4; ++i) {
-        XINPUT_STATE state;
-        ZeroMemory(&state, sizeof(XINPUT_STATE));
-
-        DWORD result = XInputGetState(i, &state);
-        GamepadState& gp = m_states[i];
-        gp.connected = (result == ERROR_SUCCESS);
-
-        if (!gp.connected) continue;
-
-        const auto& g = state.Gamepad;
-
-        //gp.buttons[0] = g.wButtons & XINPUT_GAMEPAD_A;
-        //gp.buttons[1] = g.wButtons & XINPUT_GAMEPAD_B;
-        // ... others
-        gp.buttons[(int)GamepadButton::A] = g.wButtons & XINPUT_GAMEPAD_A;
-        gp.buttons[(int)GamepadButton::B] = g.wButtons & XINPUT_GAMEPAD_B;
-
-
-        gp.leftTrigger = g.bLeftTrigger / 255.0f;
-        gp.rightTrigger = g.bRightTrigger / 255.0f;
-
-        gp.thumbLX = g.sThumbLX / 32767.0f;
-        gp.thumbLY = g.sThumbLY / 32767.0f;
-        gp.thumbRX = g.sThumbRX / 32767.0f;
-        gp.thumbRY = g.sThumbRY / 32767.0f;
-    }
-}

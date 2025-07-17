@@ -4,6 +4,7 @@
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	//std::cout << "tick window proc" << '\n';
 	//special handling of WM_CREATE message to store the user data
 	if (message == WM_CREATE) {
 		auto cs = reinterpret_cast<CREATESTRUCT*>(lParam);
@@ -28,6 +29,11 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
 
 	case WM_PAINT:
 	{
+		//std::cout << "request paint" << '\n';
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(hwnd, &ps);
+		// Optional: perform any drawing using hdc here
+		EndPaint(hwnd, &ps);
 		return 0;
 	}
 
@@ -42,20 +48,25 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
 	case WM_KEYDOWN:
 	{
 		int keyCode = static_cast<int>(wParam);
-		if (self->inputSource)
-		self->inputSource->OnKeyDown(keyCode);
-		//create event:
-		//InputEvent event = KeyEvent{};
-		std::cout << "Key pressed: " << keyCode << std::endl;
+		bool wasDown = (lParam & (1 << 30)) != 0;
+
+		//if (!wasDown) { // only handle fresh key presses
+			if (self->inputSource)
+				self->inputSource->OnKeyDown(keyCode);
+			//create event: 
+			std::cout << "Key pressed: " << keyCode << std::endl;
+		//}
+		 
 		return 0;
 	}
 
 	case WM_KEYUP:
 	{
-		int keyCode = static_cast<int>(wParam);
+		int keyCode = static_cast<int>(wParam); 
+		std::cout << "Key released: " << keyCode << std::endl;
+
 		if(self->inputSource)
 		self->inputSource->OnKeyUp(keyCode);
-		std::cout << "Key released: " << keyCode << std::endl;
 		return 0;
 	}
 
@@ -137,6 +148,9 @@ SharedPtr<WindowBase> WindowFactory::createWindow(const WindowCreateInfo& create
 
 Win32Window::Win32Window(const WindowCreateInfo& createInfo)
 {
+
+	//SetProcessDPIAware();
+
 	m_width = createInfo.width;
 	m_height = createInfo.height;
 
@@ -162,6 +176,11 @@ Win32Window::Win32Window(const WindowCreateInfo& createInfo)
 	std::wstring wideTitle = std::wstring(createInfo.title.begin(), createInfo.title.end());
 	const wchar_t* titlePtr = wideTitle.c_str();
 
+	RECT rect = { 0, 0, createInfo.width, createInfo.height };
+	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
+	int windowWidth = rect.right - rect.left;
+	int windowHeight = rect.bottom - rect.top; 
+
 	//create the window:
 	m_hwnd = CreateWindow(
 		windowClass.lpszClassName,
@@ -169,8 +188,8 @@ Win32Window::Win32Window(const WindowCreateInfo& createInfo)
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		createInfo.width,
-		createInfo.height,
+		windowWidth,
+		windowHeight,
 		nullptr,        // We have no parent window.
 		nullptr,        // We aren't using menus.
 		m_hInstance,
@@ -205,11 +224,13 @@ void Win32Window::SetCustomWindowText(const std::string& text) const
 
 void Win32Window::pollEvents()
 {
+	//std::cout << "start tick polling" << '\n';
 	//while (m_msg.message != WM_QUIT) 
-	if (PeekMessage(&m_msg, nullptr, 0, 0, PM_REMOVE))
+	while (PeekMessage(&m_msg, nullptr, 0, 0, PM_REMOVE))
 	{
 		TranslateMessage(&m_msg);
 		DispatchMessage(&m_msg);
 	}
+	//std::cout << "done tick polling" << '\n';
 }
 

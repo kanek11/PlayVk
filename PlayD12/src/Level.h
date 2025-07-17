@@ -2,9 +2,13 @@
 
 #include "Base.h"
 #include "UI.h"
-class IWorld {
+
+#include "StaticMeshActor.h"
+
+
+class ILevel {
 public:
-	virtual ~IWorld() = default;
+	virtual ~ILevel() = default;
 	virtual void OnLoad() = 0;
 	virtual void OnUnload() = 0;
 	virtual void OnUpdate(float delta) = 0;
@@ -12,12 +16,24 @@ public:
 
 
 class WorldManager {
+public:
 
-	void TransitWorld(SharedPtr<IWorld> world) {
+	void RegisterWorld(std::string name, SharedPtr<ILevel> world) {
+		levels[name] = world;
+	}
+ 
+	void TransitWorld(std::string name) {
 		if (currentWorld) {
 			currentWorld->OnUnload();
 		}
-		currentWorld = world;
+
+		if (!levels.contains(name)) {
+			std::cerr << "world name not found" << std::endl;
+			return;
+		}
+
+		std::cout << "set current world: " << name << '\n';
+		currentWorld = levels[name];
 
 		if (currentWorld) {
 			currentWorld->OnLoad();
@@ -26,30 +42,45 @@ class WorldManager {
 
 	void Update(float delta) {
 		if (currentWorld) {
+			//std::cout << "tick current world: " << currentWorld << '\n';
 			currentWorld->OnUpdate(delta);
 		}
 	}
-
 private:
-	SharedPtr<IWorld>  currentWorld;
+	SharedPtr<ILevel> currentWorld;
+	std::unordered_map<std::string, SharedPtr<ILevel>>  levels;
 };
 
 
-class GamePlayWorld {
+class GamePlayWorld: public ILevel {
 public:
 	virtual ~GamePlayWorld() = default;
-	virtual void OnLoad();
-	virtual void OnUnload();
-	virtual void OnUpdate(float delta);
+	virtual void OnLoad() override;
+	virtual void OnUnload()override;
+	virtual void OnUpdate(float delta)override;
+
+private:
+	std::vector<SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
+	std::vector < SharedPtr<UIButton>> m_HUDs;
+
+public:
+	//CameraProxy* dummyCamera = new CameraProxy();
+	FollowCameraProxy* dummyCamera;
+
+public:
+
+	void GenerateObstacles(float roadWidth,float roadLength, uint32_t obstacleCount);
+	float roadWidth = 10;
+	float goalLength = 1000;
 };
 
 
-class MainMenuWorld {
+class MainMenuWorld : public ILevel {
 public:
 	virtual ~MainMenuWorld() = default;
-	virtual void OnLoad();
-	virtual void OnUnload();
-	virtual void OnUpdate(float delta);
+	virtual void OnLoad()override;
+	virtual void OnUnload()override;
+	virtual void OnUpdate(float delta)override;
 
 	SharedPtr<UIButton> debugButton;
 };

@@ -12,10 +12,12 @@ void UIButton::Render()
 	auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
 	assert(uiRenderer != nullptr); 
 	 
-	FLOAT4 color = { 1.0f, 1.0f, 1.0f, 0.5f }; // White
+	Float4 color = { 1.0f, 1.0f, 1.0f, 0.5f };  
 	if (state == UIState::Hovered)
 	{
-		color = Color::Red; 
+		OnHover.BlockingBroadCast();
+		color = Color::Cyan; 
+		color[3] = 0.5f;
 	}
 
 	uiRenderer->AddQuad(layout, color);

@@ -39,7 +39,7 @@ namespace MMath {
 
 
 	//cross product 
-	inline FLOAT3 Vector3Cross(FLOAT3 a, FLOAT3 b) {
+	inline Float3 Vector3Cross(Float3 a, Float3 b) {
 		return {
 			a.y() * b.z() - a.z() * b.y(),
 			a.z() * b.x() - a.x() * b.z(),
@@ -49,12 +49,12 @@ namespace MMath {
 
 
 
-	inline FLOAT4X4 MatrixTranslation
+	inline Float4x4 MatrixTranslation
 	(
 		float x, float y, float z
 	)
 	{
-		FLOAT4X4 translation = MatrixIdentity<float, 4>();
+		Float4x4 translation = MatrixIdentity<float, 4>();
 		translation[3] = { x, y, z, 1.0f };
 		
 		//std::cout << "translation matrix: " << ToString(translation) << std::endl;
@@ -64,12 +64,12 @@ namespace MMath {
 		return translation;
 	}
 
-	inline FLOAT4X4 MatrixScaling
+	inline Float4x4 MatrixScaling
 	(
 		float x, float y, float z
 	)
 	{
-		FLOAT4X4 scalingMatrix = MatrixIdentity<float, 4>();
+		Float4x4 scalingMatrix = MatrixIdentity<float, 4>();
 		scalingMatrix[0] = { x, 0.0f, 0.0f, 0.0f };
 		scalingMatrix[1] = { 0.0f, y, 0.0f, 0.0f };
 		scalingMatrix[2] = { 0.0f, 0.0f, z, 0.0f };
@@ -80,22 +80,22 @@ namespace MMath {
 
 
 
-	inline FLOAT4X4 LookToLH
+	inline Float4x4 LookToLH
 	(
-		FLOAT3 EyePosition,
-		FLOAT3 EyeDirection,
-		FLOAT3 UpDirection
+		Float3 EyePosition,
+		Float3 EyeDirection,
+		Float3 UpDirection
 	)
 	{
 
-		FLOAT3 forward = Normalize(EyeDirection);
+		Float3 forward = Normalize(EyeDirection);
 
-		FLOAT3 right_N = Vector3Cross(UpDirection, forward);
+		Float3 right_N = Vector3Cross(UpDirection, forward);
 		right_N = Normalize(right_N);
 
-		FLOAT3 up_N = Vector3Cross(forward, right_N);
+		Float3 up_N = Vector3Cross(forward, right_N);
 
-		FLOAT4X4 matrix = MatrixIdentity<float, 4>();
+		Float4x4 matrix = MatrixIdentity<float, 4>();
 
 		//init by column for convenience:
 		matrix[0] = { right_N.x(), right_N.y(), right_N.z(), -Dot(right_N, EyePosition) };
@@ -108,21 +108,21 @@ namespace MMath {
 	}
 
 
-	inline FLOAT4X4 LookAtLH
+	inline Float4x4 LookAtLH
 	(
-		FLOAT3 EyePosition,
-		FLOAT3 TargetPosition,
-		FLOAT3 UpDirection
+		Float3 EyePosition,
+		Float3 TargetPosition,
+		Float3 UpDirection
 	)
 	{
 		// Calculate the forward vector (looking direction)
-		FLOAT3 forward = Normalize(TargetPosition - EyePosition);
+		Float3 forward = Normalize(TargetPosition - EyePosition);
 
 		return  LookToLH(EyePosition, forward, UpDirection);
 	}
 
 
-	inline FLOAT4X4 PerspectiveFovLH
+	inline Float4x4 PerspectiveFovLH
 	(
 		float fovAngleY,
 		float aspectRatio,
@@ -131,7 +131,7 @@ namespace MMath {
 	)
 	{
 
-		FLOAT4X4 perspectiveMatrix = MatrixIdentity<float, 4>();
+		Float4x4 perspectiveMatrix = MatrixIdentity<float, 4>();
 		float yScale = 1.0f / tanf(fovAngleY * 0.5f);
 		float xScale = yScale / aspectRatio;
 		perspectiveMatrix[0] = { xScale, 0.0f, 0.0f, 0.0f };
@@ -149,15 +149,15 @@ namespace MMath {
 
 
 	//matrix3x3 inverse
-	inline FLOAT3X3 Inverse(const FLOAT3X3& m)
+	inline Float3x3 Inverse(const Float3x3& m)
 	{
-		FLOAT3X3 inv;
+		Float3x3 inv;
 		float det = m[0].x() * (m[1].y() * m[2].z() - m[1].z() * m[2].y()) -
 			m[0].y() * (m[1].x() * m[2].z() - m[1].z() * m[2].x()) +
 			m[0].z() * (m[1].x() * m[2].y() - m[1].y() * m[2].x());
 		if (det == 0.0f) {
 			std::cerr << "Matrix is singular." << std::endl;
-			return FLOAT3X3{}; // return zero matrix if singular
+			return Float3x3{}; // return zero matrix if singular
 		}
 		float invDet = 1.0f / det;
 		inv[0] = {

@@ -9,34 +9,34 @@
 
 void TestMath()
 {  
-	using FLOAT2 = MMath::FLOAT2;
-	using FLOAT3 = MMath::FLOAT3;
-	using FLOAT4 = MMath::FLOAT4;
+	using Float2 = MMath::Float2;
+	using Float3 = MMath::Float3;
+	using Float4 = MMath::Float4;
 
-	using FLOAT2X2 = MMath::FLOAT2X2;
-	using FLOAT3X3 = MMath::FLOAT3X3;
-	using FLOAT4X4 = MMath::FLOAT4X4;
+	using Float2x2 = MMath::Float2x2;
+	using Float3x3 = MMath::Float3x3;
+	using Float4x4 = MMath::Float4x4;
 
 	//init:
 	{
-		FLOAT3 v1; 
-		FLOAT3 v2({ 1.f, 2.f, 3.f });
+		Float3 v1; 
+		Float3 v2({ 1.f, 2.f, 3.f });
 		
 		std::array<float, 3> stdArr = { 1.f, 2.f, 3.f };
-		FLOAT3 v3(stdArr);  
+		Float3 v3(stdArr);  
 
 		//c-array:
 		float c_array[3] = { 1.f, 2.f, 3.f };
-		FLOAT3 v4(c_array);    
+		Float3 v4(c_array);    
 
 
-		FLOAT3 v5( 1.f, 2.f, 3.f ); // uniform initialization)
+		Float3 v5( 1.f, 2.f, 3.f ); // uniform initialization)
 		assert(v1[0] == 0.f && v1[1] == 0.f && v1[2] == 0.f); // default init 
 	}
 
 	//access 
 	{
-		FLOAT3 v1({ 1.f, 2.f, 3.f });
+		Float3 v1({ 1.f, 2.f, 3.f });
 		assert(v1[0] == 1.f && v1[1] == 2.f && v1[2] == 3.f);
 		assert(v1.x() == 1.f && v1.y() == 2.f && v1.z() == 3.f);
 
@@ -46,7 +46,7 @@ void TestMath()
 		//v1[4];  //fail at execution;
 		//v1.w(); //fail at compiling;
 
-		FLOAT2 v2 = v1.xy();   
+		Float2 v2 = v1.xy();   
 		assert(v2[0] == 1.f && v2[1] == 2.f);
 
 		
@@ -57,8 +57,8 @@ void TestMath()
 	{
 		struct AABB
 		{
-			FLOAT3 min;
-			FLOAT3 max;
+			Float3 min;
+			Float3 max;
 		};
 
 		AABB box = { {1.f, 2.f, 3.f}, {4.f, 5.f, 6.f} };
@@ -71,7 +71,7 @@ void TestMath()
 		assert(xMin == 1.f && yMin == 2.f && zMin == 3.f); // Check if structured binding works correctly
 
 
-		FLOAT3 v1 = { 1.f, 2.f, 3.f };
+		Float3 v1 = { 1.f, 2.f, 3.f };
 		auto [x, y, z] = v1;
 		assert(x == 1.f && y == 2.f && z == 3.f); // Check if structured binding works correctly
 
@@ -80,9 +80,9 @@ void TestMath()
  
 	//copy-move behavior
 	{
-		FLOAT3 v1({ 1.f, 2.f, 3.f });
-		FLOAT3 v2 = v1; 
-		FLOAT3 v3 = std::move(v1); 
+		Float3 v1({ 1.f, 2.f, 3.f });
+		Float3 v2 = v1; 
+		Float3 v3 = std::move(v1); 
 		assert(v2[0] == 1.f && v2[1] == 2.f && v2[2] == 3.f);
 		assert(v3[0] == 1.f && v3[1] == 2.f && v3[2] == 3.f);
 
@@ -94,16 +94,16 @@ void TestMath()
 	}
 
 	{
-		FLOAT3 v1 = { 1.f, 2.f, 3.f };
-		FLOAT3 v2 = { 4.f, 5.f, 6.f };
+		Float3 v1 = { 1.f, 2.f, 3.f };
+		Float3 v2 = { 4.f, 5.f, 6.f };
 		auto dotResult = Dot(v1, v2);
 		assert(dotResult == 1 * 4 + 2 * 5 + 3 * 6);
 	}
 
 	//math operations:
 	{
-		FLOAT3 v1 = { 1.f, 2.f, 3.f };
-		FLOAT3 v2 = { 4.f, 5.f, 6.f };
+		Float3 v1 = { 1.f, 2.f, 3.f };
+		Float3 v2 = { 4.f, 5.f, 6.f };
 		auto v3 = v1 + v2;  // Vector addition
 
 		assert(v3[0] == 5.f && v3[1] == 7.f && v3[2] == 9.f);
@@ -118,9 +118,9 @@ void TestMath()
 
 
 		//equality:
-		FLOAT3 v7 = { 1.f, 2.f, 3.f };
-		FLOAT3 v8 = { 1.f, 2.f, 3.f };
-		FLOAT3 v9 = { 4.f, 5.f, 6.f };
+		Float3 v7 = { 1.f, 2.f, 3.f };
+		Float3 v8 = { 1.f, 2.f, 3.f };
+		Float3 v9 = { 4.f, 5.f, 6.f };
 		assert(v7 == v8);   
 		assert(!(v7 == v9));  
 
@@ -129,7 +129,7 @@ void TestMath()
 	//normalize and length
 
 	{
-		FLOAT3 v1 = { 3.f, 4.f, 0.f };
+		Float3 v1 = { 3.f, 4.f, 0.f };
 		auto length = Length(v1);
 		assert(length == 5.f);  
 
@@ -143,16 +143,16 @@ void TestMath()
 	//matrix 
 	//matrix init:
 	{
-		FLOAT3X3 mat1 =
+		Float3x3 mat1 =
 		{
-			FLOAT3{1.f, 2.f, 3.f},
-			FLOAT3{4.f, 5.f, 6.f},
-			FLOAT3{7.f, 8.f, 9.f}
+			Float3{1.f, 2.f, 3.f},
+			Float3{4.f, 5.f, 6.f},
+			Float3{7.f, 8.f, 9.f}
 		};
 
 		assert(mat1[0][0] == 1.f && mat1[0][1] == 2.f && mat1[0][2] == 3.f);
 
-		FLOAT3X3 mat2 = {
+		Float3x3 mat2 = {
 			{1.f, 2.f, 3.f},
 			{4.f, 5.f, 6.f},
 			{7.f, 8.f, 9.f}
@@ -163,9 +163,9 @@ void TestMath()
 		 
 		auto mat3 = MMath::MatrixIdentity<float, 3>();
 
-		auto col0 = FLOAT3{ 1.f, 2.f, 3.f };
-		auto col1 = FLOAT3{ 4.f, 5.f, 6.f };
-		auto col2 = FLOAT3{ 7.f, 8.f, 9.f };
+		auto col0 = Float3{ 1.f, 2.f, 3.f };
+		auto col1 = Float3{ 4.f, 5.f, 6.f };
+		auto col2 = Float3{ 7.f, 8.f, 9.f };
 
 		//overwrite mat3:
 		mat3[0] = col0;
@@ -183,7 +183,7 @@ void TestMath()
 
 	//matrix column access:
 	{
-		FLOAT3X3 mat1 = {
+		Float3x3 mat1 = {
 			{1.f, 2.f, 3.f},
 			{4.f, 5.f, 6.f},
 			{7.f, 8.f, 9.f}
@@ -199,7 +199,7 @@ void TestMath()
 		assert(mat1[0][0] == 10.f && mat1[0][1] == 20.f && mat1[0][2] == 30.f);
 		 
 
-		mat1[0] = FLOAT3{ 10.f, 20.f, 30.f };  
+		mat1[0] = Float3{ 10.f, 20.f, 30.f };  
 		assert(mat1[0][0] == 10.f && mat1[0][1] == 20.f && mat1[0][2] == 30.f);
 
 	}
@@ -208,14 +208,14 @@ void TestMath()
 	//matrix operation
 	{
 		// Matrix-Vector multiplication
-		FLOAT3X3 mat1 = { {1.f, 2.f, 3.f}, {4.f, 5.f, 6.f}, {7.f, 8.f, 9.f} };
-		FLOAT3 vec1 = { 1.f, 2.f, 3.f };
+		Float3x3 mat1 = { {1.f, 2.f, 3.f}, {4.f, 5.f, 6.f}, {7.f, 8.f, 9.f} };
+		Float3 vec1 = { 1.f, 2.f, 3.f };
 		auto resultVec = mat1 * vec1;
 		assert(resultVec[0] == 14.f && resultVec[1] == 32.f && resultVec[2] == 50.f);
 
 		//Matrix-Matrix multiplication
-		FLOAT4X4 mat2 = { {1.f, 0.f, 0.f, 0.f}, {0.f, 1.f, 0.f, 0.f}, {0.f, 0.f, 1.f, 0.f}, {0.f, 0.f, 0.f, 1.f} };
-		FLOAT4X4 mat3 = { {1.f, 2.f, 3.f, 4.f}, {5.f, 6.f, 7.f, 8.f}, {9.f, 10.f, 11.f, 12.f}, {13.f, 14.f, 15.f, 16.f} };
+		Float4x4 mat2 = { {1.f, 0.f, 0.f, 0.f}, {0.f, 1.f, 0.f, 0.f}, {0.f, 0.f, 1.f, 0.f}, {0.f, 0.f, 0.f, 1.f} };
+		Float4x4 mat3 = { {1.f, 2.f, 3.f, 4.f}, {5.f, 6.f, 7.f, 8.f}, {9.f, 10.f, 11.f, 12.f}, {13.f, 14.f, 15.f, 16.f} };
 		auto resultMat = mat2 * mat3;
 		assert(resultMat[0][0] == 1.f && resultMat[0][1] == 2.f && resultMat[0][2] == 3.f && resultMat[0][3] == 4.f);
 
@@ -240,6 +240,7 @@ int main(int argc, char** argv)
 
 	try {
 		app->onInit();
+		app->onBeginGame();
 		app->run();
 		app->onDestroy();
 	}
