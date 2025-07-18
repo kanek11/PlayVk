@@ -5,8 +5,7 @@
 #include <xinput.h>     // Windows XInput
 #pragma comment(lib, "Xinput9_1_0.lib")
 
-//----------------------
- 
+//---------------------- 
 enum class GamepadButton : uint8_t {
     A, B, X, Y,
     LeftShoulder, RightShoulder,
@@ -21,9 +20,7 @@ static constexpr size_t ButtonCount = static_cast<size_t>(GamepadButton::COUNT);
 
 enum class GamepadAxis { LX, LY, RX, RY, LT, RT, COUNT };
 
-
-
-
+ 
 //---------------------- 
 struct GamepadState {
     bool connected = false;

@@ -101,6 +101,7 @@ public:
 	UIButton(Rect rect) : layout(rect) {}
 
 	virtual void Render() override;
+	void RenderWithText();
 
 	void Tick(float delta);
 
@@ -108,7 +109,8 @@ public:
 		return IsPointInRect(layout, x, y);
 	}
 
-	Rect layout;
+	Rect layout; 
+	std::string text; 
 };
 
 

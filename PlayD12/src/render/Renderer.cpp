@@ -1134,6 +1134,40 @@ void UIRenderer::AddQuad(const Rect& rect, const Float4& color)
     dirty = true;
 }
 
+void UIRenderer::AddQuad(const Rect& rect, const Float2& uvTL, const Float2& uvBR)
+{
+	int screenWidth = GameApplication::GetInstance()->GetWidth();
+	int screenHeight = GameApplication::GetInstance()->GetHeight();
+	Float2 tl = ScreenToNDC(rect.x, rect.y, screenWidth, screenHeight);
+	Float2 tr = ScreenToNDC(rect.x + rect.w, rect.y, screenWidth, screenHeight);
+	Float2 bl = ScreenToNDC(rect.x, rect.y + rect.h, screenWidth, screenHeight);
+	Float2 br = ScreenToNDC(rect.x + rect.w, rect.y + rect.h, screenWidth, screenHeight);
+
+    auto baseColor = Color::White;
+
+	uint32_t baseVertex = static_cast<uint32_t>(m_data.vertices.size());
+    m_data.vertices.push_back({ tl, uvTL, Color::White }); // 0
+    m_data.vertices.push_back({ tr, {uvBR.x(), uvTL.y()}, Color::White }); // 1
+    m_data.vertices.push_back({ bl, {uvTL.x(), uvBR.y()}, Color::White }); // 2
+	m_data.vertices.push_back({ br, uvBR, Color::White }); // 3
+
+	uint32_t baseIndex = static_cast<uint32_t>(m_data.indices.size());
+	m_data.indices.push_back(baseVertex + 0);
+	m_data.indices.push_back(baseVertex + 1);
+	m_data.indices.push_back(baseVertex + 2);
+	m_data.indices.push_back(baseVertex + 2);
+	m_data.indices.push_back(baseVertex + 1);
+	m_data.indices.push_back(baseVertex + 3);
+
+
+	UIDrawCmd cmd = {
+		.indexOffset = baseIndex,
+		.indexCount = 6
+	};
+	m_data.cmds.push_back(cmd);
+	dirty = true;
+}
+
 void UIRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
 {
     if (m_data.cmds.empty()) return;

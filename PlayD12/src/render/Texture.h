@@ -5,6 +5,7 @@
 
 
 
+
 enum class ETextureUsage {
     RenderTarget,
     DepthStencil,
@@ -32,6 +33,11 @@ public:
     ID3D12Resource* GetRawResource() const
 	{
 		return m_resource.Get();
+	}
+
+	FTextureDesc GetDesc() const
+	{
+		return m_desc;
 	}
 
     D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc() const; 

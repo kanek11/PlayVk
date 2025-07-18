@@ -5,6 +5,7 @@
 #include "InputSystem.h"
 
 #include "Render/Renderer.h"
+#include "Render/Text.h"
 
  
 void UIButton::Render()
@@ -22,6 +23,42 @@ void UIButton::Render()
 
 	uiRenderer->AddQuad(layout, color);
 }
+
+void UIButton::RenderWithText()
+{
+	auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
+	assert(uiRenderer != nullptr); 
+	 
+	SharedPtr<FontAtlas> font = uiRenderer->font;
+	if (!font) {
+		std::cout << "UIRenderer font is not set!" << std::endl;
+		return;
+	}
+
+
+	Float2 cursor = { static_cast<float>(layout.x), static_cast<float>(layout.y) };
+	for (char c : text) {
+		if (!font->glyphs.contains(c)) continue;
+
+		const Glyph& g = font->glyphs[c];
+
+		Rect glyphRect = {
+			static_cast<int>(cursor.x() + g.bearing.x()),
+			static_cast<int>(cursor.y() + g.bearing.y()),
+			static_cast<int>(g.size.x()),
+			static_cast<int>(g.size.y())
+		};
+
+		uiRenderer->AddQuad(glyphRect, g.uvTopLeft, g.uvBottomRight);
+
+		cursor = { cursor.x() + g.advance, cursor.y() };
+	}
+}
+
+
+
+
+
 
 void UIButton::Tick(float delta)
 {

@@ -185,6 +185,7 @@
     <ClInclude Include="src\StaticMeshActor.h" />
     <ClInclude Include="src\UI.h" />
     <ClInclude Include="src\Window.h" />
+    <ClInclude Include="src\render\Text.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
@@ -210,6 +211,7 @@
     <ClCompile Include="src\StaticMeshActor.cpp" />
     <ClCompile Include="src\UI.cpp" />
     <ClCompile Include="src\Window.cpp" />
+    <ClCompile Include="src\render\Text.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="legacy.txt" />

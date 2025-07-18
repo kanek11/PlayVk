@@ -44,6 +44,10 @@ InputSystem::InputSystem() {
 
     mouseButtonStateRaw.fill(false);
     mouseButtonState.fill(ButtonFrame{});
+
+	m_axisState.fill(0.f); 
+
+	m_gamepad = GamepadInput();
 }
 
 

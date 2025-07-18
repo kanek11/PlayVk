@@ -7,6 +7,7 @@
 #include "Resource.h"
 #include "Mesh.h"
 #include "Shader.h"
+#include "Text.h"
 
 #include "Math/MMath.h"
 
@@ -64,6 +65,7 @@ public:
     void Init(RenderPassInitContext ctx);
 
     void AddQuad(const Rect& rect, const Float4& color);
+	void AddQuad(const Rect& rect, const Float2& uvTL, const Float2& uvBR);
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList);
 
@@ -103,6 +105,10 @@ private:
 
 
     bool dirty{ false };
+
+public:
+    //new:
+    SharedPtr<FontAtlas> font;
 };
 
 
