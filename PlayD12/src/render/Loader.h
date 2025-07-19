@@ -1,12 +1,12 @@
 #pragma once 
 
-#include <optional> 
-#include <memory>
-#include <functional>
-#include <string_view>
-/*
-* as agnostic as possible, pure data aspect of image;
-*/
+#include "PCH.h"
+#include <string_view> 
+#include <DirectXTex.h>
+
+#include "Base.h"
+
+
 
 namespace Loader {
 
@@ -15,7 +15,7 @@ namespace Loader {
 		uint32_t channels{};
 	};
 
-	 
+
 	struct ImageData {
 		ImageMetaInfo metaInfo{};
 		std::unique_ptr<void, std::function<void(void*)>> data;
@@ -27,13 +27,16 @@ namespace Loader {
 		bool bFlipVOnLoad = false;
 		bool bIsHDR = false;
 	};
-
-
-
-	struct D3D12ImageMetaInfo {
 	 
+	struct D3D12ImageMetaInfo {
+		size_t width{}, height{};
+		size_t rowPitch{}, slicePitch{};
+		DXGI_FORMAT format{};
 	};
-	struct D3D12ImageData { 
+	struct D3D12ImageData {
+		D3D12ImageMetaInfo metaInfo{};
+		uint8_t* data{ nullptr };
+		SharedPtr<DirectX::ScratchImage> ownedImage;  //ensure the scope of owner;
 	};
 
 	std::optional<D3D12ImageData> LoadTextureDX(std::string_view path, TextureImportConfig config = TextureImportConfig{});

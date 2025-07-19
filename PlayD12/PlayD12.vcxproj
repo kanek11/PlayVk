@@ -172,9 +172,11 @@
     <ClInclude Include="src\physics\Collision.h" />
     <ClInclude Include="src\physics\PhysicsScene.h" />
     <ClInclude Include="src\physics\Shape.h" />
+    <ClInclude Include="src\render\Loader.h" />
     <ClInclude Include="src\render\Material.h" />
     <ClInclude Include="src\render\Mesh.h" />
     <ClInclude Include="src\PCH.h" />
+    <ClInclude Include="src\render\pipeline.h" />
     <ClInclude Include="src\render\Renderer.h" />
     <ClInclude Include="src\render\RenderPass.h" />
     <ClInclude Include="src\render\Resource.h" />
@@ -196,6 +198,7 @@
     <ClCompile Include="src\InputSystem.cpp" />
     <ClCompile Include="src\Level.cpp" />
     <ClCompile Include="src\physics\PhysicsScene.cpp" />
+    <ClCompile Include="src\render\Loader.cpp" />
     <ClCompile Include="src\render\Mesh.cpp" />
     <ClCompile Include="src\PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -203,6 +206,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\render\pipeline.cpp" />
     <ClCompile Include="src\render\Renderer.cpp" />
     <ClCompile Include="src\render\RenderPass.cpp" />
     <ClCompile Include="src\render\Resource.cpp" />
@@ -219,7 +223,17 @@
     <Text Include="legacy\legacyPSO.txt" />
     <Text Include="legacy\OBBVSAABB.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\directxtex_desktop_win10.2025.7.10.1\build\native\directxtex_desktop_win10.targets" Condition="Exists('..\packages\directxtex_desktop_win10.2025.7.10.1\build\native\directxtex_desktop_win10.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\directxtex_desktop_win10.2025.7.10.1\build\native\directxtex_desktop_win10.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtex_desktop_win10.2025.7.10.1\build\native\directxtex_desktop_win10.targets'))" />
+  </Target>
 </Project>

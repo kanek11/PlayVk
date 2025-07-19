@@ -5,6 +5,11 @@
 
 #include "StaticMeshActor.h"
 
+namespace Global {
+	static float lastUsedTime = std::numeric_limits<float>::max();
+}
+
+
 
 class ILevel {
 public:
@@ -71,7 +76,9 @@ public:
 
 	void GenerateObstacles(float roadWidth,float roadLength, uint32_t obstacleCount);
 	float roadWidth = 10;
-	float goalLength = 1000;
+	float goalLength = 500;
+
+	float timeCount{};
 };
 
 
@@ -82,5 +89,5 @@ public:
 	virtual void OnUnload()override;
 	virtual void OnUpdate(float delta)override;
 
-	SharedPtr<UIButton> debugButton;
+	std::vector < SharedPtr<UIButton>> m_Buttons; 
 };

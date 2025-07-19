@@ -8,15 +8,15 @@
 
 
 // geometry helpers
-struct Rect { int x{}, y{}, w{}, h{}; };
-inline bool IsPointInRect(const Rect& r, int px, int py) {
+struct FRect { int x{}, y{}, w{}, h{}; };
+inline bool IsPointInRect(const FRect& r, int px, int py) {
 	return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
 }
 
-inline Rect CenterRect(int screenWidth, int screenHeight, const Rect& rectSize) {
+inline FRect CenterRect(int screenWidth, int screenHeight, const FRect& rectSize) {
 	int cornerX = (screenWidth - rectSize.w) / 2;
 	int cornerY = (screenHeight - rectSize.h) / 2;
-	return Rect{ cornerX, cornerY, rectSize.w, rectSize.h };
+	return FRect{ cornerX, cornerY, rectSize.w, rectSize.h };
 }
 
 
@@ -37,7 +37,7 @@ class UIElement {
 public:
 	virtual ~UIElement() = default;
 
-	virtual void Render() = 0;
+	virtual void RenderBack() = 0;
 
 	virtual void OnMouseMove(const UIMouseMove& e) {
 
@@ -46,7 +46,7 @@ public:
 		if (HitTest(e.x, e.y)) {
 			//std::cout << "UI: mouse hovered at (" << e.x << ", " << e.y << ")" << '\n';
 			if (state != UIState::Pressed)
-			state = UIState::Hovered;
+				state = UIState::Hovered;
 		}
 		else {
 			state = UIState::Normal;
@@ -63,8 +63,8 @@ public:
 
 	virtual void OnMouseButtonUp(const UIMouseButtonUp& e) {
 		//std::cout << "UI: handle hit release, curr state:" << (int)state << '\n';
-		if (HitTest(e.x, e.y)) { 
-			 
+		if (HitTest(e.x, e.y)) {
+
 			if (state == UIState::Pressed) {
 				std::cout << "UI: button clicked" << '\n';
 				OnClick.BlockingBroadCast();
@@ -98,10 +98,10 @@ class UIButton : public UIElement
 {
 public:
 	virtual ~UIButton() = default;
-	UIButton(Rect rect) : layout(rect) {}
+	UIButton(FRect rect) : layout(rect) {}
 
-	virtual void Render() override;
-	void RenderWithText();
+	virtual void RenderBack() override;
+	void RenderText();
 
 	void Tick(float delta);
 
@@ -109,8 +109,8 @@ public:
 		return IsPointInRect(layout, x, y);
 	}
 
-	Rect layout; 
-	std::string text; 
+	FRect layout;
+	std::string text = "HELLO";
 };
 
 
@@ -196,6 +196,5 @@ private:
 	}
 
 };
-
 
 

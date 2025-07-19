@@ -4,15 +4,10 @@
 #include "Application.h"
 using namespace DirectX;
 
-
-constexpr size_t MaxLines = 1000; 
-constexpr uint32_t descriptorPoolSize = 2048;
-
 D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring name,
     SharedPtr<WindowBase> mainWindow
 )
-{
-    //new:
+{ 
     m_width = width;
     m_height = height;
     m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
@@ -21,14 +16,18 @@ D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring nam
 }
 
 void D3D12HelloRenderer::OnInit()
-{
+{  
     LoadPipeline();
+
     LoadAssets();
 
     //
     RenderPassInitContext ctx =
     {
       .device = m_device.Get(), 
+      .cmdAllocator = m_commandAllocator.Get(),
+      .cmdList = m_commandList.Get(),
+      .cmdQueue = m_commandQueue.Get(),
       .m_shaderManager = this->m_shaderManager,
       .m_psoManager = this->m_psoManager
     };
@@ -49,7 +48,7 @@ void D3D12HelloRenderer::OnInit()
         .device = m_device.Get(),
         .mainShaderPerm = m_shaderPerm,
         .shadowShaderPerm = m_shadowShaderPerm,
-        .fallBackTexture = m_fallBackTexture, 
+        .fallBackTexture = m_fallBackTexture,
     };
 
 }
@@ -61,16 +60,17 @@ void D3D12HelloRenderer::OnRender()
     //PopulateCommandList();
     BeginFrame();
 
-
+     
     BeginShadowPass(m_commandList.Get());
     RecordShadowPassCommands(m_commandList.Get());
     EndShadowPass(m_commandList.Get());
+    
 
+    //
     BeginRenderPass(m_commandList.Get());
 
     RecordRenderPassCommands(m_commandList.Get());
-
-    //m_debugRenderer->FlushAndRender(m_commandList.Get());
+     
     DebugDraw::Get().FlushAndRender(m_commandList.Get());
 
     uiRenderer->FlushAndRender(m_commandList.Get());
@@ -82,17 +82,17 @@ void D3D12HelloRenderer::OnRender()
 }
 
 
-void DebugDraw::AddRay(const Float3& origin, const Float3& direction, 
-    const Float4& color0 ,
+void DebugDraw::AddRay(const Float3& origin, const Float3& direction,
+    const Float4& color0,
     const Float4& color1
-    )
+)
 {
 
     this->AddLine(origin, origin + direction, color0, color1);
 
 }
 
-void DebugDraw::AddLine(const Float3& start, const Float3& end, 
+void DebugDraw::AddLine(const Float3& start, const Float3& end,
     const Float4& color0,
     const Float4& color1)
 {
@@ -162,16 +162,14 @@ void DebugDraw::Init(RenderPassInitContext ctx)
     // Reserve CPU space for lines
     m_lineData.reserve(MaxVertices);
 
-
-
+     
     //shader perm:
     ShaderPermutationKey key = {
         .shaderTag = "Debug",
         .passTag = "Line",
     };
     m_shader = ctx.m_shaderManager->GetOrLoad(key);
-    m_shader->CreateRootSignature();
-
+    m_shader->CreateRootSignature(); 
 
     //input layer:
     std::vector<VertexInputLayer> inputLayers =
@@ -192,8 +190,7 @@ void DebugDraw::Init(RenderPassInitContext ctx)
         m_renderPassDesc,
         inputLayers
     );
-
-
+     
 
     //the cosntant buffer:
     m_CB = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
@@ -366,11 +363,19 @@ void D3D12HelloRenderer::LoadPipeline()
         }
     }
 
-    ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())));
-}
+    {
+        ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())));
+    }
+ }
 
 void D3D12HelloRenderer::LoadAssets()
-{
+{ 
+    // Create the command list . after device;
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_PSO.Get(), IID_PPV_ARGS(m_commandList.GetAddressOf())));
+     
+    //close right after
+    ThrowIfFailed(m_commandList->Close());
+
     m_shaderManager = CreateShared<ShaderLibrary>(m_device, m_rangeHeapAllocator);
 
     m_psoManager = CreateShared<PSOManager>(m_device, m_shaderManager);
@@ -385,9 +390,9 @@ void D3D12HelloRenderer::InitRenderPass()
         sampler0.ShaderRegister = 0;
         sampler0.RegisterSpace = 0;
         sampler0.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
- /*       sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-        sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-        sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;*/
+        /*       sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+               sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+               sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;*/
         sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -483,10 +488,6 @@ void D3D12HelloRenderer::InitRenderPass()
         m_bindings.dsv = dsvHandle;
     }
 
-
-    // Create the command list.
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_PSO.Get(), IID_PPV_ARGS(m_commandList.GetAddressOf())));
-
     //teturing:
      // Note: ComPtr's are CPU objects but this resource needs to stay in scope until
     // the command list that references it has finished executing on the GPU.
@@ -494,6 +495,12 @@ void D3D12HelloRenderer::InitRenderPass()
     // prematurely destroyed.
     //me: so just declare it outside the local scope;  same scope with commandList:
     //ComPtr<ID3D12Resource> textureUploadHeap;
+
+    //    // Create the command list . after device;
+    //ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_PSO.Get(), IID_PPV_ARGS(m_commandList.GetAddressOf())));
+
+    ThrowIfFailed(m_commandAllocator->Reset()); 
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
 
     // Create the texture.
     {
@@ -504,8 +511,7 @@ void D3D12HelloRenderer::InitRenderPass()
             .usages = { ETextureUsage::ShaderResource }
         };
 
-        m_fallBackTexture = CreateShared<FD3D12Texture>(m_device.Get(), texDesc);
-
+        m_fallBackTexture = CreateShared<FD3D12Texture>(m_device.Get(), texDesc); 
 
         // Copy data to the intermediate upload heap and then schedule a copy 
         // from the upload heap to the Texture2D.
@@ -514,8 +520,19 @@ void D3D12HelloRenderer::InitRenderPass()
         m_fallBackTexture->UploadFromCPU(
             m_commandList.Get(),
             texture.data(),
-            TextureWidth * TexturePixelSize // Row pitch
+            TextureWidth * TexturePixelSize, // Row pitch,
+            TextureWidth * TexturePixelSize * TextureHeight //slice pitch
         );
+    }
+
+    //new:
+    { 
+        auto atlasTex = uiRenderer->font->texture;
+        auto atlasData = uiRenderer->font->imageData;
+        atlasTex->UploadFromCPU(m_commandList.Get(), atlasData->data, 
+            atlasData->metaInfo.rowPitch, 
+            atlasData->metaInfo.slicePitch);
+
     }
 
     // Close the command list and execute it to begin the initial GPU setup.
@@ -611,7 +628,7 @@ void D3D12HelloRenderer::BeginShadowPass(ID3D12GraphicsCommandList* commandList)
 {
 
     // Bind only depth target  
-    assert(m_shadowBindings.dsv.has_value()); 
+    assert(m_shadowBindings.dsv.has_value());
 
     // Indicate that the shadow map will be used as a depth stencil target.
     auto srvToDsvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -691,12 +708,12 @@ void D3D12HelloRenderer::OnDestroy()
 
 
 void D3D12HelloRenderer::BeginFrame()
-{ 
+{
     //new: 
     if (meshDirty) {
         this->SetMeshDescriptors();
         meshDirty = false;
-    } 
+    }
     // Command list allocators can only be reset when the associated 
  // command lists have finished execution on the GPU; apps should use 
  // fences to determine GPU execution progress. 
@@ -724,14 +741,7 @@ void D3D12HelloRenderer::EndFrame()
 }
 
 void D3D12HelloRenderer::BeginRenderPass(ID3D12GraphicsCommandList* commandList)
-{
-
-    //CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-    //D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_SC_RTVHeapAllocator->GetCPUHandle(m_frameIndex);
-
-    assert(m_bindings.rtvs.size() == FrameCount);
-    auto rtvHandle = m_bindings.rtvs[m_frameIndex];
-
+{ 
 
     // Indicate that the back buffer will be used as a render target.
     auto ps_rtv_Barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -742,6 +752,11 @@ void D3D12HelloRenderer::BeginRenderPass(ID3D12GraphicsCommandList* commandList)
     m_commandList->ResourceBarrier(1, &ps_rtv_Barrier);
 
 
+    //CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
+    //D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_SC_RTVHeapAllocator->GetCPUHandle(m_frameIndex);
+
+    assert(m_bindings.rtvs.size() == FrameCount);
+    auto rtvHandle = m_bindings.rtvs[m_frameIndex];  
 
     const float clearColor[] = { 0.1f, 0.1f, 0.1f, 1.0f };
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
@@ -807,6 +822,11 @@ void D3D12HelloRenderer::RecordRenderPassCommands(ID3D12GraphicsCommandList* m_c
 
 
 
+}
+
+
+void D3D12HelloRenderer::EndRenderPass(ID3D12GraphicsCommandList* commandList)
+{ 
     //End------------
 // Indicate that the back buffer will now be used to present.
     auto rtv_ps_barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -815,13 +835,6 @@ void D3D12HelloRenderer::RecordRenderPassCommands(ID3D12GraphicsCommandList* m_c
         D3D12_RESOURCE_STATE_PRESENT
     );
     m_commandList->ResourceBarrier(1, &rtv_ps_barrier);
-
-}
-
-
-void D3D12HelloRenderer::EndRenderPass(ID3D12GraphicsCommandList* commandList)
-{
-
 
 }
 
@@ -985,7 +998,7 @@ void D3D12HelloRenderer::SetMeshDescriptors()
 
 // Update frame-based values.
 void D3D12HelloRenderer::OnUpdate(float delta)
-{ 
+{
 
     //DebugDraw::Get().OnUpdate(delta, dummyCamera.pvMatrix);
     if (mainCamera) {
@@ -995,7 +1008,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
     {
         //std::cout << "no camera" << '\n';
     }
-    
+
 }
 
 void D3D12HelloRenderer::SubmitMesh(StaticMeshActorProxy* mesh)
@@ -1013,10 +1026,53 @@ void D3D12HelloRenderer::ClearMesh()
 
 
 void UIRenderer::Init(RenderPassInitContext ctx)
-{
-    size_t MaxUI = 20;
-    size_t MaxVertices = 4 * MaxUI;
-    size_t MaxIndices = 6 * MaxUI;
+{ 
+    //----------------------
+    font = CreateShared<FontAtlas>();
+    //font->LoadTexture("assets/ascii.png");
+    //font->LoadTexture("assets/ASCII_full.png");
+    font->LoadTexture("assets/ASCII_10x10.jpg");
+    //font->LoadTexture("assets/test.png");
+    //font->LoadTexture("assets/white.jpg");
+     
+    auto metaInfo = font->imageData.value().metaInfo;
+    auto data = font->imageData.value().data;
+    FTextureDesc atlasDesc =
+        FTextureDesc{
+        .width = static_cast<UINT>(metaInfo.width),
+        .height = static_cast<UINT>(metaInfo.height),
+        .format = metaInfo.format,
+        .usages = {ETextureUsage::ShaderResource},
+    };
+
+
+    auto atlasTex = CreateShared<FD3D12Texture>(ctx.device, atlasDesc); 
+    font->texture = atlasTex; 
+    float cellWidth = (metaInfo.width -1)  / 10.0f;
+    float cellHeight =  (metaInfo.height-1) / 10.0f;
+    font->LoadGridAtlas(cellWidth, cellHeight, 10, 10);
+
+    //font->LoadGridAtlas(80, 80, metaInfo.width ,metaInfo.height);
+
+    D3D12_STATIC_SAMPLER_DESC sampler0 = {};
+    sampler0.ShaderRegister = 0;
+    sampler0.RegisterSpace = 0;
+    sampler0.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; 
+    sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP; 
+    sampler0.MipLODBias = 0;
+    sampler0.MaxAnisotropy = 0;
+    sampler0.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+    sampler0.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+    sampler0.MinLOD = 0.0f;
+    sampler0.MaxLOD = D3D12_FLOAT32_MAX;
+    sampler0.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 
+
+
+    //----------------------
+    size_t MaxVertices = 4 * MaxUIBatch;
+    size_t MaxIndices = 6 * MaxUIBatch;
 
     // Create vertex buffer for debug lines
     m_vertexBuffer = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
@@ -1041,6 +1097,9 @@ void UIRenderer::Init(RenderPassInitContext ctx)
         .passTag = "UI",
     };
     m_shader = ctx.m_shaderManager->GetOrLoad(key);
+
+    m_shader->SetStaticSampler("fontAtlasSampler", sampler0);
+
     m_shader->CreateRootSignature();
 
 
@@ -1053,7 +1112,7 @@ void UIRenderer::Init(RenderPassInitContext ctx)
             .elements = {
                 { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, position), sizeof(Float2), D3D12_APPEND_ALIGNED_ELEMENT },
                 { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, UV), sizeof(Float2), D3D12_APPEND_ALIGNED_ELEMENT },
-                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(UIVertex, color), sizeof(Float4), D3D12_APPEND_ALIGNED_ELEMENT }
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(UIVertex, color), sizeof(Float4), D3D12_APPEND_ALIGNED_ELEMENT }, 
             }
         }
     };
@@ -1064,39 +1123,40 @@ void UIRenderer::Init(RenderPassInitContext ctx)
         m_renderPassDesc,
         inputLayers
     );
-
-    //the cosntant buffer:
+     
     m_CB = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
-        sizeof(MVPConstantBuffer),
+        sizeof(UISettingsCB),
         DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
-        256, // Alignment
+        sizeof(UISettingsCB),  
         EBufferUsage::Upload | EBufferUsage::Constant
         });
 
-    MVPConstantBuffer cbData = {};
-    cbData.modelMatrix = MMath::MatrixIdentity<float, 4>();
-    m_CB->UploadData(&cbData, sizeof(MVPConstantBuffer));
+    UISettingsCB cbData = {};
+    cbData.useTexture = true;
+    m_CB->UploadData(&cbData, sizeof(UISettingsCB));
 
     //set CBV: 
-    heapOffset = m_shader->RequestAllocationOnHeap();
-    m_shader->SetCBV("MVPConstantBuffer",
+    heapOffset = m_shader->RequestAllocationOnHeap(); 
+     
+    m_shader->SetCBV("UISettingsCB",
         m_CB->GetRawResource(),
         m_CB->GetCBVDesc(),
         heapOffset);
 
+    m_shader->SetSRV("fontAtlas", atlasTex->GetRawResource(), atlasTex->GetSRVDesc(), heapOffset);
 }
-
+ 
 
 
 inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
-    float ndcX = (2.0f * static_cast<float>(x+0.5f) / static_cast<float>(screenWidth)) - 1.0f;
-    float ndcY = 1.0f - (2.0f * static_cast<float>(y+0.5f) / static_cast<float>(screenHeight)); // Invert Y for top-left 
+    float ndcX = (2.0f * static_cast<float>(x + 0.5f) / static_cast<float>(screenWidth)) - 1.0f;
+    float ndcY = 1.0f - (2.0f * static_cast<float>(y + 0.5f) / static_cast<float>(screenHeight)); // Invert Y for top-left 
     //std::cout << "get ndc:" << ndcX << " " << ndcY << '\n';
     return { ndcX, ndcY };
 }
 
-void UIRenderer::AddQuad(const Rect& rect, const Float4& color)
-{ 
+void UIRenderer::AddQuad(const FRect& rect, const Float4& color)
+{
     int screenWidth = GameApplication::GetInstance()->GetWidth();
     int screenHeight = GameApplication::GetInstance()->GetHeight();
 
@@ -1126,7 +1186,8 @@ void UIRenderer::AddQuad(const Rect& rect, const Float4& color)
 
     UIDrawCmd cmd = {
     .indexOffset = baseIndex,
-    .indexCount = 6
+    .indexCount = 6,
+    .useAtlas = true,
     };
     m_data.cmds.push_back(cmd);
 
@@ -1134,38 +1195,39 @@ void UIRenderer::AddQuad(const Rect& rect, const Float4& color)
     dirty = true;
 }
 
-void UIRenderer::AddQuad(const Rect& rect, const Float2& uvTL, const Float2& uvBR)
+void UIRenderer::AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR)
 {
-	int screenWidth = GameApplication::GetInstance()->GetWidth();
-	int screenHeight = GameApplication::GetInstance()->GetHeight();
-	Float2 tl = ScreenToNDC(rect.x, rect.y, screenWidth, screenHeight);
-	Float2 tr = ScreenToNDC(rect.x + rect.w, rect.y, screenWidth, screenHeight);
-	Float2 bl = ScreenToNDC(rect.x, rect.y + rect.h, screenWidth, screenHeight);
-	Float2 br = ScreenToNDC(rect.x + rect.w, rect.y + rect.h, screenWidth, screenHeight);
+    int screenWidth = GameApplication::GetInstance()->GetWidth();
+    int screenHeight = GameApplication::GetInstance()->GetHeight();
+    Float2 tl = ScreenToNDC(rect.x, rect.y, screenWidth, screenHeight);
+    Float2 tr = ScreenToNDC(rect.x + rect.w, rect.y, screenWidth, screenHeight);
+    Float2 bl = ScreenToNDC(rect.x, rect.y + rect.h, screenWidth, screenHeight);
+    Float2 br = ScreenToNDC(rect.x + rect.w, rect.y + rect.h, screenWidth, screenHeight);
 
     auto baseColor = Color::White;
 
-	uint32_t baseVertex = static_cast<uint32_t>(m_data.vertices.size());
+    uint32_t baseVertex = static_cast<uint32_t>(m_data.vertices.size());
     m_data.vertices.push_back({ tl, uvTL, Color::White }); // 0
     m_data.vertices.push_back({ tr, {uvBR.x(), uvTL.y()}, Color::White }); // 1
     m_data.vertices.push_back({ bl, {uvTL.x(), uvBR.y()}, Color::White }); // 2
-	m_data.vertices.push_back({ br, uvBR, Color::White }); // 3
+    m_data.vertices.push_back({ br, uvBR, Color::White }); // 3
 
-	uint32_t baseIndex = static_cast<uint32_t>(m_data.indices.size());
-	m_data.indices.push_back(baseVertex + 0);
-	m_data.indices.push_back(baseVertex + 1);
-	m_data.indices.push_back(baseVertex + 2);
-	m_data.indices.push_back(baseVertex + 2);
-	m_data.indices.push_back(baseVertex + 1);
-	m_data.indices.push_back(baseVertex + 3);
+    uint32_t baseIndex = static_cast<uint32_t>(m_data.indices.size());
+    m_data.indices.push_back(baseVertex + 0);
+    m_data.indices.push_back(baseVertex + 1);
+    m_data.indices.push_back(baseVertex + 2);
+    m_data.indices.push_back(baseVertex + 2);
+    m_data.indices.push_back(baseVertex + 1);
+    m_data.indices.push_back(baseVertex + 3);
 
 
-	UIDrawCmd cmd = {
-		.indexOffset = baseIndex,
-		.indexCount = 6
-	};
-	m_data.cmds.push_back(cmd);
-	dirty = true;
+    UIDrawCmd cmd = {
+        .indexOffset = baseIndex,
+        .indexCount = 6,
+        .useAtlas = false,
+    };
+    m_data.cmds.push_back(cmd);
+    dirty = true;
 }
 
 void UIRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
@@ -1201,6 +1263,7 @@ void UIRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
     cmdList->IASetIndexBuffer(&m_indexBuffer->GetIndexBufferView());
 
     for (auto& cmd : m_data.cmds) {
+           
         auto indexCount = cmd.indexCount;
         auto indexOffset = cmd.indexOffset;
         cmdList->DrawIndexedInstanced((UINT)indexCount, 1, (UINT)indexOffset, 0, 0);

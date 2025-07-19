@@ -1,26 +1,43 @@
 #include "PCH.h"
-
-#include "DirectXTex.h"
+ 
 #include "Loader.h"
+#include <DirectXTex.h>
+
 
 namespace Loader {
+     
 
-	std::optional<ImageData> Loader::LoadTexture(std::string_view path, TextureImportConfig config)
-	{
+    std::optional<D3D12ImageData> LoadTextureDX(std::string_view pathView, TextureImportConfig config)
+    {
         using namespace DirectX;
 
-        ScratchImage image;
-        HRESULT hr = LoadFromWICFile(filePath.c_str(), WIC_FLAGS_FORCE_RGBA32, nullptr, image);
+        auto image = CreateShared<ScratchImage>();
+
+        //ScratchImage image;
+        std::wstring pathW(pathView.begin(), pathView.end()); 
+        HRESULT hr = LoadFromWICFile(pathW.c_str(), WIC_FLAGS_NONE, nullptr, *image);
         if (FAILED(hr)) {
-            std::cerr << "Failed to load font atlas: " << std::string(filePath.begin(), filePath.end()) << std::endl;
-            return false;
+            std::cerr << "Failed to load font atlas: " << pathView << std::endl;
+            return std::nullopt;
         }
 
-        const Image* srcImage = image.GetImage(0, 0, 0);
-        int texWidth = static_cast<int>(srcImage->width);
-        int texHeight = static_cast<int>(srcImage->height);
+        const Image* srcImage = image->GetImage(0, 0, 0);
 
+        D3D12ImageMetaInfo metaInfo;
+        metaInfo.width = static_cast<int>(srcImage->width);
+        metaInfo.height = static_cast<int>(srcImage->height); 
+        metaInfo.format = srcImage->format; 
+        
+        metaInfo.rowPitch = srcImage->rowPitch;
+        metaInfo.slicePitch = srcImage->slicePitch;
 
+        D3D12ImageData imageData;
+        imageData.data = srcImage->pixels;
+        imageData.metaInfo = metaInfo;
+
+        imageData.ownedImage = image;
+
+        return imageData;
     }
 
 }

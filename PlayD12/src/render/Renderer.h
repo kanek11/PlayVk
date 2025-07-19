@@ -11,6 +11,7 @@
 
 #include "Math/MMath.h"
 
+#include "pipeline.h" 
 #include "RenderPass.h"
 
 #include "UI.h"
@@ -18,39 +19,48 @@
 #include "StaticMeshActor.h"
 
 
+constexpr size_t MaxUIBatch = 256; 
+constexpr size_t MaxLines = 1024;
+constexpr uint32_t descriptorPoolSize = 2048;
+
+
+
+
 struct RendererFactoryContext {
     ID3D12Device* device;
     SharedPtr<FD3D12ShaderPermutation> mainShaderPerm;
     SharedPtr<FD3D12ShaderPermutation> shadowShaderPerm;
     SharedPtr<FD3D12Texture> fallBackTexture;
-};
+}; 
 
- 
-namespace Render { 
+namespace Render {
     inline RendererFactoryContext* rendererContext = nullptr;
 
 }
- 
+
 
 struct RenderPassInitContext
 {
-    ID3D12Device* device;
-    //ID3D12GraphicsCommandList* cmdList;
+    ID3D12Device* device; 
+    ID3D12CommandAllocator* cmdAllocator;
+    ID3D12GraphicsCommandList* cmdList;
+    ID3D12CommandQueue* cmdQueue;
 
     SharedPtr<ShaderLibrary> m_shaderManager;
     SharedPtr<PSOManager> m_psoManager;
 };
- 
+
 
 struct UIVertex {
     Float2 position;
     Float2 UV;
-    Float4 color;
+    Float4 color; 
 };
 
 struct UIDrawCmd {
     uint32_t indexOffset, indexCount;
     //uint32_t textureSlot;
+    bool useAtlas;
 };
 
 struct UIBatchData {
@@ -59,13 +69,21 @@ struct UIBatchData {
     std::vector<UIDrawCmd> cmds;
 };
 
+//make sure 256 byte aligned
+struct UISettingsCB
+{
+    bool useTexture;
+    float padding[63];
+};
+ 
+
 
 class UIRenderer {
 public:
     void Init(RenderPassInitContext ctx);
 
-    void AddQuad(const Rect& rect, const Float4& color);
-	void AddQuad(const Rect& rect, const Float2& uvTL, const Float2& uvBR);
+    void AddQuad(const FRect& rect, const Float4& color);
+    void AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR);
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList);
 
@@ -134,11 +152,11 @@ public:
 
     void OnUpdate(float delta, const Float4x4& pv);
 
-    void AddRay(const Float3& origin, const Float3& direction, 
+    void AddRay(const Float3& origin, const Float3& direction,
         const Float4& color0 = Float4(1.0f, 1.0f, 1.0f, 1.0f),
         const Float4& color1 = Float4(1.0f, 1.0f, 1.0f, 1.0f)
     );
-    void AddLine(const Float3& start, const Float3& end, 
+    void AddLine(const Float3& start, const Float3& end,
         const Float4& color = Float4(1.0f, 0.0f, 0.0f, 1.0f),
         const Float4& color1 = Float4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -328,8 +346,8 @@ private:
 
     SharedPtr<FD3D12Texture> m_fallBackTexture;
     std::vector<UINT8> GenerateFallBackTextureData();
-     
-    std::vector<StaticMeshActorProxy*> m_staticMeshes; 
+
+    std::vector<StaticMeshActorProxy*> m_staticMeshes;
 
     CameraProxy* mainCamera;
 
@@ -353,4 +371,3 @@ public:
     SharedPtr<UIRenderer> uiRenderer;
 
 };
-

@@ -3,10 +3,9 @@
 
 #include "Application.h"
 #include "Render/Renderer.h"
- 
+
 using namespace DirectX;
-
-
+ 
 #include <random>
 void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount)
 {
@@ -16,7 +15,7 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    // Position ranges: X around center (say Å}5), Y height fixed, Z along the road from 0 to roadLength
+    // Position ranges: X around center , Y height fixed, Z along the road from 0 to roadLength
     std::uniform_real_distribution<float> distX(-roadWidth, roadWidth);
     std::uniform_real_distribution<float> distZ(0.0f, roadLength);
 
@@ -26,7 +25,7 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
     for (uint32_t i = 0; i < obstacleCount; i++)
     {
         float x = distX(gen);
-        float y = 1.0f; // height so itÅfs above ground (adjust as needed)
+        float y = 1.0f; // height so above ground (adjust as needed)
         float z = distZ(gen);
 
         if (shapeChoice(gen) == 0)
@@ -34,8 +33,8 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
             // Create Sphere obstacle
             auto sphereProxy = CreateSphereActor({ x, y, z });
             sphereProxy->rigidBody->simulatePhysics = false;
-            sphereProxy->rigidBody->simulateRotation = false; 
-            sphereProxy->rigidBody->material.friction = 5.0f;  
+            sphereProxy->rigidBody->simulateRotation = false;
+            sphereProxy->rigidBody->material.friction = 5.0f;
 
             m_staticMeshActors.push_back(sphereProxy);
             renderer->SubmitMesh(sphereProxy.get());
@@ -51,49 +50,100 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
 
             auto boxProxy = CreateBoxActor({ x, y, z }, { sizeX, sizeY, sizeZ });
             boxProxy->rigidBody->simulatePhysics = false;
-            boxProxy->rigidBody->simulateRotation = false; 
+            boxProxy->rigidBody->simulateRotation = false;
             boxProxy->rigidBody->material.friction = 0.3f;
 
 
-            m_staticMeshActors.push_back(boxProxy); 
-            renderer->SubmitMesh(boxProxy.get()); 
+            m_staticMeshActors.push_back(boxProxy);
+            renderer->SubmitMesh(boxProxy.get());
         }
     }
 }
 
 
 void GamePlayWorld::OnLoad()
-{
+{ 
+    //hardcode state; todo;
+    timeCount = 0.0f;
 
-	std::cout << "load game world" << '\n';
+    std::cout << "load game world" << '\n';
 
     auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
     auto renderer = GameApplication::GetInstance()->GetRenderer();
     auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
     auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
-     
+
+
+    int screenWidth = GameApplication::GetInstance()->GetWidth();
+    int screenHeight = GameApplication::GetInstance()->GetHeight();
+
+
     auto debugSphereProxy = CreateSphereActor({ 0.0f, 2.0f, 0.0f });
     debugSphereProxy->rigidBody->simulatePhysics = true;
-    debugSphereProxy->rigidBody->simulateRotation = true; 
+    debugSphereProxy->rigidBody->simulateRotation = true;
 
     debugSphereProxy->rigidBody->debugName = "debug sphere";
     debugSphereProxy->rigidBody->material.friction = 10.0f;
 
     //------------------------- 
-    auto debugCubeProxy = CreateBoxActor({ 3.0f, 3.0f, 0.0f }, { 1.0f, 1.0f, 1.0f} );
+    auto debugCubeProxy = CreateBoxActor({ 3.0f, 3.0f, 0.0f }, { 1.0f, 1.0f, 1.0f });
     debugCubeProxy->rigidBody->simulatePhysics = true;
     debugCubeProxy->rigidBody->simulateRotation = false;
-    debugCubeProxy->rigidBody->material.friction = 0.1f; 
+    debugCubeProxy->rigidBody->material.friction = 0.1f;
 
     //--------------- 
-    auto planeProxy = CreatePlaneActor( { 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, static_cast<uint32_t>(roadWidth), static_cast<uint32_t>(goalLength));
+    auto planeProxy = CreatePlaneActor({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, static_cast<uint32_t>(roadWidth), static_cast<uint32_t>(goalLength));
 
     //auto debugPlayer = debugCubeProxy;
-    auto debugPlayer = debugSphereProxy; 
+    auto debugPlayer = debugSphereProxy;
 
 
     //---------------
-    //this->GenerateObstacles(roadWidth/2, goalLength, 50);
+    this->GenerateObstacles(roadWidth/2, goalLength, 30);
+
+
+    //---------------
+    renderer->SubmitMesh(debugSphereProxy.get());
+    renderer->SubmitMesh(planeProxy.get());
+    renderer->SubmitMesh(debugCubeProxy.get());
+
+
+    m_staticMeshActors.push_back(debugSphereProxy);
+    m_staticMeshActors.push_back(planeProxy);
+    m_staticMeshActors.push_back(debugCubeProxy);
+
+    //
+    dummyCamera = new FollowCameraProxy();
+    dummyCamera->target = debugPlayer;
+
+    renderer->SubmitCamera(dummyCamera);
+
+
+    // 
+    auto uiManager = GameApplication::GetInstance()->GetUIManager();
+
+    //FRect buttonRect = { 0, 0, 300, 150 };
+    FRect buttonRect = { 0, 0, 300, 50 }; 
+    auto debugHUD = CreateShared<UIButton>(buttonRect); 
+    
+
+    FRect buttonRect1 = { 0, 100, 300, 50 };
+    auto debugHUD1 = CreateShared<UIButton>(buttonRect1);
+      
+    FRect buttonRect2 = { 0, 200, 300, 50 };
+    auto debugHUD2 = CreateShared<UIButton>(buttonRect2); 
+
+
+    m_HUDs.push_back(debugHUD);
+    m_HUDs.push_back(debugHUD1);
+    m_HUDs.push_back(debugHUD2);
+
+    //todo:  manually submit 
+    uiManager->RegisterRootElement(debugHUD.get());
+    uiManager->RegisterRootElement(debugHUD1.get());
+    uiManager->RegisterRootElement(debugHUD2.get());
+
+
 
     //--------------------------
 
@@ -101,6 +151,16 @@ void GamePlayWorld::OnLoad()
     auto debugBehavior = [=](float delta) {
         //std::cout << "tick behavior" << '\n';
         //std::cout << "debugSphereProxy speed:" << ToString(debugSphereProxy->rigidBody->linearVelocity) << '\n';
+         
+        float currSpeed = Length(debugPlayer->rigidBody->linearVelocity); 
+        debugHUD->text = std::format("v:{:.2f}", currSpeed); 
+
+        float currDist = goalLength / 2 - debugPlayer->position.z();
+        debugHUD1->text = std::format("dist:{:.2f}", currDist); 
+
+        timeCount += delta;
+        debugHUD2->text = std::format("time:{:.2f}", timeCount); 
+        
         if (inputSystem == nullptr) {
             std::cerr << "empty input system" << '\n';
             return;
@@ -117,13 +177,13 @@ void GamePlayWorld::OnLoad()
         //if (inputSystem->IsKeyDown(KeyCode::A)) {
         //    debugPlayer->rigidBody->ApplyForce(Float3(-5.0f, 0.0f, 0.0f));
         //}
-		float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-		debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, axisZ * 5.0f));
+        float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
+        debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, axisZ * 5.0f));
 
-		float axisX = inputSystem->GetAxis(EAxis::MoveX); 
-		debugPlayer->rigidBody->ApplyForce(Float3(axisX * 5.0f, 0.0f, 0.0f));
-			 
-         
+        float axisX = inputSystem->GetAxis(EAxis::MoveX);
+        debugPlayer->rigidBody->ApplyForce(Float3(axisX * 5.0f, 0.0f, 0.0f));
+
+
         //if (inputSystem->IsKeyDown(KeyCode::D)) {
         //    debugPlayer->rigidBody->ApplyForce(Float3(+5.0f, 0.0f, 0.0f));
         //}
@@ -137,56 +197,26 @@ void GamePlayWorld::OnLoad()
             debugPlayer->position = { 0.0f, 2.0f, 0.0f };
             debugPlayer->rigidBody->linearVelocity = Float3{};
             debugPlayer->rigidBody->angularVelocity = Float3{};
+
+            timeCount = 0.0f;
             //gameManager->RequestTransitState(GameStateId::MainMenu);
         }
 
-        else if (debugPlayer->position.z() > goalLength/2 - 20) {
+        else if (debugPlayer->position.z() > goalLength / 2 - 20) {
             std::cout << "goal?" << '\n';
+            if(timeCount < Global::lastUsedTime)
+            Global::lastUsedTime = timeCount;
             gameManager->RequestTransitState(GameStateId::MainMenu);
         }
 
         };
 
     debugPlayer->onUpdate.Add(debugBehavior);
-     
 
-    //---------------
-    renderer->SubmitMesh(debugSphereProxy.get());
-    renderer->SubmitMesh(planeProxy.get()); 
-    renderer->SubmitMesh(debugCubeProxy.get());
-
-
-    m_staticMeshActors.push_back(debugSphereProxy);
-    m_staticMeshActors.push_back(planeProxy);
-    m_staticMeshActors.push_back(debugCubeProxy);  
-
-    //
-    dummyCamera = new FollowCameraProxy();
-    dummyCamera->target = debugPlayer;  
-
-    renderer->SubmitCamera(dummyCamera);
-
-
-    // 
-    auto uiManager = GameApplication::GetInstance()->GetUIManager(); 
-
-    Rect buttonRect = { 0, 0, 300, 150 };   
-    auto debugButton = CreateShared<UIButton>(buttonRect); 
-     
-     
-    Rect buttonRect1 = { 0, 170, 300, 150 }; 
-    auto debugButton1 = CreateShared<UIButton>(buttonRect1); 
-
-    m_HUDs.push_back(debugButton);
-    m_HUDs.push_back(debugButton1);
-      
-    //todo:  manually submit 
-    uiManager->RegisterRootElement(debugButton.get());
-    uiManager->RegisterRootElement(debugButton1.get());
 }
 
 void GamePlayWorld::OnUnload()
-{  
+{
     std::cout << "unload game world" << '\n';
 
 
@@ -201,9 +231,9 @@ void GamePlayWorld::OnUnload()
     auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
     assert(uiRenderer != nullptr);
 
-    uiRenderer->Clear(); 
+    uiRenderer->Clear();
     uiManager->ClearRoot();
-     
+
     //
     m_staticMeshActors.clear();
     m_HUDs.clear();
@@ -237,7 +267,7 @@ void GamePlayWorld::OnUpdate(float delta)
     for (auto& HUD : m_HUDs) {
         HUD->Tick(delta);
     }
-     
+
 
     //--------------
     //m_debugRenderer->OnUpdate(delta, dummyCamera.pvMatrix); 
@@ -246,7 +276,7 @@ void GamePlayWorld::OnUpdate(float delta)
         dummyCamera->Tick(delta);
     }
 
-     
+
     //--------------
     for (auto& proxy : m_staticMeshActors)
     {
@@ -358,7 +388,7 @@ void GamePlayWorld::OnUpdate(float delta)
 
 void MainMenuWorld::OnLoad()
 {
-	std::cout << "load main menu world" << '\n';
+    std::cout << "load main menu world" << '\n';
 
     auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
@@ -366,34 +396,36 @@ void MainMenuWorld::OnLoad()
     int screenWidth = GameApplication::GetInstance()->GetWidth();
     int screenHeight = GameApplication::GetInstance()->GetHeight();
 
-    Rect buttonRect = { 0, 0, 500, 300}; // Width and height of button
-    Rect centeredRect = CenterRect(screenWidth, screenHeight, buttonRect);
-     
-    debugButton = CreateShared<UIButton>(centeredRect);
+    //FRect buttonRect = { 0, 0, 500, 300 }; // Width and height of button
+    FRect buttonRect = { 0, 0, 500, 50 }; // Width and height of button
+    FRect centeredRect = CenterRect(screenWidth, screenHeight, buttonRect);
+
+    auto entryButton = CreateShared<UIButton>(centeredRect);
+    entryButton->text = "Press to Enter";
 
     auto click_cb = [=] {
         gameManager->RequestTransitState(GameStateId::Playing);
-        };
+        }; 
 
-    //auto hover_cb = [=] {
-    //    auto color = Color::Red;
-    //    color[3] = 0.5f;
-
-    //    debugButton->baseColor = color;
-
-    //    };
-
-    debugButton->OnClick.Add(click_cb);
+    entryButton->OnClick.Add(click_cb);
     //debugButton->OnHover.Add(hover_cb);
+
+
+    FRect timeHUDRect = { centeredRect.x, centeredRect.y + 100, 500, 20};
+    auto timeHUD = CreateShared<UIButton>(timeHUDRect);
+    timeHUD->text = std::format("Record :{:.2f}", Global::lastUsedTime);
 
     //todo:  manually submit
     //debugButton->Render(); 
-    uiManager->RegisterRootElement(debugButton.get());
+    m_Buttons.push_back(entryButton);
+    m_Buttons.push_back(timeHUD);
+    uiManager->RegisterRootElement(entryButton.get());
+    uiManager->RegisterRootElement(timeHUD.get());
 }
 
 void MainMenuWorld::OnUnload()
 {
-	std::cout << "unload main menu world" << '\n';
+    std::cout << "unload main menu world" << '\n';
 
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
     auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
@@ -404,10 +436,12 @@ void MainMenuWorld::OnUnload()
     uiManager->ClearRoot();
 
 
-    debugButton.reset();
+    m_Buttons.clear();
 }
 
 void MainMenuWorld::OnUpdate(float delta)
-{
-    debugButton->Tick(delta);
+{  
+    for (auto& button : m_Buttons) {
+        button->Tick(delta);
+    }
 }

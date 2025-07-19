@@ -178,7 +178,7 @@ bool InputSystem::IsMouseButtonJustPressed(MouseButtonCode button)
 
 float InputSystem::GetAxis(EAxis axis) const
 {
-	std::cout << "get axis value :" << m_axisState[static_cast<size_t>(axis)] << '\n';
+	//std::cout << "get axis value :" << m_axisState[static_cast<size_t>(axis)] << '\n';
 	return m_axisState[static_cast<size_t>(axis)];
 }
 
