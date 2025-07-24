@@ -16,24 +16,52 @@
 
 using INDEX_FORMAT = uint16_t;
 
+ 
+ 
 
-struct FD3D12InputDesc {
-	std::string semanticName;
-	uint32_t semanticIndex = 0;
+//the desc of a vertex attribute 
+struct VertexAttribute {
+	const char* semanticName;
+	UINT semanticIndex;
 	DXGI_FORMAT format;
-	uint32_t alignedByteOffset;
-	uint32_t byteSize;
-	uint32_t paddedSize;
+	size_t offset;
 };
 
+// VertexLayoutTraits 
+template<typename T>
+struct VertexLayoutTraits {
+	static constexpr bool is_specialized = false;
+	static constexpr std::array<VertexAttribute, 0> attributes = {};
+}; 
 
-struct VertexInputLayer {
-	std::string name;
-	uint32_t slot = 0;
-	D3D12_INPUT_CLASSIFICATION classification;
-	uint32_t instanceStepRate = 0;
-	std::vector<FD3D12InputDesc> elements;
+class InputLayoutBuilder {
+public:
+	template<typename Vertex>
+	static std::vector<D3D12_INPUT_ELEMENT_DESC> Build(
+		UINT slot = 0,
+		D3D12_INPUT_CLASSIFICATION classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+		UINT instanceStepRate = 0
+	) {
+		std::vector<D3D12_INPUT_ELEMENT_DESC> descs;
+		const auto& attrs = VertexLayoutTraits<Vertex>::attributes;
+		static_assert(VertexLayoutTraits<Vertex>::is_specialized, "VertexLayoutTraits must be specialized");
+	 
+
+		for (const auto& attr : attrs) {
+			D3D12_INPUT_ELEMENT_DESC d = {};
+			d.SemanticName = attr.semanticName;
+			d.SemanticIndex = attr.semanticIndex;
+			d.Format = attr.format;
+			d.InputSlot = slot;
+			d.AlignedByteOffset = static_cast<UINT>(attr.offset);
+			d.InputSlotClass = classification;
+			d.InstanceDataStepRate = instanceStepRate;
+			descs.push_back(d);
+		}
+		return descs;
+	}
 };
+
 
 
 
@@ -47,22 +75,19 @@ struct StaticMeshVertex
 };
 
 
-struct StaticMeshInputDesc
-{
-	static const std::vector<FD3D12InputDesc>& GetInputDescs()
-	{
-		static const std::vector<FD3D12InputDesc> table =
-		{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, position), sizeof(Float3), 16 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, normal), sizeof(Float3), 16 },
-		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, tangent), sizeof(Float3), 16 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(StaticMeshVertex, color), sizeof(Float4), 16 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(StaticMeshVertex, texCoord0), sizeof(Float2), 16 }
-		};
-
-		return table;
-	}
+template<>
+struct VertexLayoutTraits<StaticMeshVertex> {
+	static constexpr bool is_specialized = true;
+	static constexpr auto attributes = std::to_array<VertexAttribute>({
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, position) },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, normal)   },
+		//{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, tangent)  },
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(StaticMeshVertex, color) },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    offsetof(StaticMeshVertex, texCoord0)},
+		});
 };
+
+
 
 
 

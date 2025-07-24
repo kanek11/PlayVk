@@ -1,6 +1,8 @@
 #pragma once
 #include "PCH.h"
 
+
+
 //a dummy type
 using TextureHandle = std::string; 
 
@@ -18,16 +20,21 @@ struct MaterialDesc {
 };
 
 
-//shadowpass Material:
-static MaterialDesc shadowMaterialDesc = {
-	.name = "Shadow",
-	.shaderTag = "Lit",
 
-	.textures = {
-		{"baseMap", "default_shadow_texture"}, // Placeholder texture handle
-	},
+// a simple solution of material registry;
+namespace Materials {
+     
+    inline MaterialDesc shadowMaterialDesc = {
+        .name = "Shadow",
+        .shaderTag = "Lit",
 
-	.enableAlphaBlend = false,
-	.doubleSided = false,
-	.depthWrite = true
-};
+        .textures = {
+            {"baseMap", "default_shadow_texture"}, // Placeholder texture handle
+        },
+
+        .enableAlphaBlend = false,
+        .doubleSided = false,
+        .depthWrite = true 
+    };
+     
+}

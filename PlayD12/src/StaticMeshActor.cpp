@@ -61,28 +61,32 @@ SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mes
 
 
     //------------------------------
-    MVPConstantBuffer constantBufferData{};
 
-    auto constBuffer = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-        sizeof(MVPConstantBuffer),
+    auto objectCBRes = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
+        sizeof(ObjectCB),
         DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
-        256, // Alignment
+		sizeof(ObjectCB),
         EBufferUsage::Upload | EBufferUsage::Constant
         });
 
-    //update the constant buffer data:
-    constBuffer->UploadData(&constantBufferData, sizeof(constantBufferData));
+    //update the constant buffer data: 
+    ObjectCB objectCBData{};
+    objectCBRes->UploadData(&objectCBData, sizeof(objectCBData));
+
+	//------------------------------- 
+  
+
 
 
     //--------------------------
-    MVPConstantBuffer shadowConstantBufferData{};
     auto shadowConstBuffer = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
         sizeof(MVPConstantBuffer),
         DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
         256, // Alignment
         EBufferUsage::Upload | EBufferUsage::Constant
-        });
+        }); 
 
+    MVPConstantBuffer shadowConstantBufferData{};
     shadowConstBuffer->UploadData(&shadowConstantBufferData, sizeof(shadowConstantBufferData));
 
 
@@ -106,11 +110,12 @@ SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mes
     meshProxy->mesh = mesh;
     meshProxy->mainPassHeapOffset = mainPassOffset;
     meshProxy->material = CreateShared<FMaterialProxy>(ctx->fallBackTexture);
-    meshProxy->mainMVPConstantBuffer = constBuffer;
+    meshProxy->objectCB = objectCBRes; 
     meshProxy->shadowPassHeapOffset = shadowPassOffset;
     meshProxy->shadowMVPConstantBuffer = shadowConstBuffer;
     meshProxy->instanceProxy = CreateShared<FInstanceProxy>( instanceData, instanceBuffer );
     
+  
 
     return meshProxy;
 }

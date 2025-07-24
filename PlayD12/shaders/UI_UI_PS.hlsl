@@ -1,7 +1,7 @@
 
 cbuffer UISettingsCB : register(b0)
 {
-    bool useTexture;
+    int useTexture;
     float padding[63];
 }
  
@@ -18,6 +18,9 @@ SamplerState fontAtlasSampler : register(s0);
 
 float4 PSMain(PSInput input) : SV_TARGET
 {  
+    //return float4(useTexture,0.0f,0.0f,1.0f);
+    
+    
     if(useTexture)
     {
         float4 texColor = fontAtlas.Sample(fontAtlasSampler, input.texCoord).rgba;

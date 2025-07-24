@@ -22,7 +22,7 @@ void D3D12HelloRenderer::OnInit()
     LoadAssets();
 
     //
-    RenderPassInitContext ctx =
+    RenderPassInitContext initCtx =
     {
       .device = m_device.Get(), 
       .cmdAllocator = m_commandAllocator.Get(),
@@ -32,15 +32,17 @@ void D3D12HelloRenderer::OnInit()
       .m_psoManager = this->m_psoManager
     };
 
-    uiRenderer = CreateShared<UIRenderer>();
-    uiRenderer->Init(ctx);
+    //uiRenderer = CreateShared<UIRenderer>();
+    //uiRenderer->Init(ctx);
+
+	UI::Init(initCtx, uiPassCtx);
 
 
     InitShadowPass();
     InitRenderPass();
 
 
-    DebugDraw::Get().Init(ctx);
+    DebugDraw::Get().Init(initCtx);
     //m_debugRenderer = CreateShared<DebugRenderer>();
     //m_debugRenderer->Init(ctx);
 
@@ -73,10 +75,13 @@ void D3D12HelloRenderer::OnRender()
      
     DebugDraw::Get().FlushAndRender(m_commandList.Get());
 
-    uiRenderer->FlushAndRender(m_commandList.Get());
+    //uiRenderer->FlushAndRender(m_commandList.Get());
+	UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
 
     EndRenderPass(m_commandList.Get());
 
+
+	UI::EndFrame(uiPassCtx);
 
     EndFrame();
 }
@@ -171,24 +176,14 @@ void DebugDraw::Init(RenderPassInitContext ctx)
     m_shader = ctx.m_shaderManager->GetOrLoad(key);
     m_shader->CreateRootSignature(); 
 
-    //input layer:
-    std::vector<VertexInputLayer> inputLayers =
-    {
-        VertexInputLayer{
-            .slot = 0,
-            .classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-            .elements = {
-                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(DebugLineVertex, position), sizeof(Float3), D3D12_APPEND_ALIGNED_ELEMENT },
-                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(DebugLineVertex, color), sizeof(Float4), D3D12_APPEND_ALIGNED_ELEMENT }
-            }
-        }
-    };
+    //input 
+	auto inputDesc = InputLayoutBuilder::Build<DebugLineVertex>();
 
     // Create PSO for debug rendering
     m_PSO = ctx.m_psoManager->GetOrCreate(
         m_materialDesc,
         m_renderPassDesc,
-        inputLayers
+        inputDesc
     );
      
 
@@ -206,8 +201,7 @@ void DebugDraw::Init(RenderPassInitContext ctx)
 
     //set CBV: 
     heapOffset = m_shader->RequestAllocationOnHeap();
-    m_shader->SetCBV("MVPConstantBuffer",
-        m_CB->GetRawResource(),
+    m_shader->SetCBV("MVPConstantBuffer", 
         m_CB->GetCBVDesc(),
         heapOffset);
 
@@ -383,45 +377,26 @@ void D3D12HelloRenderer::LoadAssets()
 
 void D3D12HelloRenderer::InitRenderPass()
 {
-    // Create the pipeline state, which includes compiling and loading shaders.
+
     {
-        //todo: remove the sampler init to texture manager.
-        D3D12_STATIC_SAMPLER_DESC sampler0 = {};
-        sampler0.ShaderRegister = 0;
-        sampler0.RegisterSpace = 0;
-        sampler0.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-        /*       sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-               sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-               sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;*/
-        sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        // Create a constant buffer for the scene.
+        sceneCB = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
+            .SizeInBytes = sizeof(SceneCB),
+            .Format = DXGI_FORMAT_UNKNOWN, // Not used for constant buffers 
+            .StrideInBytes = sizeof(SceneCB),
+            .Usage = EBufferUsage::Upload | EBufferUsage::Constant
+            });
 
-        sampler0.MipLODBias = 0;
-        sampler0.MaxAnisotropy = 0;
-        sampler0.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-        sampler0.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-        sampler0.MinLOD = 0.0f;
-        sampler0.MaxLOD = D3D12_FLOAT32_MAX;
-        sampler0.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        SceneCB cbData = {};
+        cbData.pvMatrix = MMath::MatrixIdentity<float, 4>();
+        sceneCB->UploadData(&cbData, sizeof(SceneCB));
 
 
-        D3D12_STATIC_SAMPLER_DESC sampler1 = {};
-        sampler1.ShaderRegister = 1; // Shadow map sampler 
-        sampler1.RegisterSpace = 0;
-        sampler1.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-        sampler1.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-        sampler1.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-        sampler1.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-        sampler1.MipLODBias = 0;
-        sampler1.MaxAnisotropy = 0;
-        sampler1.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-        //sampler1.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-        sampler1.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE; // Use opaque black for shadow map
-        sampler1.MinLOD = 0.0f;
-        sampler1.MaxLOD = D3D12_FLOAT32_MAX;
-        sampler1.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    }
 
+
+    // Create the pipeline state, which includes compiling and loading shaders.
+    { 
 
         ShaderPermutationKey key = {
             .shaderTag = "Lit",
@@ -430,8 +405,8 @@ void D3D12HelloRenderer::InitRenderPass()
         auto shaderPerm = m_shaderManager->GetOrLoad(key);
 
         //todo: 
-        shaderPerm->SetStaticSampler("baseMapSampler", sampler0);
-        shaderPerm->SetStaticSampler("shadowMapSampler", sampler1); // if needed
+        shaderPerm->SetStaticSampler("baseMapSampler", Samplers::LinearWrap(0));
+        shaderPerm->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1)); 
         shaderPerm->CreateRootSignature();
 
         m_shaderPerm = shaderPerm;
@@ -439,30 +414,17 @@ void D3D12HelloRenderer::InitRenderPass()
 
         //------------
         //assemble input layout:
-        auto& inputElementDescs = StaticMeshInputDesc::GetInputDescs();
-        std::vector<VertexInputLayer> inputLayers;
-        // Create a single input layer with all elements
-        VertexInputLayer inputLayer;
-        inputLayer.slot = 0; // Default slot
-        inputLayer.classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // Default to per-vertex data
-        inputLayer.elements = inputElementDescs;
-        inputLayers.push_back(inputLayer);
+        auto inputDescs = InputLayoutBuilder::Build<StaticMeshVertex>(0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
+        auto perInstanceDescs = InputLayoutBuilder::Build<InstanceData>(1, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1);
 
-        //the instance buffer:
-        VertexInputLayer instanceLayer;
-        instanceLayer.slot = 1;
-        instanceLayer.classification = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
-        instanceLayer.instanceStepRate = 1;
-        instanceLayer.elements.push_back({ "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 12 }); // 12 bytes for Float3
-        inputLayers.push_back(instanceLayer);
-
-        //------------
-
+        inputDescs.insert(inputDescs.end(), perInstanceDescs.begin(), perInstanceDescs.end());
+  
+        //------------ 
         m_PSO =
             m_psoManager->GetOrCreate(
                 MaterialDesc{ .shaderTag = "Lit" },
                 RenderPassDesc{ .passTag = "Forward" },
-                inputLayers
+                inputDescs
             );
 
     }
@@ -527,8 +489,10 @@ void D3D12HelloRenderer::InitRenderPass()
 
     //new:
     { 
-        auto atlasTex = uiRenderer->font->texture;
-        auto atlasData = uiRenderer->font->imageData;
+        auto atlasTex = uiPassCtx.data.font->texture;
+		assert(atlasTex != nullptr && "Font texture must be initialized before uploading data.");
+
+        auto atlasData = uiPassCtx.data.font->imageData;
         atlasTex->UploadFromCPU(m_commandList.Get(), atlasData->data, 
             atlasData->metaInfo.rowPitch, 
             atlasData->metaInfo.slicePitch);
@@ -576,24 +540,17 @@ void D3D12HelloRenderer::InitShadowPass()
 
     //PSO
     {
-        //assemble input layout:
-        auto& inputElementDescs = StaticMeshInputDesc::GetInputDescs();
-        std::vector<VertexInputLayer> inputLayers;
-        // Create a single input layer with all elements
-        VertexInputLayer inputLayer;
-        inputLayer.slot = 0;
-        inputLayer.classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA; // Default to per-vertex data
-        // Only position for shadow pass
-        inputLayer.elements = std::vector<FD3D12InputDesc>(inputElementDescs.begin(), inputElementDescs.begin() + 1);
-        inputLayers.push_back(inputLayer);
-
+        
+		// Assemble input layout for shadow pass.
+		auto inputDescs = InputLayoutBuilder::Build<StaticMeshShadowVertex>();
+	 
         //------------
 
         m_shadowPSO =
             m_psoManager->GetOrCreate(
-                shadowMaterialDesc,
+                Materials::shadowMaterialDesc,
                 shadowPassDesc,
-                inputLayers
+                inputDescs
             );
 
     }
@@ -795,6 +752,12 @@ void D3D12HelloRenderer::RecordRenderPassCommands(ID3D12GraphicsCommandList* m_c
     //record-------------
     m_shaderPerm->SetDescriptorHeap(m_commandList);
 
+    //set the scene-level:
+	m_shaderPerm->SetSceneRootCBV(
+		m_commandList,
+		sceneCB->GetRawResource()
+	);
+
     //drawcall loop
     for (const auto& proxy : m_staticMeshes)
     {
@@ -983,17 +946,23 @@ void D3D12HelloRenderer::SetMeshDescriptors()
         m_shaderPerm->SetSRV("shadowMap", m_shadowMap->GetRawResource(), m_shadowMap->GetSRVDesc(), mesh->mainPassHeapOffset);
         //m_shaderPerm->SetSRV("shadowMap", m_shadowMap->GetRawResource(), m_shadowMap->GetSRVDesc(), mesh->mainPassHeapOffset);
 
-        auto constBufferRes = mesh->mainMVPConstantBuffer;
-        m_shaderPerm->SetCBV("MVPConstantBuffer", constBufferRes->GetRawResource(), constBufferRes->GetCBVDesc(), mesh->mainPassHeapOffset);
+        //auto constBufferRes = mesh->mainMVPConstantBuffer;
+        //m_shaderPerm->SetCBV("MVPConstantBuffer", constBufferRes->GetRawResource(), constBufferRes->GetCBVDesc(), mesh->mainPassHeapOffset);
+        auto constBufferRes = mesh->objectCB;
+        m_shaderPerm->SetCBV("ObjectCB", constBufferRes->GetCBVDesc(), mesh->mainPassHeapOffset);
+
+	/*	auto sceneCB = mesh->sceneCB;
+		m_shaderPerm->SetCBV("SceneCB", sceneCB->GetRawResource(), sceneCB->GetCBVDesc(), mesh->mainPassHeapOffset);*/
     }
 
     std::cout << " set shadow pass descriptors" << std::endl;
     for (auto& mesh : m_staticMeshes)
     {
         auto constBufferRes = mesh->shadowMVPConstantBuffer;
-        m_shadowShaderPerm->SetCBV("MVPConstantBuffer", constBufferRes->GetRawResource(), constBufferRes->GetCBVDesc(), mesh->shadowPassHeapOffset);
+        m_shadowShaderPerm->SetCBV("MVPConstantBuffer", constBufferRes->GetCBVDesc(), mesh->shadowPassHeapOffset);
     }
 }
+
 
 
 // Update frame-based values.
@@ -1003,12 +972,25 @@ void D3D12HelloRenderer::OnUpdate(float delta)
     //DebugDraw::Get().OnUpdate(delta, dummyCamera.pvMatrix);
     if (mainCamera) {
         DebugDraw::Get().OnUpdate(delta, mainCamera->pvMatrix);
+
+        //scene cb: 
+        if (sceneCB != nullptr) {
+
+            SceneCB sceneCBData = {};
+            sceneCBData.pvMatrix = mainCamera->pvMatrix; // Use the main camera's projection-view matrix
+            // Upload the scene constant buffer data.
+            sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
+        }
+
+
     }
     else
     {
         //std::cout << "no camera" << '\n';
     }
 
+
+      
 }
 
 void D3D12HelloRenderer::SubmitMesh(StaticMeshActorProxy* mesh)
@@ -1023,131 +1005,6 @@ void D3D12HelloRenderer::ClearMesh()
 }
 
 
-
-
-void UIRenderer::Init(RenderPassInitContext ctx)
-{ 
-    //----------------------
-    font = CreateShared<FontAtlas>();
-    //font->LoadTexture("assets/ascii.png");
-    //font->LoadTexture("assets/ASCII_full.png");
-    font->LoadTexture("assets/ASCII_10x10.jpg");
-    //font->LoadTexture("assets/test.png");
-    //font->LoadTexture("assets/white.jpg");
-     
-    auto metaInfo = font->imageData.value().metaInfo;
-    auto data = font->imageData.value().data;
-    FTextureDesc atlasDesc =
-        FTextureDesc{
-        .width = static_cast<UINT>(metaInfo.width),
-        .height = static_cast<UINT>(metaInfo.height),
-        .format = metaInfo.format,
-        .usages = {ETextureUsage::ShaderResource},
-    };
-
-
-    auto atlasTex = CreateShared<FD3D12Texture>(ctx.device, atlasDesc); 
-    font->texture = atlasTex; 
-    float cellWidth = (metaInfo.width -1)  / 10.0f;
-    float cellHeight =  (metaInfo.height-1) / 10.0f;
-    font->LoadGridAtlas(cellWidth, cellHeight, 10, 10);
-
-    //font->LoadGridAtlas(80, 80, metaInfo.width ,metaInfo.height);
-
-    D3D12_STATIC_SAMPLER_DESC sampler0 = {};
-    sampler0.ShaderRegister = 0;
-    sampler0.RegisterSpace = 0;
-    sampler0.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT; 
-    sampler0.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    sampler0.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    sampler0.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP; 
-    sampler0.MipLODBias = 0;
-    sampler0.MaxAnisotropy = 0;
-    sampler0.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-    sampler0.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    sampler0.MinLOD = 0.0f;
-    sampler0.MaxLOD = D3D12_FLOAT32_MAX;
-    sampler0.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; 
-
-
-    //----------------------
-    size_t MaxVertices = 4 * MaxUIBatch;
-    size_t MaxIndices = 6 * MaxUIBatch;
-
-    // Create vertex buffer for debug lines
-    m_vertexBuffer = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
-        sizeof(UIVertex) * MaxVertices,
-        DXGI_FORMAT_UNKNOWN,
-        sizeof(UIVertex),
-        EBufferUsage::Upload | EBufferUsage::Vertex
-        });
-
-
-    m_indexBuffer = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
-    sizeof(INDEX_FORMAT) * MaxIndices,
-    DXGI_FORMAT_R16_UINT,
-    sizeof(INDEX_FORMAT),
-    EBufferUsage::Upload | EBufferUsage::Index
-        });
-
-
-    //shader perm:
-    ShaderPermutationKey key = {
-        .shaderTag = "UI",
-        .passTag = "UI",
-    };
-    m_shader = ctx.m_shaderManager->GetOrLoad(key);
-
-    m_shader->SetStaticSampler("fontAtlasSampler", sampler0);
-
-    m_shader->CreateRootSignature();
-
-
-    //input layer:
-    std::vector<VertexInputLayer> inputLayers =
-    {
-        VertexInputLayer{
-            .slot = 0,
-            .classification = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-            .elements = {
-                { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, position), sizeof(Float2), D3D12_APPEND_ALIGNED_ELEMENT },
-                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, UV), sizeof(Float2), D3D12_APPEND_ALIGNED_ELEMENT },
-                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(UIVertex, color), sizeof(Float4), D3D12_APPEND_ALIGNED_ELEMENT }, 
-            }
-        }
-    };
-
-    // Create PSO for debug rendering
-    m_PSO = ctx.m_psoManager->GetOrCreate(
-        m_materialDesc,
-        m_renderPassDesc,
-        inputLayers
-    );
-     
-    m_CB = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
-        sizeof(UISettingsCB),
-        DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
-        sizeof(UISettingsCB),  
-        EBufferUsage::Upload | EBufferUsage::Constant
-        });
-
-    UISettingsCB cbData = {};
-    cbData.useTexture = true;
-    m_CB->UploadData(&cbData, sizeof(UISettingsCB));
-
-    //set CBV: 
-    heapOffset = m_shader->RequestAllocationOnHeap(); 
-     
-    m_shader->SetCBV("UISettingsCB",
-        m_CB->GetRawResource(),
-        m_CB->GetCBVDesc(),
-        heapOffset);
-
-    m_shader->SetSRV("fontAtlas", atlasTex->GetRawResource(), atlasTex->GetSRVDesc(), heapOffset);
-}
- 
-
-
 inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
     float ndcX = (2.0f * static_cast<float>(x + 0.5f) / static_cast<float>(screenWidth)) - 1.0f;
     float ndcY = 1.0f - (2.0f * static_cast<float>(y + 0.5f) / static_cast<float>(screenHeight)); // Invert Y for top-left 
@@ -1155,122 +1012,96 @@ inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
     return { ndcX, ndcY };
 }
 
-void UIRenderer::AddQuad(const FRect& rect, const Float4& color)
+
+
+void D3D12HelloRenderer::AddQuad(const FQuadDesc& desc)
 {
-    int screenWidth = GameApplication::GetInstance()->GetWidth();
-    int screenHeight = GameApplication::GetInstance()->GetHeight();
+	int screenWidth = GameApplication::GetInstance()->GetWidth();
+	int screenHeight = GameApplication::GetInstance()->GetHeight();
+
+	Float2 tl = ScreenToNDC(desc.rect.x, desc.rect.y, screenWidth, screenHeight);
+	Float2 tr = ScreenToNDC(desc.rect.x + desc.rect.w, desc.rect.y, screenWidth, screenHeight);
+	Float2 bl = ScreenToNDC(desc.rect.x, desc.rect.y + desc.rect.h, screenWidth, screenHeight);
+	Float2 br = ScreenToNDC(desc.rect.x + desc.rect.w, desc.rect.y + desc.rect.h, screenWidth, screenHeight);
+
+	auto& batchData = uiPassCtx.data.batchData;
+	uint32_t baseVertex = static_cast<uint32_t>(batchData.vertices.size());
+	batchData.vertices.push_back({ tl, {desc.uvTL.x(), desc.uvTL.y()}, desc.color}); // 0
+	batchData.vertices.push_back({ tr, {desc.uvBR.x(), desc.uvTL.y()}, desc.color }); // 1
+	batchData.vertices.push_back({ bl, {desc.uvTL.x(), desc.uvBR.y()}, desc.color }); // 2
+	batchData.vertices.push_back({ br, {desc.uvBR.x(), desc.uvBR.y()}, desc.color }); // 3
+
+	uint32_t baseIndex = static_cast<uint32_t>(batchData.indices.size());
+	batchData.indices.push_back(baseVertex + 0);
+	batchData.indices.push_back(baseVertex + 1);
+	batchData.indices.push_back(baseVertex + 2);
+	batchData.indices.push_back(baseVertex + 2);
+	batchData.indices.push_back(baseVertex + 1);
+	batchData.indices.push_back(baseVertex + 3);
 
 
-    Float2 tl = ScreenToNDC(rect.x, rect.y, screenWidth, screenHeight);
-    Float2 tr = ScreenToNDC(rect.x + rect.w, rect.y, screenWidth, screenHeight);
-    Float2 bl = ScreenToNDC(rect.x, rect.y + rect.h, screenWidth, screenHeight);
-    Float2 br = ScreenToNDC(rect.x + rect.w, rect.y + rect.h, screenWidth, screenHeight);
-
-    uint32_t baseVertex = static_cast<uint32_t>(m_data.vertices.size());
-
-    m_data.vertices.push_back({ tl, { 0.0f, 0.0f }, color }); // 0
-    m_data.vertices.push_back({ tr, {1,0}, color }); // 1
-    m_data.vertices.push_back({ bl, {0,1}, color }); // 2
-    m_data.vertices.push_back({ br, {1,1}, color }); // 3
 
 
-    uint32_t baseIndex = static_cast<uint32_t>(m_data.indices.size());
-
-    m_data.indices.push_back(baseVertex + 0);
-    m_data.indices.push_back(baseVertex + 1);
-    m_data.indices.push_back(baseVertex + 2);
-
-    m_data.indices.push_back(baseVertex + 2);
-    m_data.indices.push_back(baseVertex + 1);
-    m_data.indices.push_back(baseVertex + 3);
-
-    UIDrawCmd cmd = {
-    .indexOffset = baseIndex,
-    .indexCount = 6,
-    .useAtlas = true,
+    UI::UISettingsCB uiSettings = {
+        .useTexture = desc.useAtlas,
     };
-    m_data.cmds.push_back(cmd);
+     
+    auto& shader = uiPassCtx.res.shader;
+
+    auto& cbAllocator = uiPassCtx.res.cbAllocator; 
+	auto bufferView = cbAllocator->Upload(&uiSettings);
 
 
-    dirty = true;
-}
+	auto heapStartOffset = uiPassCtx.res.heapOffset;
+	auto currIndex = batchData.cmds.size();
+    auto objectHeapOffset = static_cast<uint32_t>(heapStartOffset + currIndex * shader->GetDescriptorTableSize());
 
-void UIRenderer::AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR)
-{
-    int screenWidth = GameApplication::GetInstance()->GetWidth();
-    int screenHeight = GameApplication::GetInstance()->GetHeight();
-    Float2 tl = ScreenToNDC(rect.x, rect.y, screenWidth, screenHeight);
-    Float2 tr = ScreenToNDC(rect.x + rect.w, rect.y, screenWidth, screenHeight);
-    Float2 bl = ScreenToNDC(rect.x, rect.y + rect.h, screenWidth, screenHeight);
-    Float2 br = ScreenToNDC(rect.x + rect.w, rect.y + rect.h, screenWidth, screenHeight);
+	shader->SetCBV("UISettingsCB", GetCBVDesc(bufferView), objectHeapOffset);
 
-    auto baseColor = Color::White;
-
-    uint32_t baseVertex = static_cast<uint32_t>(m_data.vertices.size());
-    m_data.vertices.push_back({ tl, uvTL, Color::White }); // 0
-    m_data.vertices.push_back({ tr, {uvBR.x(), uvTL.y()}, Color::White }); // 1
-    m_data.vertices.push_back({ bl, {uvTL.x(), uvBR.y()}, Color::White }); // 2
-    m_data.vertices.push_back({ br, uvBR, Color::White }); // 3
-
-    uint32_t baseIndex = static_cast<uint32_t>(m_data.indices.size());
-    m_data.indices.push_back(baseVertex + 0);
-    m_data.indices.push_back(baseVertex + 1);
-    m_data.indices.push_back(baseVertex + 2);
-    m_data.indices.push_back(baseVertex + 2);
-    m_data.indices.push_back(baseVertex + 1);
-    m_data.indices.push_back(baseVertex + 3);
+	auto& atlasTex = uiPassCtx.data.font->texture;
+    shader->SetSRV("fontAtlas", atlasTex->GetRawResource(), atlasTex->GetSRVDesc(), objectHeapOffset);
 
 
-    UIDrawCmd cmd = {
+
+    UI::UIDrawCmd cmd = {
         .indexOffset = baseIndex,
         .indexCount = 6,
-        .useAtlas = false,
+        .useAtlas = desc.useAtlas,
+		.heapOffset = static_cast<uint32_t>(objectHeapOffset) ,
     };
-    m_data.cmds.push_back(cmd);
-    dirty = true;
+
+    batchData.cmds.push_back(cmd);
+    uiPassCtx.data.dirty = true;
 }
 
-void UIRenderer::FlushAndRender(ID3D12GraphicsCommandList* cmdList)
+void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float4& color)
 {
-    if (m_data.cmds.empty()) return;
+	//delegate to  
+	FQuadDesc desc = {
+		.rect = rect,
+		.uvTL = Float2(0.0f, 0.0f), // default UV coordinates
+		.uvBR = Float2(1.0f, 1.0f), // default UV coordinates
+		.color = color,
+		.useAtlas = false, 
+	};
+	AddQuad(desc);
 
-    if (dirty) {
-        m_vertexBuffer->UploadData(m_data.vertices.data(), m_data.vertices.size() * sizeof(UIVertex));
-        m_indexBuffer->UploadData(m_data.indices.data(), m_data.indices.size() * sizeof(INDEX_FORMAT));
-        dirty = false;
-    }
-
-    //std::cout << "flush UI draw cmd: " << m_data.cmds.size()  << '\n';
-
-    //auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(1280), static_cast<float>(720));
-    //auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(1280), static_cast<LONG>(720));
-
-    //
-    cmdList->SetPipelineState(m_PSO.Get());
-    cmdList->SetGraphicsRootSignature(m_shader->GetRootSignature().Get());
-
-    //cmdList->RSSetViewports(1, &viewport);
-    //cmdList->RSSetScissorRects(1, &scissorRect); 
-
-    // Set the descriptor heap for the command list
-    m_shader->SetDescriptorHeap(cmdList);
-    m_shader->SetDescriptorTables(cmdList, heapOffset);
-    //or, e.g., cmd->SetGraphicsRootConstantBufferView(...)  
-
-    cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    cmdList->IASetVertexBuffers(0, 1, &m_vertexBuffer->GetVertexBufferView());
-    cmdList->IASetIndexBuffer(&m_indexBuffer->GetIndexBufferView());
-
-    for (auto& cmd : m_data.cmds) {
-           
-        auto indexCount = cmd.indexCount;
-        auto indexOffset = cmd.indexOffset;
-        cmdList->DrawIndexedInstanced((UINT)indexCount, 1, (UINT)indexOffset, 0, 0);
-    }
-
-
-    this->Clear();
-
-    /*m_lineData.clear();*/
 }
+
+void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR)
+{
+    
+	//delegate to
+	FQuadDesc desc = {
+		.rect = rect,
+		.uvTL = uvTL, 
+		.uvBR = uvBR, 
+		.color = Float4(1.0f, 1.0f, 1.0f, 1.0f), 
+		.useAtlas = true,
+	};
+
+	AddQuad(desc);
+}
+
+
+ 

@@ -227,11 +227,9 @@ void GamePlayWorld::OnUnload()
     physicsScene->ClearRigidBody();
 
     //
-    auto uiManager = GameApplication::GetInstance()->GetUIManager();
-    auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
-    assert(uiRenderer != nullptr);
+    auto uiManager = GameApplication::GetInstance()->GetUIManager(); 
 
-    uiRenderer->Clear();
+    renderer->ClearUI();
     uiManager->ClearRoot();
 
     //
@@ -282,8 +280,8 @@ void GamePlayWorld::OnUpdate(float delta)
     {
         proxy->onUpdate.BlockingBroadCast(delta);
 
-        auto mainConstBufferH = proxy->mainMVPConstantBuffer;
-        if (mainConstBufferH == nullptr) {
+        auto objectCBH = proxy->objectCB;
+        if (objectCBH == nullptr) {
             continue;
         }
 
@@ -291,7 +289,7 @@ void GamePlayWorld::OnUpdate(float delta)
         //auto rotation = XMQuaternionRotationAxis(yAxis, delta);
         //proxy->rotation = XMQuaternionMultiply(rotation, proxy->rotation);
 
-        MVPConstantBuffer mainConstBufferData = {};
+        ObjectCB objectCBData = {};
 
         auto modelMatrix_ = MMath::MatrixIdentity<float, 4>();
         auto scaleMatrix = MMath::MatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z());
@@ -335,13 +333,15 @@ void GamePlayWorld::OnUpdate(float delta)
         //make sure transpose before present to hlsl;
         //mainConstBufferData.modelMatrix = Transpose(modelMatrix_);
 
-        mainConstBufferData.modelMatrix = modelMatrix_;
+        objectCBData.modelMatrix = modelMatrix_;
 
         //XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
-        mainConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
+        //mainConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
 
         // Upload the constant buffer data.
-        mainConstBufferH->UploadData(&mainConstBufferData, sizeof(MVPConstantBuffer));
+        objectCBH->UploadData(&objectCBData, sizeof(ObjectCB));
+
+
 
         //shadow pass:
         auto shadowConstBufferH = proxy->shadowMVPConstantBuffer;
@@ -428,10 +428,10 @@ void MainMenuWorld::OnUnload()
     std::cout << "unload main menu world" << '\n';
 
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
-    auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
-    assert(uiRenderer != nullptr);
+    auto renderer = GameApplication::GetInstance()->GetRenderer();
+    assert(renderer != nullptr);
 
-    uiRenderer->Clear();
+    renderer->ClearUI();
 
     uiManager->ClearRoot();
 

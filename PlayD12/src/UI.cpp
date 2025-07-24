@@ -10,8 +10,8 @@
 
 void UIButton::RenderBack()
 {
-	auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
-	assert(uiRenderer != nullptr);
+	auto renderer = GameApplication::GetInstance()->GetRenderer();
+	assert(renderer != nullptr);
 
 	Float4 color = { 1.0f, 1.0f, 1.0f, 0.5f };
 	if (state == UIState::Hovered)
@@ -21,15 +21,15 @@ void UIButton::RenderBack()
 		color[3] = 0.5f;
 	}
 
-	uiRenderer->AddQuad(layout, color);
+	renderer->AddQuad(layout, color);
 }
 
 void UIButton::RenderText()
 {
-	auto uiRenderer = GameApplication::GetInstance()->GetRenderer()->uiRenderer;
-	assert(uiRenderer != nullptr);
+	auto renderer = GameApplication::GetInstance()->GetRenderer();
+	assert(renderer != nullptr);
 
-	SharedPtr<FontAtlas> font = uiRenderer->font;
+	SharedPtr<FontAtlas> font = renderer->GetFontAtlas();
 	if (!font) {
 		std::cout << "UIRenderer font is not set!" << std::endl;
 		return;
@@ -39,8 +39,12 @@ void UIButton::RenderText()
 	float advance = static_cast<float>(layout.h);
 
 	Float2 cursor = { static_cast<float>(layout.x), static_cast<float>(layout.y) };
-	for (char c : text) {
-		if (!font->glyphs.contains(c)) continue;
+
+	//clip the text only up to ,say only 10:
+	std::string text_ = this->text.substr(0, 20); // Limit to first 10 characters
+
+	for (char c : text_) {
+		if (!font->glyphs.contains(c)) continue; 
 
 		const Glyph& g = font->glyphs[c];
 
@@ -53,7 +57,7 @@ void UIButton::RenderText()
 			//static_cast<int>(g.size.y())
 		};
 
-		uiRenderer->AddQuad(glyphRect, g.uvTopLeft, g.uvBottomRight);
+		renderer->AddQuad(glyphRect, g.uvTopLeft, g.uvBottomRight);
 
 		//cursor = { cursor.x() + g.advance, cursor.y() };
 		cursor = { cursor.x() + advance, cursor.y() };
@@ -63,7 +67,7 @@ void UIButton::RenderText()
 
 void UIButton::Tick(float delta)
 {
-	//this->RenderBack();
+	this->RenderBack();
 	this->RenderText();
 
 	//auto inputSystem = GameApplication::GetInstance()->GetInputSystem();

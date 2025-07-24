@@ -2,117 +2,7 @@
 #include "Shader.h"
 
 #include "Application.h"
-
-void FD3D12ShaderModule::CreateDescriptorTable(uint32_t heapStartOffset)
-{
-	uint32_t heapOffset = heapStartOffset;
-	//---------------------
-	std::unordered_map<std::string, uint32_t> SRVMemberOffsets;
-	for (const auto& [name, bind] : this->parameterMap.srvMap)
-	{
-		CD3DX12_DESCRIPTOR_RANGE1 range{};
-		range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, bind.BindPoint, bind.Space,
-			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, heapOffset - heapStartOffset);
-		ranges.push_back(range);
-
-		SRVMemberOffsets[name] = heapOffset;
-		std::cout << "Register SRV member: " << name << ",root offset: " << heapOffset << std::endl;
-
-		heapOffset += 1;
-	}
-
-	FD3D12BindingLayout srvLayout{};
-	srvLayout.type = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	srvLayout.numDescriptors = (UINT)parameterMap.srvMap.size();
-	srvLayout.baseRegister = 0;
-	srvLayout.heapLocalOffset = heapOffset;
-	std::cout << "SRV Descriptor number : " << srvLayout.numDescriptors << std::endl; //debug output
-
-
-	//--------------------- 
-	std::unordered_map<std::string, uint32_t> CBVMemberOffsets;
-	for (const auto& [name, bind] : this->parameterMap.cbvMap)
-	{
-		CD3DX12_DESCRIPTOR_RANGE1 range{};
-		range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, bind.BindPoint, bind.Space,
-			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, heapOffset - heapStartOffset);
-		ranges.push_back(range);
-
-		CBVMemberOffsets[name] = heapOffset;
-		std::cout << "Register CBV member: " << name << ", root offset: " << heapOffset << std::endl; //debug output
-
-		heapOffset += 1;
-	}
-
-	FD3D12BindingLayout cbvLayout{};
-	cbvLayout.type = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	cbvLayout.numDescriptors = (UINT)parameterMap.cbvMap.size();
-	cbvLayout.baseRegister = 0;
-	cbvLayout.heapLocalOffset = heapOffset; // local offset in the heap, not the global offset
-	std::cout << "CBV Descriptor number : " << cbvLayout.numDescriptors << std::endl; //debug output
-
-
-	//--------------------- 
-	std::unordered_map<std::string, uint32_t> UAVMemberOffsets;
-	for (const auto& [name, bind] : this->parameterMap.uavMap)
-	{
-		CD3DX12_DESCRIPTOR_RANGE1 range{};
-		range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, bind.BindPoint, bind.Space,
-			D3D12_DESCRIPTOR_RANGE_FLAG_NONE, heapOffset - heapStartOffset);
-		ranges.push_back(range);
-
-		UAVMemberOffsets[name] = heapOffset;
-		std::cout << "Register UAV member: " << name << ",root offset: " << heapOffset << std::endl; //debug output
-
-		heapOffset += 1;
-	}
-
-
-	FD3D12BindingLayout uavLayout{};
-	uavLayout.type = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-	uavLayout.numDescriptors = (UINT)parameterMap.uavMap.size();
-	uavLayout.baseRegister = 0;
-	uavLayout.heapLocalOffset = heapOffset; // local offset in the heap, not the global offset
-	std::cout << "UAV Descriptor number : " << uavLayout.numDescriptors << std::endl; //debug output
-
-	//---------------------
-	//the sampler: 
-	//for (const auto& [name, bind] : this->parameterMap.samplerMap)
-	//{
-	//	CD3DX12_DESCRIPTOR_RANGE1 range{};
-	//	range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, bind.BindPoint, bind.Space);
-	//	ranges.push_back(range);
-	//} 
-
-
-	//dynamic samplers are not considered;
-	//FDescriptorTableLayout samplerLayout{};
-	//samplerLayout.type = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-	//samplerLayout.numDescriptors = (UINT)sampler_ranges.size();
-	//samplerLayout.baseRegister = 0;
-	//samplerLayout.heapOffset = allocator->Allocate(samplerLayout.numDescriptors);
-	//std::cout << "Sampler Descriptor Table start at: " << samplerLayout.heapOffset << std::endl; //debug output
-
-	CD3DX12_ROOT_PARAMETER1 combinedTable{};
-	combinedTable.InitAsDescriptorTable(
-		static_cast<UINT>(ranges.size()), ranges.data(), this->shaderVisibility
-	);
-
-	std::cout << "Create Combined Descriptor Table, " <<
-		std::format("root heap current: {}", heapOffset) << std::endl; // debug output
-
-	this->descriptorTable = combinedTable;
-
-	this->tableLayout.tableSize = heapOffset - heapStartOffset; // total size of the descriptor table  
-
-	this->tableLayout.SRVLayout = srvLayout;
-	this->tableLayout.SRVMemberOffsets = SRVMemberOffsets;
-	this->tableLayout.CBVLayout = cbvLayout;
-	this->tableLayout.CBVMemberOffsets = CBVMemberOffsets;
-	this->tableLayout.UAVLayout = uavLayout;
-	this->tableLayout.UAVMemberOffsets = UAVMemberOffsets;
-	//this->tableLayouts.samplerLayout = samplerLayout;
-}
+ 
 
 void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 {
@@ -136,7 +26,8 @@ void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 	D3D12_SHADER_DESC shaderDesc{};
 	reflection->GetDesc(&shaderDesc);
 
-	switch (shaderDesc.Version >> 16) {
+	switch (shaderDesc.Version >> 16) 
+    {
 	case D3D12_SHVER_VERTEX_SHADER: {
 		this->shaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 		std::cout << "shader visibility : VERTEX" << std::endl; // debug output
@@ -145,6 +36,17 @@ void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 	case D3D12_SHVER_PIXEL_SHADER: {
 		this->shaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		std::cout << "shader visibility : PIXEL" << std::endl; // debug output
+		break;
+	}
+	case D3D12_SHVER_COMPUTE_SHADER: {
+		this->shaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // compute shader
+		std::cout << "shader visibility : COMPUTE" << std::endl; // debug output
+		break;
+	}
+		 
+	default: {
+		std::cerr << "Unknown shader type, version: " << shaderDesc.Version << std::endl;
+		return; // or throw an exception
 		break;
 	}
 								  
@@ -185,8 +87,7 @@ void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 		D3D12_SHADER_BUFFER_DESC cbDesc{};
 		cb->GetDesc(&cbDesc);
 
-		std::cout << "Constant Buffer: " << cbDesc.Name
-			<< std::endl;
+		//std::cout << "Constant Buffer: " << cbDesc.Name << std::endl;
 
 		//  cb->GetVariableByIndex(j) 
 	}
@@ -198,7 +99,7 @@ void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 		D3D12_SHADER_INPUT_BIND_DESC bind{};
 		reflection->GetResourceBindingDesc(iBind, &bind);
 
-		std::cout << "Resource Binding: " << bind.Name << std::endl;
+		//std::cout << "Resource Binding: " << bind.Name << std::endl;
 
 		if (bind.Type == D3D_SIT_CBUFFER)
 		{
@@ -219,59 +120,120 @@ void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 		}
 
 	}
-
-
-	std::cout << "Shader Reflection Result:" << std::endl;
+	 
+	std::cout << " Shader Reflection Result:" << std::endl;
 	std::cout << " Input Parameters: " << inputParameterMap.size() << std::endl;
 	std::cout << " SRV number: " << this->parameterMap.srvMap.size() << std::endl;
 	std::cout << " CBV number: " << this->parameterMap.cbvMap.size() << std::endl;
 	std::cout << " UAV number: " << this->parameterMap.uavMap.size() << std::endl;
 	std::cout << " Sampler number: " << this->parameterMap.samplerMap.size() << std::endl;
+	 
+} 
 
 
-}
- 
-void FD3D12ShaderPermutation::PrepareRootSignature(IDxcUtils* dxcUtils)
+void FD3D12ShaderPermutation::ReflectRootSignatureLayout(IDxcUtils* dxcUtils)
 {
 	assert(m_vertexShader != nullptr && m_pixelShader != nullptr);
 
 	this->m_vertexShader->Reflect(dxcUtils);
-	this->m_pixelShader->Reflect(dxcUtils);
+	this->m_pixelShader->Reflect(dxcUtils); 
 
-	//get the size of the descriptor table:
-	auto VSParameterCount = m_vertexShader->GetParameterCount();
-	auto PSParameterCount = m_pixelShader->GetParameterCount();
+	auto& sceneRanges = this->resourceLayout.sceneRanges;
+	auto& objectRanges = this->resourceLayout.objectRanges; 
+	auto& tableLayout = this->resourceLayout.tableLayout;
 
-	auto numDescriptors = VSParameterCount + PSParameterCount; 
- 
-	std::cout << "create d table, expect descriptors num: " << numDescriptors << std::endl;
-	
-	//create the descriptor tables:
-	m_vertexShader->CreateDescriptorTable(0);
-	auto vsTableSize = m_vertexShader->tableLayout.tableSize;
+	//populate the resource layout by the parameter map:
 
-	m_pixelShader->CreateDescriptorTable(vsTableSize);
-	auto psTableSize = m_pixelShader->tableLayout.tableSize;
 
-	m_rootSignatureLayout.vsTableHeapOffset = 0;
-	m_rootSignatureLayout.psTableHeapOffset = m_vertexShader->tableLayout.tableSize;
+	UINT localOffset = 0;
+	using ResourceMap = std::unordered_map<std::string, D3D12_SHADER_INPUT_BIND_DESC>;
+	using ResourceBindings = std::unordered_map<std::string, ResourceBinding>;
+	auto reflectResType = [&](const ResourceMap& map, ResourceBindings& binding,  D3D12_DESCRIPTOR_RANGE_TYPE rangeType, EShaderStage stage) {
+		for (const auto& [name, bind] : map) {
+			auto scope = InferScope(name, bind.BindPoint);
+			switch (scope) {
+			case ResourceScope::Scene:
+			{
+				sceneRanges.push_back(CD3DX12_DESCRIPTOR_RANGE1(
+					rangeType, 1, bind.BindPoint, bind.Space));
+
+				break;
+			}
+
+			case ResourceScope::Object:
+			{
+				objectRanges.push_back(CD3DX12_DESCRIPTOR_RANGE1(
+					rangeType, 1, bind.BindPoint, bind.Space )); // space 0 for scene range));
+				//fill the table:
+				//look for duplicate:
+				if (binding.contains(name)) {
+					std::cout << "Duplicate binding: " << name << std::endl;
+					auto& bindInfo = binding[name];
+					if (stage == EShaderStage::VERTEX) bindInfo.visibleVS = true;
+					if (stage == EShaderStage::PIXEL) bindInfo.visiblePS = true;
+					continue;
+				}
+				else
+				{
+					ResourceBinding bindInfo{};
+					bindInfo.localOffset = localOffset++;
+					if (stage == EShaderStage::VERTEX) bindInfo.visibleVS = true;
+					if (stage == EShaderStage::PIXEL) bindInfo.visiblePS = true; 
+					binding[name] = bindInfo;
+				}
+
+				break;
+			}
+
+			default:
+				std::cerr << "Unhandled resource scope for SRV: " << name << std::endl;
+				break;
+			}
+		}
+		};
+
+	auto reflectStage = [&](const FShaderParameterMap& parms, EShaderStage stage) { 
+
+		reflectResType(parms.srvMap, tableLayout.SRVBindings, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, stage); 
+		reflectResType(parms.cbvMap, tableLayout.CBVBindings, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, stage); 
+		reflectResType(parms.uavMap, tableLayout.UAVBindings, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, stage);  
+		//sampler do nothing; 
+		};
+
+
+	reflectStage(m_vertexShader->parameterMap, EShaderStage::VERTEX);
+	reflectStage(m_pixelShader->parameterMap, EShaderStage::PIXEL); 
+
+	tableLayout.tableSize = localOffset;
+
+	std::cout << "Resource Layout Result:" << std::endl;
+	std::cout << "Scene Ranges: " << sceneRanges.size() << std::endl;
+	std::cout << "Object Ranges: " << objectRanges.size() << std::endl; 
+	std::cout << "table size: " << tableLayout.tableSize << std::endl;
+
+	std::cout << "CBV Bindings: " << tableLayout.CBVBindings.size() << std::endl;
+	std::cout << "SRV Bindings: " << tableLayout.SRVBindings.size() << std::endl;
+	std::cout << "UAV Bindings: " << tableLayout.UAVBindings.size() << std::endl;
 	 
-	std::cout << "VS Descriptor Table Local Heap Current: " << m_rootSignatureLayout.vsTableHeapOffset << std::endl;
-	std::cout << "PS Descriptor Table Local Heap Current: " << m_rootSignatureLayout.psTableHeapOffset << std::endl;
-	 
-	m_rootSignatureLayout.numDescriptors = numDescriptors;
-
-	//m_rootSignatureLayout.numTables = 2; // Two descriptor tables: one for vertex shader, one for pixel shader
-	//m_rootSignatureLayout.tableIndexMap[EShaderStage::VERTEX] = 0; // Vertex Shader Table Index
-	//m_rootSignatureLayout.tableIndexMap[EShaderStage::PIXEL] = 1; // Pixel Shader Table Index
 }
-
-
-
+ 
 void FD3D12ShaderPermutation::CreateRootSignature()
 {
-	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
+	//convention: 
+	// scene range as CBV , slot 0,
+	//object range as descriptor table, slot 1;
 
+	//common human error that forget to set static sampler:  
+	auto expectedSamplerCount = m_pixelShader->parameterMap.samplerMap.size();
+	assert(m_staticSamplers.size() == expectedSamplerCount);
+
+
+
+	auto& objectRanges = this->resourceLayout.objectRanges;
+	auto& sceneRanges = this->resourceLayout.sceneRanges;
+	auto& rootIndexMap = this->resourceLayout.rootIndexMap;
+
+	D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
 	// This is the highest version the sample supports. If CheckFeatureSupport succeeds, the HighestVersion returned will not be greater than this.
 	featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
@@ -280,29 +242,29 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 		featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
 	}
 
-	//CD3DX12_DESCRIPTOR_RANGE1 ranges[2]{};
-	//ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);  // b0
-	//ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);  // t0
+	// Create the root signature descriptor
+	std::vector<D3D12_ROOT_PARAMETER1> rootParameters_; 
 
-	//CD3DX12_ROOT_PARAMETER1 rootParameters[1]{};
-	//rootParameters[0].InitAsDescriptorTable(_countof(ranges), ranges, D3D12_SHADER_VISIBILITY_ALL);
-
-	auto numTables = m_rootSignatureLayout.numTables; 
-
-	std::vector<D3D12_ROOT_PARAMETER1> rootParameters; 
-
-	if (m_vertexShader->tableLayout.tableSize>0) {
-		rootParameters.push_back(m_vertexShader->descriptorTable);
-		m_rootSignatureLayout.tableIndexMap[EShaderStage::VERTEX] = static_cast<UINT>(rootParameters.size() - 1);
+	if (!sceneRanges.empty())
+	{
+		//b0 Scene ranges as root constants
+		CD3DX12_ROOT_PARAMETER1 sceneParam{};
+		sceneParam.InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, D3D12_SHADER_VISIBILITY_ALL);
+		rootParameters_.push_back(sceneParam);
+		rootIndexMap[ResourceScope::Scene] = static_cast<UINT>(rootParameters_.size() - 1);
 	}
-
-	if (m_pixelShader->tableLayout.tableSize > 0) {
-		rootParameters.push_back(m_pixelShader->descriptorTable);
-		m_rootSignatureLayout.tableIndexMap[EShaderStage::PIXEL] = static_cast<UINT>(rootParameters.size() - 1);
+	
+	if (!objectRanges.empty())
+	{
+		// Object ranges as root descriptor table
+		CD3DX12_ROOT_PARAMETER1 objectParam{};
+		objectParam.InitAsDescriptorTable(static_cast<UINT>(objectRanges.size()), objectRanges.data(), D3D12_SHADER_VISIBILITY_ALL);
+		rootParameters_.push_back(objectParam);
+		rootIndexMap[ResourceScope::Object] = static_cast<UINT>(rootParameters_.size() - 1);
 	}
+	 
 
-
-	// Allow input layout and deny uneccessary access to certain pipeline stages.
+	// Allow input layout and deny unnecessary access to certain pipeline stages.
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
@@ -310,12 +272,10 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 
-	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	//rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 0, nullptr, rootSignatureFlags);
-	//rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 1, &sampler, rootSignatureFlags);
+	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc; 
 	rootSignatureDesc.Init_1_1(
-		static_cast<UINT>(rootParameters.size()),
-		rootParameters.data(),
+		static_cast<UINT>(rootParameters_.size()),
+		rootParameters_.data(),
 		static_cast<UINT>(m_staticSamplers.size()),
 		m_staticSamplers.data(),
 		rootSignatureFlags);
@@ -323,66 +283,74 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 	ComPtr<ID3DBlob> signature;
 	ComPtr<ID3DBlob> error;
 	ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
-	ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)));
-}
-
-void FD3D12ShaderPermutation::SetSRV(const std::string& name, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc, uint32_t baseOffset)
-{
-	assert(resource != nullptr && "SRV must not be null");
-
-
-	if (auto offset = m_pixelShader->GetHeapOffsetSRV(name); offset.has_value())
-	{
-		std::cout << "find texture: " << name << " at offset: " << *offset << std::endl; // debug output
-		auto cpuHandle = m_rangeHeapAllocator.lock()->GetCPUHandle(*offset + baseOffset);
-		m_device->CreateShaderResourceView(resource, &srvDesc, cpuHandle);
-	}
-	else
-	{
-		std::cerr << "Failed to bind texture: " << name << std::endl; // error output
-		return;
-	}
+	ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf())));
+	  
 
 }
+
+
 
 void FD3D12ShaderPermutation::SetStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc)
 {
-	if (m_pixelShader->HasSampler(name))
+	if (auto bindPoint = m_pixelShader->GetSamplerBindPoint(name); bindPoint.has_value())
 	{
-		m_staticSamplers.push_back(samplerDesc);
-	}
+		std::cout << "find static sampler: " << name << " at bind point: " << *bindPoint << std::endl;  
+
+		//check the bind point:
+		if (samplerDesc.ShaderRegister != bindPoint.value())
+		{
+			std::cerr << "Static sampler bind point mismatch: " << name << std::endl; // error output
+			return;
+		}
+		 
+		m_staticSamplers.push_back(samplerDesc); 
+	} 
 	else
 	{
 		std::cerr << "didn't find static sampler: " << name << std::endl; // error output
 		return;
 	}
+	 
+
+
+	
+
+}
+
+void FD3D12ShaderPermutation::SetSRV(const std::string& name, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc, uint32_t baseOffset)
+{
+	assert(resource != nullptr && "SRV must not be null"); 
+
+	auto& tableLayout = this->resourceLayout.tableLayout;
+	if (tableLayout.SRVBindings.contains(name))
+	{
+		auto localOffset = tableLayout.SRVBindings[name].localOffset;
+		//std::cout << "find texture: " << name << " at offset: " << localOffset << std::endl;  
+		auto cpuHandle = m_rangeHeapAllocator.lock()->GetCPUHandle(localOffset + baseOffset);
+		m_device->CreateShaderResourceView(resource, &srvDesc, cpuHandle);
+	}
+	else
+	{
+		std::cerr << "Failed to bind texture: " << name << std::endl; 
+		return;
+	}
 
 }
 
 
-void FD3D12ShaderPermutation::SetCBV(const std::string& name, ID3D12Resource* resource, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset)
+void FD3D12ShaderPermutation::SetCBV(const std::string& name,const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset)
 {
-	assert(resource != nullptr && "Resource must not be null");
-
-	std::optional<uint32_t> localOffset;
-	if (localOffset = m_vertexShader->GetHeapOffsetCBV(name); localOffset.has_value())
+	auto& tableLayout = this->resourceLayout.tableLayout;
+	if (tableLayout.CBVBindings.contains(name))
 	{
-		std::cout << "find constant buffer visible to VS: " << name << " at offset: " << *localOffset << std::endl; // debug output
-
-	}
-	else if (localOffset = m_pixelShader->GetHeapOffsetCBV(name); localOffset.has_value())
-	{
-		std::cout << "find constant buffer visible to PS: " << name << " at offset: " << *localOffset << std::endl; // debug output
-	}
-
-	if (localOffset.has_value())
-	{
-		auto cpuHandle = m_rangeHeapAllocator.lock()->GetCPUHandle(*localOffset + baseOffset);
+		auto localOffset = tableLayout.CBVBindings[name].localOffset;
+		//std::cout << "find CBV: " << name << " at offset: " << localOffset << std::endl;
+		auto cpuHandle = m_rangeHeapAllocator.lock()->GetCPUHandle(localOffset + baseOffset);
 		m_device->CreateConstantBufferView(&cbvDesc, cpuHandle);
 	}
 	else
 	{
-		std::cerr << "Failed to bind constant buffer: " << name << std::endl; // error output
+		std::cerr << "Failed to bind CBV: " << name << std::endl;
 		return;
 	}
 }
@@ -397,25 +365,16 @@ void FD3D12ShaderPermutation::SetDescriptorHeap(ID3D12GraphicsCommandList* comma
 
 void FD3D12ShaderPermutation::SetDescriptorTables(ID3D12GraphicsCommandList* commandList, uint32_t baseOffset) const
 { 
-	//m_commandList->SetGraphicsRootDescriptorTable(0, m_cbv_srv_heap->GetGPUDescriptorHandleForHeapStart());
-	auto vsTableHeapOffset = m_rootSignatureLayout.vsTableHeapOffset + baseOffset;
-	auto psTableHeapOffset = m_rootSignatureLayout.psTableHeapOffset + baseOffset;
-
-	auto VSGPUHandle = m_rangeHeapAllocator.lock()->GetGPUHandle(vsTableHeapOffset);
-	auto PSGPUHandle = m_rangeHeapAllocator.lock()->GetGPUHandle(psTableHeapOffset);
-	 
-	if (m_rootSignatureLayout.tableIndexMap.contains(EShaderStage::VERTEX)) 
+	if (resourceLayout.rootIndexMap.contains(ResourceScope::Object))
 	{
-		auto vsTableIndex = m_rootSignatureLayout.tableIndexMap.at(EShaderStage::VERTEX);
-		commandList->SetGraphicsRootDescriptorTable(vsTableIndex, VSGPUHandle);
+		auto objectTableIndex = resourceLayout.rootIndexMap.at(ResourceScope::Object); 
+		auto GPUHandle = m_rangeHeapAllocator.lock()->GetGPUHandle(baseOffset);
+		commandList->SetGraphicsRootDescriptorTable(objectTableIndex, GPUHandle);
 	}
-
-	if (m_rootSignatureLayout.tableIndexMap.contains(EShaderStage::PIXEL))
+	else
 	{
-		auto psTableIndex = m_rootSignatureLayout.tableIndexMap.at(EShaderStage::PIXEL);
-		commandList->SetGraphicsRootDescriptorTable(psTableIndex, PSGPUHandle);
-	}
-	
+		//std::cerr << "Object descriptor table not found." << std::endl;
+	} 
 	
 }
 
@@ -456,9 +415,10 @@ SharedPtr<FD3D12ShaderPermutation> ShaderLibrary::GetOrLoad(const ShaderPermutat
 	// Create shader modules
 	auto shaderPerm = CreateShared<FD3D12ShaderPermutation>(m_device, m_rangeHeapAllocator);
 	shaderPerm->LoadShaders(dxcUtils.Get(), fullPathVS, fullPathPS);
+	 
+	shaderPerm->ReflectRootSignatureLayout(dxcUtils.Get());
 
-	shaderPerm->PrepareRootSignature(dxcUtils.Get());
-
+	//shaderPerm->PrepareRootSignature(dxcUtils.Get());
 	
 	cache[key] = shaderPerm; // Cache the shader permutation
 	return shaderPerm; 

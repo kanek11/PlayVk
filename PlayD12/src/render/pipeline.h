@@ -4,10 +4,9 @@
 #include "D12Helper.h"
 
 #include "Shader.h"
-#include "Material.h" 
+#include "Material.h"   
 
 #include "RenderPass.h"
-
 
 struct PSOKey {
     ShaderPermutationKey permutationKey;
@@ -37,9 +36,21 @@ public:
     ComPtr<ID3D12PipelineState> GetOrCreate(
         const MaterialDesc& mat,
         const RenderPassDesc& pass,
-        const std::vector<VertexInputLayer>& layers);
+        const std::vector<D3D12_INPUT_ELEMENT_DESC> layout);
 private:
     ComPtr<ID3D12Device> m_device;
     WeakPtr<ShaderLibrary> library;
     std::unordered_map<PSOKey, ComPtr<ID3D12PipelineState>> cache;
+};
+
+
+struct RenderPassInitContext
+{
+    ID3D12Device* device;
+    ID3D12CommandAllocator* cmdAllocator;
+    ID3D12GraphicsCommandList* cmdList;
+    ID3D12CommandQueue* cmdQueue;
+
+    SharedPtr<ShaderLibrary> m_shaderManager;
+    SharedPtr<PSOManager> m_psoManager;
 };

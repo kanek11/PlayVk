@@ -2,8 +2,10 @@
 #include "pipeline.h"
 
 
-ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(const MaterialDesc& mat, const RenderPassDesc& pass,
-    const std::vector<VertexInputLayer>& layers
+ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(
+    const MaterialDesc& mat, 
+    const RenderPassDesc& pass,
+    const std::vector<D3D12_INPUT_ELEMENT_DESC> inputDesc
 ) {
     // Step 1: Build shader permutation key
     ShaderPermutationKey shaderKey;
@@ -37,23 +39,9 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(const MaterialDesc& mat, con
     //psoDesc.pRootSignature = GetRootSignature(mat.shaderTag);
     assert(shaderPerm->GetRootSignature() != nullptr);
     psoDesc.pRootSignature = shaderPerm->GetRootSignature().Get();
+ 
 
-    std::vector<D3D12_INPUT_ELEMENT_DESC> inputDescs;
-    for (const auto& layer : layers) {
-        for (const auto& elem : layer.elements) {
-            inputDescs.push_back(D3D12_INPUT_ELEMENT_DESC{
-                .SemanticName = elem.semanticName.c_str(),
-                .SemanticIndex = elem.semanticIndex,
-                .Format = elem.format,
-                .InputSlot = layer.slot,
-                .AlignedByteOffset = elem.alignedByteOffset,
-                .InputSlotClass = layer.classification,
-                .InstanceDataStepRate = layer.instanceStepRate
-                });
-        }
-    }
-
-    psoDesc.InputLayout = { inputDescs.data(), static_cast<UINT>(inputDescs.size()) };
+    psoDesc.InputLayout = { inputDesc.data(), static_cast<UINT>(inputDesc.size()) };
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
     // RenderTarget

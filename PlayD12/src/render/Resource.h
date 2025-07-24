@@ -3,6 +3,14 @@
 
 #include "D12Helper.h"
 
+#include "Base.h"
+
+//alignment helper
+inline size_t Align256(size_t s) { return (s + 255) & ~255ull; }
+
+
+
+
 enum class EBufferUsage : uint32_t {
 	None = 0,
     Vertex = 1 << 0,
@@ -31,7 +39,7 @@ inline EBufferUsage operator&(EBufferUsage a, EBufferUsage b) {
 struct FBufferDesc {
     size_t SizeInBytes;
 
-    //fFor structured/UAV
+    // for structured/UAV
     DXGI_FORMAT Format;
     size_t StrideInBytes;
 
@@ -70,10 +78,80 @@ public:
 private: 
 
     FBufferDesc m_bufferDesc;
-    ComPtr<ID3D12Resource> m_resource;
-    D3D12_RESOURCE_STATES m_initialState; 
+    ComPtr<ID3D12Resource> m_resource; 
 
 private:
 	ID3D12Device* m_device = nullptr; 
+};
+
+
+
+struct FBufferView {
+    FD3D12Buffer* buffer;
+    size_t offset;
+    size_t size; 
+};
+
+inline D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc(const FBufferView& view) {
+    return D3D12_CONSTANT_BUFFER_VIEW_DESC{
+		.BufferLocation = view.buffer->GetGPUVirtualAddress() + (UINT64)view.offset,
+		.SizeInBytes = static_cast<UINT>(view.size),
+    };
+}
+
+
+template <typename T>
+class FRingBufferAllocator {
+public:
+	constexpr static size_t stride = sizeof(T);
+
+    FRingBufferAllocator(ID3D12Device* device, size_t poolSize)
+        : m_poolSize(poolSize)
+    { 
+        size_t totalSize = stride * poolSize;
+
+        FBufferDesc desc = {
+            .SizeInBytes = totalSize,
+            .Format = DXGI_FORMAT_UNKNOWN,
+            .StrideInBytes = stride,
+            .Usage = EBufferUsage::Upload | EBufferUsage::Constant,
+            .DebugName = "Unnamed RingBuffer"
+        };
+        m_buffer = CreateShared<FD3D12Buffer>(device, desc);
+        m_mappedPtr = reinterpret_cast<uint8_t*>(m_buffer->Map());
+    }
+
+    ~FRingBufferAllocator() {
+        if (m_buffer) m_buffer->Unmap();
+    }
+
+    void Reset() {
+        m_writeIndex = 0;
+    }
+
+    FBufferView Upload(const T* data) {
+        assert(m_writeIndex < m_poolSize);
+
+        uint8_t* dest = m_mappedPtr + m_writeIndex * stride;
+        memcpy(dest, data, sizeof(T));
+
+
+		FBufferView view = {
+			.buffer = m_buffer.get(),
+			.offset = m_writeIndex * stride,
+			.size = sizeof(T), 
+		};
+         
+        m_writeIndex++;
+        return view;
+    }
+     
+
+private:
+    SharedPtr<FD3D12Buffer> m_buffer;
+    uint8_t* m_mappedPtr = nullptr;
+     
+    size_t m_writeIndex = 0;
+    size_t m_poolSize = 0;
 };
 

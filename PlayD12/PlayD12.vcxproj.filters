@@ -117,6 +117,15 @@
     <ClInclude Include="src\render\pipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\render\Samplers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\Heap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\UIPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp">
@@ -180,6 +189,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\render\pipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\UIPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

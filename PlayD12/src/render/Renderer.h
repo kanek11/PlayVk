@@ -18,14 +18,13 @@
 
 #include "StaticMeshActor.h"
 
+#include "UIPass.h" 
+
 
 constexpr size_t MaxUIBatch = 256; 
 constexpr size_t MaxLines = 1024;
 constexpr uint32_t descriptorPoolSize = 2048;
-
-
-
-
+ 
 struct RendererFactoryContext {
     ID3D12Device* device;
     SharedPtr<FD3D12ShaderPermutation> mainShaderPerm;
@@ -39,94 +38,17 @@ namespace Render {
 }
 
 
-struct RenderPassInitContext
+struct StaticMeshShadowVertex
 {
-    ID3D12Device* device; 
-    ID3D12CommandAllocator* cmdAllocator;
-    ID3D12GraphicsCommandList* cmdList;
-    ID3D12CommandQueue* cmdQueue;
-
-    SharedPtr<ShaderLibrary> m_shaderManager;
-    SharedPtr<PSOManager> m_psoManager;
+    Float3 position; 
 };
 
-
-struct UIVertex {
-    Float2 position;
-    Float2 UV;
-    Float4 color; 
-};
-
-struct UIDrawCmd {
-    uint32_t indexOffset, indexCount;
-    //uint32_t textureSlot;
-    bool useAtlas;
-};
-
-struct UIBatchData {
-    std::vector<UIVertex> vertices;
-    std::vector<INDEX_FORMAT> indices;
-    std::vector<UIDrawCmd> cmds;
-};
-
-//make sure 256 byte aligned
-struct UISettingsCB
-{
-    bool useTexture;
-    float padding[63];
-};
- 
-
-
-class UIRenderer {
-public:
-    void Init(RenderPassInitContext ctx);
-
-    void AddQuad(const FRect& rect, const Float4& color);
-    void AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR);
-
-    void FlushAndRender(ID3D12GraphicsCommandList* cmdList);
-
-    void Clear()
-    {
-        m_data.vertices.clear();
-        m_data.indices.clear();
-        m_data.cmds.clear();
-    }
-private:
-    UIBatchData m_data;
-    SharedPtr<FD3D12Buffer> m_vertexBuffer;
-    SharedPtr<FD3D12Buffer> m_indexBuffer;
-
-    SharedPtr<FD3D12ShaderPermutation> m_shader;
-    ComPtr<ID3D12PipelineState> m_PSO;
-
-    SharedPtr<FD3D12Buffer> m_CB;
-    uint32_t heapOffset;
-
-
-    MaterialDesc m_materialDesc = {
-        .shaderTag = "UI",
-
-        .enableAlphaBlend = true,
-        .doubleSided = false,
-        .depthWrite = false
-    };
-
-    RenderPassDesc m_renderPassDesc = {
-        .passTag = "UI",
-        .colorFormat = DXGI_FORMAT_R8G8B8A8_UNORM,
-        .depthFormat = DXGI_FORMAT_UNKNOWN,
-        .enableDepth = false,
-        .cullMode = D3D12_CULL_MODE_NONE,
-    };
-
-
-    bool dirty{ false };
-
-public:
-    //new:
-    SharedPtr<FontAtlas> font;
+template<>
+struct VertexLayoutTraits<StaticMeshShadowVertex> {
+    static constexpr bool is_specialized = true;
+	static constexpr auto attributes = std::to_array<VertexAttribute>({
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshShadowVertex, position) }
+		});
 };
 
 
@@ -141,6 +63,16 @@ public:
 struct DebugLineVertex {
     Float3 position;
     Float4 color;
+};
+
+//
+template<>
+struct VertexLayoutTraits<DebugLineVertex> {
+    static constexpr bool is_specialized = true;
+	static constexpr auto attributes = std::to_array<VertexAttribute>({
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(DebugLineVertex, position) },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(DebugLineVertex, color) }
+		});
 };
 
 
@@ -211,6 +143,23 @@ struct MVPConstantBuffer
 };
 
 
+struct SceneCB
+{
+	Float4x4  pvMatrix; 
+    //padding:
+	float padding[48]; // 64 bytes total
+};
+
+struct ObjectCB
+{
+	Float4x4 modelMatrix; // 64 bytes 
+	float padding[48]; // 64 bytes total
+};
+
+
+static_assert((sizeof(MVPConstantBuffer) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
+static_assert((sizeof(SceneCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
+static_assert((sizeof(ObjectCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
 
 
 class D3D12HelloRenderer
@@ -277,10 +226,17 @@ private:
 
     ComPtr<ID3D12PipelineState> m_PSO;
     SharedPtr<FD3D12ShaderPermutation> m_shaderPerm;
+     
+    SharedPtr<FD3D12Buffer> sceneCB;
+
+    CameraProxy* mainCamera; 
 
     ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
     SharedPtr<FD3D12Texture> m_depthStencil;
     FRenderPassBindings m_bindings;
+
+     
+
 
     //---------
 
@@ -333,11 +289,7 @@ private:
 
     SharedPtr<ShaderLibrary> m_shaderManager;
 
-    SharedPtr<PSOManager> m_psoManager;
-
-
-
-    static_assert((sizeof(MVPConstantBuffer) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
+    SharedPtr<PSOManager> m_psoManager; 
 
     //new: 6.27 texturing
     static const UINT TextureWidth = 256;
@@ -348,8 +300,6 @@ private:
     std::vector<UINT8> GenerateFallBackTextureData();
 
     std::vector<StaticMeshActorProxy*> m_staticMeshes;
-
-    CameraProxy* mainCamera;
 
 
 public:
@@ -368,6 +318,31 @@ public:
 
 public:
     //SharedPtr<DebugRenderer> m_debugRenderer;
-    SharedPtr<UIRenderer> uiRenderer;
+    //SharedPtr<UIRenderer> uiRenderer;
+
+	UI::UIPassContext uiPassCtx;
+
+    struct FQuadDesc {
+        FRect  rect;
+        Float2 uvTL = { 0,0 };
+        Float2 uvBR = { 1,1 };
+        Float4 color = Color::White;
+        bool   useAtlas = false;
+    };
+
+    void AddQuad(const FQuadDesc& desc); 
+
+    void AddQuad(const FRect& rect, const Float4& color);
+    void AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR); 
+
+	void ClearUI()
+	{
+		uiPassCtx.data.batchData.Clear(); 
+		uiPassCtx.data.dirty = true;
+	}
+
+	SharedPtr<FontAtlas> GetFontAtlas() const {
+		return uiPassCtx.data.font;
+	}
 
 };

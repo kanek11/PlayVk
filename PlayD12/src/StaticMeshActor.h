@@ -33,6 +33,14 @@ struct InstanceData
     MMath::Float3 offset;
 };
 
+template <>
+struct VertexLayoutTraits<InstanceData> {
+    static constexpr bool is_specialized = true;
+	static constexpr std::array<VertexAttribute, 1> attributes = {
+		VertexAttribute{ "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(InstanceData, offset) }
+	};
+};
+
 struct FInstanceProxy {
     std::vector<InstanceData> instanceData;
     SharedPtr<FD3D12Buffer> instanceBuffer;
@@ -56,7 +64,8 @@ struct StaticMeshActorProxy {
     //material. 
     uint32_t mainPassHeapOffset = 0;
     SharedPtr<FMaterialProxy> material;
-    SharedPtr<FD3D12Buffer> mainMVPConstantBuffer;
+    SharedPtr<FD3D12Buffer> objectCB;
+
 
     uint32_t shadowPassHeapOffset = 0; // for shadow pass
     SharedPtr<FD3D12Buffer> shadowMVPConstantBuffer; // for shadow pass 

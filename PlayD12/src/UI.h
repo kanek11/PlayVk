@@ -29,9 +29,7 @@ enum class UIState {
 	Disabled
 };
 
-
-//forward decl:
-class UIRenderer;
+ 
 
 class UIElement {
 public:
