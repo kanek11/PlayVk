@@ -19,6 +19,14 @@ inline FRect CenterRect(int screenWidth, int screenHeight, const FRect& rectSize
 	return FRect{ cornerX, cornerY, rectSize.w, rectSize.h };
 }
 
+inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
+	float ndcX = (2.0f * static_cast<float>(x + 0.5f) / static_cast<float>(screenWidth)) - 1.0f;
+	float ndcY = 1.0f - (2.0f * static_cast<float>(y + 0.5f) / static_cast<float>(screenHeight)); // Invert Y for top-left 
+	//std::cout << "get ndc:" << ndcX << " " << ndcY << '\n';
+	return { ndcX, ndcY };
+}
+
+
 
 
 //classic four states 

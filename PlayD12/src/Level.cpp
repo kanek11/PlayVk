@@ -5,7 +5,7 @@
 #include "Render/Renderer.h"
 
 using namespace DirectX;
- 
+
 #include <random>
 void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount)
 {
@@ -62,7 +62,7 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
 
 
 void GamePlayWorld::OnLoad()
-{ 
+{
     //hardcode state; todo;
     timeCount = 0.0f;
 
@@ -78,7 +78,7 @@ void GamePlayWorld::OnLoad()
     int screenHeight = GameApplication::GetInstance()->GetHeight();
 
 
-    auto debugSphereProxy = CreateSphereActor({ 0.0f, 2.0f, 0.0f });
+    auto debugSphereProxy = CreateSphereActor({ 0.0f, 1.0f, 0.0f });
     debugSphereProxy->rigidBody->simulatePhysics = true;
     debugSphereProxy->rigidBody->simulateRotation = true;
 
@@ -99,13 +99,13 @@ void GamePlayWorld::OnLoad()
 
 
     //---------------
-    this->GenerateObstacles(roadWidth/2, goalLength, 30);
+    //this->GenerateObstacles(roadWidth / 2, goalLength, 30);
 
 
     //---------------
-    renderer->SubmitMesh(debugSphereProxy.get());
-    renderer->SubmitMesh(planeProxy.get());
-    renderer->SubmitMesh(debugCubeProxy.get());
+    //renderer->SubmitMesh(debugSphereProxy.get());
+    //renderer->SubmitMesh(planeProxy.get());
+    //renderer->SubmitMesh(debugCubeProxy.get());
 
 
     m_staticMeshActors.push_back(debugSphereProxy);
@@ -123,15 +123,14 @@ void GamePlayWorld::OnLoad()
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
     //FRect buttonRect = { 0, 0, 300, 150 };
-    FRect buttonRect = { 0, 0, 300, 50 }; 
+    FRect buttonRect = { 10, 20, 300, 50 };
     auto debugHUD = CreateShared<UIButton>(buttonRect); 
-    
 
-    FRect buttonRect1 = { 0, 100, 300, 50 };
+    FRect buttonRect1 = { 10, 100, 300, 50 };
     auto debugHUD1 = CreateShared<UIButton>(buttonRect1);
-      
-    FRect buttonRect2 = { 0, 200, 300, 50 };
-    auto debugHUD2 = CreateShared<UIButton>(buttonRect2); 
+
+    FRect buttonRect2 = { 10, 200, 300, 50 };
+    auto debugHUD2 = CreateShared<UIButton>(buttonRect2);
 
 
     m_HUDs.push_back(debugHUD);
@@ -142,8 +141,7 @@ void GamePlayWorld::OnLoad()
     uiManager->RegisterRootElement(debugHUD.get());
     uiManager->RegisterRootElement(debugHUD1.get());
     uiManager->RegisterRootElement(debugHUD2.get());
-
-
+     
 
     //--------------------------
 
@@ -151,16 +149,16 @@ void GamePlayWorld::OnLoad()
     auto debugBehavior = [=](float delta) {
         //std::cout << "tick behavior" << '\n';
         //std::cout << "debugSphereProxy speed:" << ToString(debugSphereProxy->rigidBody->linearVelocity) << '\n';
-         
-        float currSpeed = Length(debugPlayer->rigidBody->linearVelocity); 
-        debugHUD->text = std::format("v:{:.2f}", currSpeed); 
+
+        float currSpeed = Length(debugPlayer->rigidBody->linearVelocity);
+        debugHUD->text = std::format("vel:{:.2f}", currSpeed);
 
         float currDist = goalLength / 2 - debugPlayer->position.z();
-        debugHUD1->text = std::format("dist:{:.2f}", currDist); 
+        debugHUD1->text = std::format("dist:{:.2f}", currDist);
 
         timeCount += delta;
-        debugHUD2->text = std::format("time:{:.2f}", timeCount); 
-        
+        debugHUD2->text = std::format("time:{:.2f}", timeCount);
+
         if (inputSystem == nullptr) {
             std::cerr << "empty input system" << '\n';
             return;
@@ -204,8 +202,8 @@ void GamePlayWorld::OnLoad()
 
         else if (debugPlayer->position.z() > goalLength / 2 - 20) {
             std::cout << "goal?" << '\n';
-            if(timeCount < Global::lastUsedTime)
-            Global::lastUsedTime = timeCount;
+            if (timeCount < Global::lastUsedTime)
+                Global::lastUsedTime = timeCount;
             gameManager->RequestTransitState(GameStateId::MainMenu);
         }
 
@@ -227,7 +225,7 @@ void GamePlayWorld::OnUnload()
     physicsScene->ClearRigidBody();
 
     //
-    auto uiManager = GameApplication::GetInstance()->GetUIManager(); 
+    auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
     renderer->ClearUI();
     uiManager->ClearRoot();
@@ -280,16 +278,16 @@ void GamePlayWorld::OnUpdate(float delta)
     {
         proxy->onUpdate.BlockingBroadCast(delta);
 
-        auto objectCBH = proxy->objectCB;
-        if (objectCBH == nullptr) {
-            continue;
-        }
+        //auto objectCBH = proxy->objectCB;
+        //if (objectCBH == nullptr) {
+        //    continue;
+        //}
 
         //auto yAxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
         //auto rotation = XMQuaternionRotationAxis(yAxis, delta);
         //proxy->rotation = XMQuaternionMultiply(rotation, proxy->rotation);
 
-        ObjectCB objectCBData = {};
+        //ObjectCB objectCBData = {};
 
         auto modelMatrix_ = MMath::MatrixIdentity<float, 4>();
         auto scaleMatrix = MMath::MatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z());
@@ -333,28 +331,30 @@ void GamePlayWorld::OnUpdate(float delta)
         //make sure transpose before present to hlsl;
         //mainConstBufferData.modelMatrix = Transpose(modelMatrix_);
 
-        objectCBData.modelMatrix = modelMatrix_;
+        //objectCBData.modelMatrix = modelMatrix_;
 
         //XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
         //mainConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
 
         // Upload the constant buffer data.
-        objectCBH->UploadData(&objectCBData, sizeof(ObjectCB));
+        //objectCBH->UploadData(&objectCBData, sizeof(ObjectCB));
+
+        proxy->modelMatrix = modelMatrix_;
 
 
 
         //shadow pass:
-        auto shadowConstBufferH = proxy->shadowMVPConstantBuffer;
-        if (shadowConstBufferH == nullptr) {
-            continue;
-        }
+        //auto shadowConstBufferH = proxy->shadowMVPConstantBuffer;
+        //if (shadowConstBufferH == nullptr) {
+        //    continue;
+        //}
 
-        MVPConstantBuffer shadowConstBufferData = {};
-        shadowConstBufferData.modelMatrix = modelMatrix_;
-        shadowConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
+        //MVPConstantBuffer shadowConstBufferData = {};
+        //shadowConstBufferData.modelMatrix = modelMatrix_;
+        //shadowConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
 
-        // Upload the shadow constant buffer data.
-        shadowConstBufferH->UploadData(&shadowConstBufferData, sizeof(MVPConstantBuffer));
+        //// Upload the shadow constant buffer data.
+        //shadowConstBufferH->UploadData(&shadowConstBufferData, sizeof(MVPConstantBuffer));
 
 
         DebugDraw::Get().AddRay(
@@ -378,6 +378,12 @@ void GamePlayWorld::OnUpdate(float delta)
     }
 
 
+    //--------------
+    auto renderer = GameApplication::GetInstance()->GetRenderer();
+    for (auto& proxy : m_staticMeshActors) {
+
+        renderer->SubmitMesh(proxy.get());
+    }
 
 
 }
@@ -405,13 +411,13 @@ void MainMenuWorld::OnLoad()
 
     auto click_cb = [=] {
         gameManager->RequestTransitState(GameStateId::Playing);
-        }; 
+        };
 
     entryButton->OnClick.Add(click_cb);
     //debugButton->OnHover.Add(hover_cb);
 
 
-    FRect timeHUDRect = { centeredRect.x, centeredRect.y + 100, 500, 20};
+    FRect timeHUDRect = { centeredRect.x, centeredRect.y + 100, 500, 20 };
     auto timeHUD = CreateShared<UIButton>(timeHUDRect);
     timeHUD->text = std::format("Record :{:.2f}", Global::lastUsedTime);
 
@@ -440,7 +446,7 @@ void MainMenuWorld::OnUnload()
 }
 
 void MainMenuWorld::OnUpdate(float delta)
-{  
+{
     for (auto& button : m_Buttons) {
         button->Tick(delta);
     }

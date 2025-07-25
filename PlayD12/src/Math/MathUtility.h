@@ -143,6 +143,23 @@ namespace MMath {
 
 	}
 
+	inline Float4x4 OrthographicLH
+	(
+		float width,
+		float height,
+		float nearZ,
+		float farZ
+	)
+	{
+		Float4x4 orthoMatrix = MatrixIdentity<float, 4>();
+		orthoMatrix[0] = { 2.0f / width, 0.0f, 0.0f, 0.0f };
+		orthoMatrix[1] = { 0.0f, 2.0f / height, 0.0f, 0.0f };
+		orthoMatrix[2] = { 0.0f, 0.0f, 1.0f / (farZ - nearZ), 0.0f };
+		orthoMatrix[3] = { 0.0f, 0.0f, -nearZ / (farZ - nearZ), 1.0f };
+		return orthoMatrix;
+	}
+
+
 	inline float ToRadians(float degrees) {
 		return degrees * (PI / 180.0f);
 	}

@@ -172,6 +172,7 @@
     <ClInclude Include="src\physics\Collision.h" />
     <ClInclude Include="src\physics\PhysicsScene.h" />
     <ClInclude Include="src\physics\Shape.h" />
+    <ClInclude Include="src\render\GeometryPass.h" />
     <ClInclude Include="src\render\Heap.h" />
     <ClInclude Include="src\render\Loader.h" />
     <ClInclude Include="src\render\Material.h" />
@@ -201,6 +202,7 @@
     <ClCompile Include="src\InputSystem.cpp" />
     <ClCompile Include="src\Level.cpp" />
     <ClCompile Include="src\physics\PhysicsScene.cpp" />
+    <ClCompile Include="src\render\GeometryPass.cpp" />
     <ClCompile Include="src\render\Loader.cpp" />
     <ClCompile Include="src\render\Mesh.cpp" />
     <ClCompile Include="src\PCH.cpp">

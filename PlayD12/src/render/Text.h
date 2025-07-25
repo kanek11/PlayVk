@@ -19,7 +19,8 @@ public:
     std::optional<Loader::D3D12ImageData> imageData;
     SharedPtr<FD3D12Texture> texture;
 
-    void LoadTexture(const std::string& filePath);
+    [[nodiscard]]
+    bool LoadTexture(const std::string& filePath);
     //void CreateResource();
 
     void LoadGridAtlas(float cellWidth, float cellHeight,

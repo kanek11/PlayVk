@@ -90,7 +90,7 @@ public:
 
 	void SetInitialState(GameStateId state) {
 		current = state;
-		//target = state;
+		target = state;
 	}
 
 	void Initialize() { 
@@ -114,7 +114,7 @@ private:
 	std::unordered_map<GameStateId, SharedPtr<GameState>> states;
 	GameStateId current = GameStateId::MainMenu;
 
-	GameStateId target;
+	GameStateId target = GameStateId::MainMenu;  
 };
 
 

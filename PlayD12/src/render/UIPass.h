@@ -15,7 +15,10 @@
 #include "Text.h"  
 
 #include "Mesh.h"
+#include "UI.h"
 
+
+struct RendererContext;
 
 namespace Passes {
 
@@ -25,11 +28,11 @@ namespace Passes {
         .depthFormat = DXGI_FORMAT_UNKNOWN,
         .enableDepth = false,
         .cullMode = D3D12_CULL_MODE_NONE
-    }; 
+    };
 
 }
- 
-namespace Materials { 
+
+namespace Materials {
 
     inline  MaterialDesc UIMaterialDesc = {
     .shaderTag = "UI",
@@ -40,100 +43,104 @@ namespace Materials {
     };
 }
 
- 
-
-namespace UI { 
 
 
-struct UIVertex {
-    Float2 position;
-    Float2 UV;
-    Float4 color;
-};
-
-template<>
-struct VertexLayoutTraits<UIVertex> {
-
-    static constexpr bool is_specialized = true; 
-	static constexpr auto attributes = std::to_array<VertexAttribute>({
-		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, position) },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, UV) },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(UIVertex, color) }
-		});
-};
+namespace UI {
+     
+    struct FQuadDesc {
+        FRect  rect;
+        Float2 uvTL = { 0,0 };
+        Float2 uvBR = { 1,1 };
+        Float4 color = Color::White;
+        bool   useAtlas = false;
 
 
-//per object context
-struct UIDrawCmd {
-    uint32_t indexOffset, indexCount;
-    //uint32_t textureSlot;
-    bool useAtlas; 
 
-    uint32_t heapOffset = 0;  
+    };
+    struct UIVertex {
+        Float2 position;
+        Float2 UV;
+        Float4 color;
+    };
 
-};
+    template<>
+    struct VertexLayoutTraits<UIVertex> {
 
-//all the data for a single batch / pass execution;
-//basically transient;
-struct UIBatchData {
-    std::vector<UIVertex> vertices;
-    std::vector<INDEX_FORMAT> indices;
-    std::vector<UIDrawCmd> cmds;
-
-    void Clear()
-    { 
-        cmds.clear();
-		indices.clear();
-		vertices.clear();
-    }
-};
-
-//bug fix: make sure 256 byte aligned
-struct UISettingsCB
-{
-    int useTexture = 1;
-    float padding[63];
-};
-static_assert(sizeof(UISettingsCB) % 256 == 0, "UISettingsCB must be 256-byte aligned");
+        static constexpr bool is_specialized = true;
+        static constexpr auto attributes = std::to_array<VertexAttribute>({
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, position) },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, UV) },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(UIVertex, color) }
+            });
+    };
 
 
-//basically the CPU side;
-struct UIRenderData {
-    UIBatchData batchData;
-    UISettingsCB settings;
+    //per object context
+    struct UIDrawCmd {
+        uint32_t indexOffset, indexCount;
+        //uint32_t textureSlot;
 
-    bool dirty = false; 
+        uint32_t heapOffset = 0;
 
-    SharedPtr<FontAtlas> font;
-};
+    };
 
-
-//persistant
-struct UIGPUResources {
-    SharedPtr<FD3D12Buffer> batchVB;
-    SharedPtr<FD3D12Buffer> batchIB;
-    SharedPtr<FD3D12ShaderPermutation> shader;
-    ComPtr<ID3D12PipelineState> pso; 
-
-
-    uint32_t heapOffset = 0; 
-
-    //SharedPtr<FD3D12Buffer> constantBuffer;
-    SharedPtr<FRingBufferAllocator<UISettingsCB>> cbAllocator;
-};
- 
+    //all the data for a single batch / pass execution;
+    //basically transient; 
+    //bug fix: make sure 256 byte aligned
+    struct UISettingsCB
+    {
+        int useTexture = 0;
+        float padding[63];
+    };
+    static_assert(sizeof(UISettingsCB) % 256 == 0, "UISettingsCB must be 256-byte aligned");
 
 
-struct UIPassContext {
-    UIRenderData data;
-    UIGPUResources res;
-};
+    //basically the CPU side;
+    struct UIBuildData {
+        std::vector<UIVertex> vertices;
+        std::vector<INDEX_FORMAT> indices;
+        std::vector<UIDrawCmd> cmds;
 
- 
-void Init(const RenderPassInitContext& ctx, UIPassContext& passCtx); 
-void FlushAndRender(ID3D12GraphicsCommandList* cmdList , const UIPassContext& passCtx) noexcept;
+        std::vector<FQuadDesc> pendings;
 
-void BeginFrame(); 
-void EndFrame(UIPassContext& passCtx) noexcept;
+        void Clear()
+        {
+            pendings.clear();
+            cmds.clear();
+            indices.clear();
+            vertices.clear();
+        }
+
+        SharedPtr<FontAtlas> font;
+    };
+
+
+    //persistant
+    struct UIGPUResources {
+        SharedPtr<FD3D12Buffer> batchVB;
+        SharedPtr<FD3D12Buffer> batchIB;
+        SharedPtr<FD3D12ShaderPermutation> shader;
+        ComPtr<ID3D12PipelineState> pso;
+
+
+        std::optional<uint32_t> baseHeapOffset = 0;
+
+        //SharedPtr<FD3D12Buffer> constantBuffer;
+        SharedPtr<FRingBufferAllocator<UISettingsCB>> cbAllocator;
+    };
+
+
+
+    struct UIPassContext {
+        UIBuildData data;
+        UIGPUResources res;
+    };
+
+
+    void Init(const RendererContext* ctx, UIPassContext& passCtx);
+    void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const UIPassContext& passCtx) noexcept;
+
+    void BeginFrame(UIPassContext& passCtx) noexcept;
+    void EndFrame(UIPassContext& passCtx) noexcept;
 
 }

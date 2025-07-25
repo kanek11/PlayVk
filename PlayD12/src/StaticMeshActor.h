@@ -1,7 +1,6 @@
 #pragma once
 #include "PCH.h"
-#include "Math/MMath.h"
- 
+#include "Math/MMath.h" 
 
 #include "Base.h"
 #include "Delegate.h"
@@ -13,13 +12,13 @@
 
 struct StaticMeshActorProxy;
 
-struct CameraProxy {
+struct FCameraProxy {
     Float4x4 pvMatrix;
 
     virtual void Tick(float delta);
 };
 
-struct FollowCameraProxy : public CameraProxy {
+struct FollowCameraProxy : public FCameraProxy {
     Float3 offset = { 0.0f, +5.0f , -10.0f };
     WeakPtr<StaticMeshActorProxy> target;
 
@@ -36,14 +35,9 @@ struct InstanceData
 template <>
 struct VertexLayoutTraits<InstanceData> {
     static constexpr bool is_specialized = true;
-	static constexpr std::array<VertexAttribute, 1> attributes = {
-		VertexAttribute{ "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(InstanceData, offset) }
-	};
-};
-
-struct FInstanceProxy {
-    std::vector<InstanceData> instanceData;
-    SharedPtr<FD3D12Buffer> instanceBuffer;
+    static constexpr std::array<VertexAttribute, 1> attributes = {
+        VertexAttribute{ "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(InstanceData, offset) }
+    };
 };
 
 struct FMaterialProxy {
@@ -59,24 +53,23 @@ struct StaticMeshActorProxy {
     DirectX::XMVECTOR rotation = DirectX::XMQuaternionIdentity();
     Float3 scale = { 1.0f, 1.0f, 1.0f };
 
+    Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
+
     SharedPtr<UStaticMesh> mesh;
-
-    //material. 
-    uint32_t mainPassHeapOffset = 0;
-    SharedPtr<FMaterialProxy> material;
-    SharedPtr<FD3D12Buffer> objectCB;
+     
+    SharedPtr<FMaterialProxy> material; 
 
 
-    uint32_t shadowPassHeapOffset = 0; // for shadow pass
-    SharedPtr<FD3D12Buffer> shadowMVPConstantBuffer; // for shadow pass 
+    //uint32_t shadowPassHeapOffset = 0; // for shadow pass
+    //SharedPtr<FD3D12Buffer> shadowMVPConstantBuffer; // for shadow pass 
 
-    SharedPtr<FInstanceProxy> instanceProxy;
+    std::vector<InstanceData> instanceData;
 
     ////new: for physics:
     RigidBody* rigidBody{ nullptr };
     Collider* collider{ nullptr };
 
-    void SetWorldPosition(const Float3& newPosition) { 
+    void SetWorldPosition(const Float3& newPosition) {
         position = newPosition;
     }
 

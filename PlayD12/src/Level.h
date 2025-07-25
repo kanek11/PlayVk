@@ -26,7 +26,7 @@ public:
 	void RegisterWorld(std::string name, SharedPtr<ILevel> world) {
 		levels[name] = world;
 	}
- 
+
 	void TransitWorld(std::string name) {
 		if (currentWorld) {
 			currentWorld->OnUnload();
@@ -57,7 +57,7 @@ private:
 };
 
 
-class GamePlayWorld: public ILevel {
+class GamePlayWorld : public ILevel {
 public:
 	virtual ~GamePlayWorld() = default;
 	virtual void OnLoad() override;
@@ -74,7 +74,7 @@ public:
 
 public:
 
-	void GenerateObstacles(float roadWidth,float roadLength, uint32_t obstacleCount);
+	void GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount);
 	float roadWidth = 10;
 	float goalLength = 500;
 
@@ -89,5 +89,5 @@ public:
 	virtual void OnUnload()override;
 	virtual void OnUpdate(float delta)override;
 
-	std::vector < SharedPtr<UIButton>> m_Buttons; 
+	std::vector < SharedPtr<UIButton>> m_Buttons;
 };

@@ -9,7 +9,7 @@
 constexpr int instanceCount = 1;
 constexpr float spacing = 5.0f; // Adjust to control sparsity
 constexpr float viewRadius = 20.0f; // Distance from the origin  
- 
+
 std::vector<InstanceData> DebugGenerateInstanceData()
 {
     std::vector<InstanceData> instanceData;
@@ -38,84 +38,54 @@ std::vector<InstanceData> DebugGenerateInstanceData()
     return instanceData;
 }
 
- 
+
 SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh,
     Float3 position,
     Float3 scale
 )
 {
     auto ctx = Render::rendererContext;
-    if (ctx == nullptr) {
-        std::cerr << "context is not initialized" << std::endl;
-        return { nullptr };
-    } 
+    if (ctx) { 
+        mesh->CreateGPUResource(ctx->device);
+    }
 
-    mesh->CreateGPUResource(ctx->device);
 
     //------------------------------  
-    auto shadowPassOffset = ctx->shadowShaderPerm->RequestAllocationOnHeap();
-    std::cout << "Heap start offset for shadow pass: " << shadowPassOffset << std::endl;
 
-    auto mainPassOffset = ctx->mainShaderPerm->RequestAllocationOnHeap();
-    std::cout << "Heap start offset for main: " << mainPassOffset << std::endl;
+    //auto shadowPassOffset = ctx->shadowShaderPerm->RequestAllocationOnHeap();
+    //std::cout << "Heap start offset for shadow pass: " << shadowPassOffset << std::endl;
 
+    // 
 
-    //------------------------------
+    ////--------------------------
+    //auto shadowConstBuffer = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
+    //    sizeof(MVPConstantBuffer),
+    //    DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
+    //    256, // Alignment
+    //    EBufferUsage::Upload | EBufferUsage::Constant
+    //    });
 
-    auto objectCBRes = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-        sizeof(ObjectCB),
-        DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
-		sizeof(ObjectCB),
-        EBufferUsage::Upload | EBufferUsage::Constant
-        });
-
-    //update the constant buffer data: 
-    ObjectCB objectCBData{};
-    objectCBRes->UploadData(&objectCBData, sizeof(objectCBData));
-
-	//------------------------------- 
-  
-
-
-
-    //--------------------------
-    auto shadowConstBuffer = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-        sizeof(MVPConstantBuffer),
-        DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
-        256, // Alignment
-        EBufferUsage::Upload | EBufferUsage::Constant
-        }); 
-
-    MVPConstantBuffer shadowConstantBufferData{};
-    shadowConstBuffer->UploadData(&shadowConstantBufferData, sizeof(shadowConstantBufferData));
+    //MVPConstantBuffer shadowConstantBufferData{};
+    //shadowConstBuffer->UploadData(&shadowConstantBufferData, sizeof(shadowConstantBufferData));
 
 
     //------------------------------
     auto instanceData = DebugGenerateInstanceData();
     UINT instanceBufferSize = static_cast<UINT>(sizeof(InstanceData) * instanceData.size());
 
-    auto instanceBuffer = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-        instanceBufferSize,
-        DXGI_FORMAT_UNKNOWN, // Not used for instance buffers
-        sizeof(InstanceData),
-        EBufferUsage::Upload | EBufferUsage::Vertex
-        });
-
-    instanceBuffer->UploadData(instanceData.data(), instanceBufferSize);
-
     //------------------------------
-    auto meshProxy = CreateShared<StaticMeshActorProxy>(); 
+    auto meshProxy = CreateShared<StaticMeshActorProxy>();
     meshProxy->position = position;
     meshProxy->scale = scale;
     meshProxy->mesh = mesh;
-    meshProxy->mainPassHeapOffset = mainPassOffset;
-    meshProxy->material = CreateShared<FMaterialProxy>(ctx->fallBackTexture);
-    meshProxy->objectCB = objectCBRes; 
-    meshProxy->shadowPassHeapOffset = shadowPassOffset;
-    meshProxy->shadowMVPConstantBuffer = shadowConstBuffer;
-    meshProxy->instanceProxy = CreateShared<FInstanceProxy>( instanceData, instanceBuffer );
-    
-  
+    //meshProxy->mainPassHeapOffset = mainPassOffset;
+    meshProxy->material = CreateShared<FMaterialProxy>();
+    //meshProxy->objectCB = objectCBRes;
+    //meshProxy->shadowPassHeapOffset = shadowPassOffset;
+    //meshProxy->shadowMVPConstantBuffer = shadowConstBuffer;
+    //meshProxy->instanceProxy = CreateShared<FInstanceProxy>(instanceData, instanceBuffer); 
+
+    meshProxy->instanceData = std::move(instanceData);
 
     return meshProxy;
 }
@@ -126,11 +96,11 @@ SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale)
     auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
 
     auto sphereMesh = CreateShared<SphereMesh>();
-    auto sphereProxy = CreateStaticMeshActor(sphereMesh, position, scale); 
-     
+    auto sphereProxy = CreateStaticMeshActor(sphereMesh, position, scale);
+
     auto sphereShape = Sphere{ sphereProxy->scale.x() };
     auto sphereRigidBody = new RigidBody(sphereProxy.get(), sphereShape);
-    
+
 
     auto sphereCollider = new Collider(sphereProxy.get(), sphereShape, sphereRigidBody);
 
@@ -138,7 +108,7 @@ SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale)
     physicsScene->AddRigidBody(sphereRigidBody);
     physicsScene->AddCollider(sphereCollider);
 
-    sphereProxy->collider  = sphereCollider;
+    sphereProxy->collider = sphereCollider;
     sphereProxy->rigidBody = sphereRigidBody;
 
 
@@ -147,15 +117,15 @@ SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale)
 
 SharedPtr<StaticMeshActorProxy> CreateBoxActor(Float3 position, Float3 scale)
 {
-    auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene(); 
+    auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
 
     auto boxMesh = CreateShared<CubeMesh>();
-    auto boxProxy = CreateStaticMeshActor(boxMesh, position, scale); 
-     
+    auto boxProxy = CreateStaticMeshActor(boxMesh, position, scale);
+
     auto boxShape = Box{ boxProxy->scale };
     auto boxRigidBody = new RigidBody(boxProxy.get(), boxShape);
-    
-    auto boxCollider = new Collider(boxProxy.get(), boxShape, boxRigidBody); 
+
+    auto boxCollider = new Collider(boxProxy.get(), boxShape, boxRigidBody);
 
 
     physicsScene->AddRigidBody(boxRigidBody);
@@ -170,26 +140,26 @@ SharedPtr<StaticMeshActorProxy> CreateBoxActor(Float3 position, Float3 scale)
 
 SharedPtr<StaticMeshActorProxy> CreatePlaneActor(Float3 position, Float3 scale, uint32_t subdivisionX, uint32_t subdivisionZ)
 {
-    auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene(); 
+    auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
 
     auto planeMesh = CreateShared<PlaneMesh>(subdivisionX, subdivisionZ);
     auto planeProxy = CreateStaticMeshActor(planeMesh, position, scale);
-     
-    auto planeShape = Plane{ static_cast<float>(subdivisionX) , static_cast<float>(subdivisionZ) };
-    auto planeRigidBody = new RigidBody(planeProxy.get(), planeShape); 
 
-    auto planeCollider = new Collider(planeProxy.get(), planeShape, planeRigidBody); 
+    auto planeShape = Plane{ static_cast<float>(subdivisionX) , static_cast<float>(subdivisionZ) };
+    auto planeRigidBody = new RigidBody(planeProxy.get(), planeShape);
+
+    auto planeCollider = new Collider(planeProxy.get(), planeShape, planeRigidBody);
 
     physicsScene->AddRigidBody(planeRigidBody);
     physicsScene->AddCollider(planeCollider);
 
     planeProxy->collider = planeCollider;
-    planeProxy->rigidBody = planeRigidBody; 
+    planeProxy->rigidBody = planeRigidBody;
 
     return planeProxy;
 }
 
-void CameraProxy::Tick(float delta)
+void FCameraProxy::Tick(float delta)
 {
     //eye rotate around the origin
     constexpr float speedDivisor = 50.0f; // Increase this number to slow it down
@@ -247,9 +217,9 @@ void CameraProxy::Tick(float delta)
 }
 
 void FollowCameraProxy::Tick(float delta)
-{ 
+{
     if (target.expired()) {
-        std::cerr << "no valid actor" << std::endl; 
+        std::cerr << "no valid actor" << std::endl;
         return;
     }
 
@@ -262,7 +232,7 @@ void FollowCameraProxy::Tick(float delta)
         { 0.0f, 1.0f, 0.0f }           // Up
     );
 
-    float aspectRatio = GameApplication::GetInstance()->getAspectRatio(); 
+    float aspectRatio = GameApplication::GetInstance()->getAspectRatio();
 
     auto proj_ = MMath::PerspectiveFovLH(
         MMath::ToRadians(45.0f),
@@ -270,6 +240,6 @@ void FollowCameraProxy::Tick(float delta)
         0.1f,
         1000.0f
     );
-      
-    this->pvMatrix = MatrixMultiply(proj_, view_); 
+
+    this->pvMatrix = MatrixMultiply(proj_, view_);
 }

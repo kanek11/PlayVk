@@ -3,15 +3,16 @@
 
 #include "Loader.h"
   
-void FontAtlas::LoadTexture(const std::string& filePath)
+bool FontAtlas::LoadTexture(const std::string& filePath)
 {
     if (auto texData = Loader::LoadTextureDX(filePath); texData.has_value())
     {
         this->imageData = texData;
+        return true;
     }
     else
     {
-
+        return false;
     }
 
 

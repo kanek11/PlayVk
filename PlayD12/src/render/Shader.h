@@ -154,12 +154,7 @@ public:
 		ThrowIfFailed(m_pixelShader->GetShaderBlob().As(&psBlob));
 		return psBlob;
 	}
-	
-	//get allocator:
-	WeakPtr<FDescriptorHeapAllocator> GetRangeHeapAllocator() const {
-		return m_rangeHeapAllocator;
-	}
-
+	 
 	//get descriptor heap:
 	ComPtr<ID3D12DescriptorHeap> GetDescriptorHeap() const {
 		return m_rangeHeapAllocator.lock()->GetHeap();

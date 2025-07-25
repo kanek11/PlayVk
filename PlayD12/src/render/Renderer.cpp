@@ -7,7 +7,7 @@ using namespace DirectX;
 D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring name,
     SharedPtr<WindowBase> mainWindow
 )
-{ 
+{
     m_width = width;
     m_height = height;
     m_aspectRatio = static_cast<float>(width) / static_cast<float>(height);
@@ -15,41 +15,69 @@ D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring nam
     m_mainWindow = mainWindow;
 }
 
+
+// Update frame-based values.  make sure comes before OnRender;
+void D3D12HelloRenderer::OnUpdate(float delta)
+{ 
+    auto frameData = Render::frameContext;
+
+    frameData->mainCamera = mainCamera;
+    frameData->staticMeshes = staticMeshes;
+
+    //DebugDraw::Get().OnUpdate(delta, dummyCamera.pvMatrix);
+    if (mainCamera) {
+        DebugDraw::Get().OnUpdate(delta, mainCamera->pvMatrix); 
+
+    }
+    else
+    {
+        //std::cout << "no camera" << '\n';
+    } 
+
+}
+
+
 void D3D12HelloRenderer::OnInit()
-{  
+{
     LoadPipeline();
 
     LoadAssets();
 
     //
-    RenderPassInitContext initCtx =
-    {
-      .device = m_device.Get(), 
-      .cmdAllocator = m_commandAllocator.Get(),
-      .cmdList = m_commandList.Get(),
-      .cmdQueue = m_commandQueue.Get(),
-      .m_shaderManager = this->m_shaderManager,
-      .m_psoManager = this->m_psoManager
-    };
+    Render::rendererContext = new RendererContext{
+    .device = m_device.Get(),
 
-    //uiRenderer = CreateShared<UIRenderer>();
-    //uiRenderer->Init(ctx);
+    .cmdAllocator = m_commandAllocator.Get(),
+    .cmdList = m_commandList.Get(),
+    .cmdQueue = m_commandQueue.Get(),
+    .shaderManager = this->m_shaderManager,
+    .psoManager = this->m_psoManager,
 
-	UI::Init(initCtx, uiPassCtx);
+    }; 
+     
 
+    //for valid atlas
+    UI::Init(Render::rendererContext, uiPassCtx);
 
-    InitShadowPass();
+    //for valid fallback tex;
     InitRenderPass();
 
+    //for valid shadowmap;
+    InitShadowPass();
 
-    DebugDraw::Get().Init(initCtx);
-    //m_debugRenderer = CreateShared<DebugRenderer>();
-    //m_debugRenderer->Init(ctx);
+    Lit::Init(Render::rendererContext, litPassCtx);
+    Shadow::Init(Render::rendererContext, shadowPassCtx); 
 
-    Render::rendererContext = new RendererFactoryContext{
-        .device = m_device.Get(),
-        .mainShaderPerm = m_shaderPerm,
-        .shadowShaderPerm = m_shadowShaderPerm,
+    DebugDraw::Get().Init(Render::rendererContext); 
+
+
+
+    Render::frameContext = new FrameContext{};
+    Render::graphContext = new RenderGraphContext{
+        .shadowMapWidth = m_shadowMapWidth,
+        .shadowMapHeight = m_shadowMapHeight,
+        .shadowMap = m_shadowMap,
+
         .fallBackTexture = m_fallBackTexture,
     };
 
@@ -59,31 +87,42 @@ void D3D12HelloRenderer::OnInit()
 void D3D12HelloRenderer::OnRender()
 {
     // Record all the commands we need to render the scene into the command list.
-    //PopulateCommandList();
-    BeginFrame();
+    //PopulateCommandList();  
+    Lit::BeginFrame(litPassCtx);
+    UI::BeginFrame(uiPassCtx);
+    Shadow::BeginFrame(shadowPassCtx);
 
-     
+    BeginFrame(); 
+
     BeginShadowPass(m_commandList.Get());
-    RecordShadowPassCommands(m_commandList.Get());
-    EndShadowPass(m_commandList.Get());
+    //RecordShadowPassCommands(m_commandList.Get());
+    Shadow::FlushAndRender(m_commandList.Get(), shadowPassCtx);
     
-
+    EndShadowPass(m_commandList.Get()); 
+    
     //
     BeginRenderPass(m_commandList.Get());
 
-    RecordRenderPassCommands(m_commandList.Get());
-     
-    DebugDraw::Get().FlushAndRender(m_commandList.Get());
+    //RecordRenderPassCommands(m_commandList.Get());
+
+    Lit::FlushAndRender(m_commandList.Get(), litPassCtx);
 
     //uiRenderer->FlushAndRender(m_commandList.Get());
-	UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
+    UI::FlushAndRender(m_commandList.Get(), uiPassCtx); 
+
+    DebugDraw::Get().FlushAndRender(m_commandList.Get());
+
 
     EndRenderPass(m_commandList.Get());
 
 
-	UI::EndFrame(uiPassCtx);
-
     EndFrame();
+
+
+    Lit::EndFrame(litPassCtx);
+    UI::EndFrame(uiPassCtx);
+    Shadow::EndFrame(shadowPassCtx);
+
 }
 
 
@@ -152,12 +191,12 @@ DebugDraw& DebugDraw::Get()
     return instance;
 }
 
-void DebugDraw::Init(RenderPassInitContext ctx)
+void DebugDraw::Init(const RendererContext* ctx)
 {
     size_t MaxVertices = 2 * MaxLines;
 
     // Create vertex buffer for debug lines
-    m_vertexBuffer = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
+    m_vertexBuffer = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
         sizeof(DebugLineVertex) * MaxVertices,
         DXGI_FORMAT_UNKNOWN,
         sizeof(DebugLineVertex),
@@ -167,28 +206,28 @@ void DebugDraw::Init(RenderPassInitContext ctx)
     // Reserve CPU space for lines
     m_lineData.reserve(MaxVertices);
 
-     
+
     //shader perm:
     ShaderPermutationKey key = {
         .shaderTag = "Debug",
         .passTag = "Line",
     };
-    m_shader = ctx.m_shaderManager->GetOrLoad(key);
-    m_shader->CreateRootSignature(); 
+    m_shader = ctx->shaderManager->GetOrLoad(key);
+    m_shader->CreateRootSignature();
 
     //input 
-	auto inputDesc = InputLayoutBuilder::Build<DebugLineVertex>();
+    auto inputDesc = InputLayoutBuilder::Build<DebugLineVertex>();
 
     // Create PSO for debug rendering
-    m_PSO = ctx.m_psoManager->GetOrCreate(
+    m_PSO = ctx->psoManager->GetOrCreate(
         m_materialDesc,
         m_renderPassDesc,
         inputDesc
     );
-     
+
 
     //the cosntant buffer:
-    m_CB = CreateShared<FD3D12Buffer>(ctx.device, FBufferDesc{
+    m_CB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
         sizeof(MVPConstantBuffer),
         DXGI_FORMAT_UNKNOWN, // Not used for constant buffers
         256, // Alignment
@@ -201,7 +240,7 @@ void DebugDraw::Init(RenderPassInitContext ctx)
 
     //set CBV: 
     heapOffset = m_shader->RequestAllocationOnHeap();
-    m_shader->SetCBV("MVPConstantBuffer", 
+    m_shader->SetCBV("MVPConstantBuffer",
         m_CB->GetCBVDesc(),
         heapOffset);
 
@@ -360,13 +399,13 @@ void D3D12HelloRenderer::LoadPipeline()
     {
         ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())));
     }
- }
+}
 
 void D3D12HelloRenderer::LoadAssets()
-{ 
+{
     // Create the command list . after device;
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_PSO.Get(), IID_PPV_ARGS(m_commandList.GetAddressOf())));
-     
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_commandList.GetAddressOf())));
+
     //close right after
     ThrowIfFailed(m_commandList->Close());
 
@@ -377,58 +416,7 @@ void D3D12HelloRenderer::LoadAssets()
 
 void D3D12HelloRenderer::InitRenderPass()
 {
-
-    {
-        // Create a constant buffer for the scene.
-        sceneCB = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
-            .SizeInBytes = sizeof(SceneCB),
-            .Format = DXGI_FORMAT_UNKNOWN, // Not used for constant buffers 
-            .StrideInBytes = sizeof(SceneCB),
-            .Usage = EBufferUsage::Upload | EBufferUsage::Constant
-            });
-
-        SceneCB cbData = {};
-        cbData.pvMatrix = MMath::MatrixIdentity<float, 4>();
-        sceneCB->UploadData(&cbData, sizeof(SceneCB));
-
-
-    }
-
-
-    // Create the pipeline state, which includes compiling and loading shaders.
-    { 
-
-        ShaderPermutationKey key = {
-            .shaderTag = "Lit",
-            .passTag = "Forward", };
-
-        auto shaderPerm = m_shaderManager->GetOrLoad(key);
-
-        //todo: 
-        shaderPerm->SetStaticSampler("baseMapSampler", Samplers::LinearWrap(0));
-        shaderPerm->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1)); 
-        shaderPerm->CreateRootSignature();
-
-        m_shaderPerm = shaderPerm;
-
-
-        //------------
-        //assemble input layout:
-        auto inputDescs = InputLayoutBuilder::Build<StaticMeshVertex>(0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
-        auto perInstanceDescs = InputLayoutBuilder::Build<InstanceData>(1, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1);
-
-        inputDescs.insert(inputDescs.end(), perInstanceDescs.begin(), perInstanceDescs.end());
-  
-        //------------ 
-        m_PSO =
-            m_psoManager->GetOrCreate(
-                MaterialDesc{ .shaderTag = "Lit" },
-                RenderPassDesc{ .passTag = "Forward" },
-                inputDescs
-            );
-
-    }
-
+      
     //depth related:
     {
 
@@ -461,7 +449,7 @@ void D3D12HelloRenderer::InitRenderPass()
     //    // Create the command list . after device;
     //ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_PSO.Get(), IID_PPV_ARGS(m_commandList.GetAddressOf())));
 
-    ThrowIfFailed(m_commandAllocator->Reset()); 
+    ThrowIfFailed(m_commandAllocator->Reset());
     ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
 
     // Create the texture.
@@ -473,7 +461,7 @@ void D3D12HelloRenderer::InitRenderPass()
             .usages = { ETextureUsage::ShaderResource }
         };
 
-        m_fallBackTexture = CreateShared<FD3D12Texture>(m_device.Get(), texDesc); 
+        m_fallBackTexture = CreateShared<FD3D12Texture>(m_device.Get(), texDesc);
 
         // Copy data to the intermediate upload heap and then schedule a copy 
         // from the upload heap to the Texture2D.
@@ -488,15 +476,21 @@ void D3D12HelloRenderer::InitRenderPass()
     }
 
     //new:
-    { 
+    if(uiPassCtx.data.font)
+    {
+        
         auto atlasTex = uiPassCtx.data.font->texture;
-		assert(atlasTex != nullptr && "Font texture must be initialized before uploading data.");
+        assert(atlasTex != nullptr && "Font texture must be initialized before uploading data.");
 
         auto atlasData = uiPassCtx.data.font->imageData;
-        atlasTex->UploadFromCPU(m_commandList.Get(), atlasData->data, 
-            atlasData->metaInfo.rowPitch, 
+        atlasTex->UploadFromCPU(m_commandList.Get(), atlasData->data,
+            atlasData->metaInfo.rowPitch,
             atlasData->metaInfo.slicePitch);
 
+    }
+    else
+    {
+        std::cerr << "atlas is not init" << std::endl;
     }
 
     // Close the command list and execute it to begin the initial GPU setup.
@@ -527,34 +521,7 @@ void D3D12HelloRenderer::InitRenderPass()
 
 
 void D3D12HelloRenderer::InitShadowPass()
-{
-    //shader:
-    {
-        ShaderPermutationKey key = {
-       .shaderTag = "Lit",
-       .passTag = "Shadow", };
-
-        this->m_shadowShaderPerm = m_shaderManager->GetOrLoad(key);
-        this->m_shadowShaderPerm->CreateRootSignature();
-    }
-
-    //PSO
-    {
-        
-		// Assemble input layout for shadow pass.
-		auto inputDescs = InputLayoutBuilder::Build<StaticMeshShadowVertex>();
-	 
-        //------------
-
-        m_shadowPSO =
-            m_psoManager->GetOrCreate(
-                Materials::shadowMaterialDesc,
-                shadowPassDesc,
-                inputDescs
-            );
-
-    }
-
+{ 
 
     //--------- 
 //attachments
@@ -601,6 +568,14 @@ void D3D12HelloRenderer::BeginShadowPass(ID3D12GraphicsCommandList* commandList)
     commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
     commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
+
+     
+    auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_shadowMapWidth), static_cast<float>(m_shadowMapHeight));
+    auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_shadowMapWidth), static_cast<LONG>(m_shadowMapHeight));
+
+    // Set the viewport and scissor rectangle.
+    commandList->RSSetViewports(1, &viewport);
+    commandList->RSSetScissorRects(1, &scissorRect);
 }
 
 void D3D12HelloRenderer::EndShadowPass(ID3D12GraphicsCommandList* commandList)
@@ -614,39 +589,7 @@ void D3D12HelloRenderer::EndShadowPass(ID3D12GraphicsCommandList* commandList)
     );
     commandList->ResourceBarrier(1, &dsvToSrvBarrier);
 }
-
-void D3D12HelloRenderer::RecordShadowPassCommands(ID3D12GraphicsCommandList* commandList)
-{
-    //
-    auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_shadowMapWidth), static_cast<float>(m_shadowMapHeight));
-    auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_shadowMapWidth), static_cast<LONG>(m_shadowMapHeight));
-
-    // Set the pipeline state and root signature.
-    commandList->SetPipelineState(m_shadowPSO.Get());
-    commandList->SetGraphicsRootSignature(m_shadowShaderPerm->GetRootSignature().Get());
-
-    // Set the viewport and scissor rectangle.
-    commandList->RSSetViewports(1, &viewport);
-    commandList->RSSetScissorRects(1, &scissorRect);
-
-
-    m_shadowShaderPerm->SetDescriptorHeap(m_commandList.Get());
-    for (auto& proxy : m_staticMeshes) {
-        m_shadowShaderPerm->SetDescriptorTables(m_commandList.Get(), proxy->shadowPassHeapOffset);
-
-        m_commandList->IASetPrimitiveTopology(proxy->mesh->GetTopology());
-        m_commandList->IASetVertexBuffers(0, 1, &proxy->mesh->GetVertexBuffer()->GetVertexBufferView());
-        m_commandList->IASetIndexBuffer(&proxy->mesh->GetIndexBuffer()->GetIndexBufferView());
-
-        auto indexCount = proxy->mesh->GetIndexCount();
-        auto instanceCount = proxy->instanceProxy->instanceData.size();
-        m_commandList->DrawIndexedInstanced((UINT)indexCount, (UINT)instanceCount, 0, 0, 0);
-    }
-
-
-
-
-}
+ 
 
 
 
@@ -665,12 +608,7 @@ void D3D12HelloRenderer::OnDestroy()
 
 
 void D3D12HelloRenderer::BeginFrame()
-{
-    //new: 
-    if (meshDirty) {
-        this->SetMeshDescriptors();
-        meshDirty = false;
-    }
+{ 
     // Command list allocators can only be reset when the associated 
  // command lists have finished execution on the GPU; apps should use 
  // fences to determine GPU execution progress. 
@@ -695,10 +633,14 @@ void D3D12HelloRenderer::EndFrame()
     ThrowIfFailed(m_swapChain->Present(1, 0));
 
     WaitForPreviousFrame();
+
+
+    //new:
+    staticMeshes.clear();
 }
 
 void D3D12HelloRenderer::BeginRenderPass(ID3D12GraphicsCommandList* commandList)
-{ 
+{
 
     // Indicate that the back buffer will be used as a render target.
     auto ps_rtv_Barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -713,7 +655,7 @@ void D3D12HelloRenderer::BeginRenderPass(ID3D12GraphicsCommandList* commandList)
     //D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_SC_RTVHeapAllocator->GetCPUHandle(m_frameIndex);
 
     assert(m_bindings.rtvs.size() == FrameCount);
-    auto rtvHandle = m_bindings.rtvs[m_frameIndex];  
+    auto rtvHandle = m_bindings.rtvs[m_frameIndex];
 
     const float clearColor[] = { 0.1f, 0.1f, 0.1f, 1.0f };
     m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
@@ -729,67 +671,19 @@ void D3D12HelloRenderer::BeginRenderPass(ID3D12GraphicsCommandList* commandList)
         m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
     }
 
-}
-
-
-
-void D3D12HelloRenderer::RecordRenderPassCommands(ID3D12GraphicsCommandList* m_commandList)
-{
-
     auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_width), static_cast<float>(m_height));
     auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height));
 
-    // 
-   //begin---------------  
-    m_commandList->SetPipelineState(m_PSO.Get());
-    // Set necessary state.
-    m_commandList->SetGraphicsRootSignature(m_shaderPerm->GetRootSignature().Get());
 
     m_commandList->RSSetViewports(1, &viewport);
     m_commandList->RSSetScissorRects(1, &scissorRect);
 
-
-    //record-------------
-    m_shaderPerm->SetDescriptorHeap(m_commandList);
-
-    //set the scene-level:
-	m_shaderPerm->SetSceneRootCBV(
-		m_commandList,
-		sceneCB->GetRawResource()
-	);
-
-    //drawcall loop
-    for (const auto& proxy : m_staticMeshes)
-    {
-        if (proxy->mesh == nullptr || proxy->mesh->GetVertexBuffer() == nullptr || proxy->mesh->GetIndexBuffer() == nullptr)
-        {
-            continue; // Skip if mesh is not valid
-        }
-
-        m_shaderPerm->SetDescriptorTables(m_commandList, proxy->mainPassHeapOffset);
-
-        //m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        m_commandList->IASetPrimitiveTopology(proxy->mesh->GetTopology());
-
-        m_commandList->IASetVertexBuffers(0, 1, &proxy->mesh->GetVertexBuffer()->GetVertexBufferView());
-        m_commandList->IASetVertexBuffers(1, 1, &proxy->instanceProxy->instanceBuffer->GetVertexBufferView());
-
-        m_commandList->IASetIndexBuffer(&proxy->mesh->GetIndexBuffer()->GetIndexBufferView());
-
-        //m_commandList->DrawInstanced(3, 1, 0, 0);
-        //m_commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);  
-        auto indiceCount = static_cast<UINT>(proxy->mesh->GetIndexCount());
-        auto instanceCount = static_cast<UINT>(proxy->instanceProxy->instanceData.size());
-        m_commandList->DrawIndexedInstanced(indiceCount, instanceCount, 0, 0, 0);
-    }
-
-
-
 }
 
+ 
 
 void D3D12HelloRenderer::EndRenderPass(ID3D12GraphicsCommandList* commandList)
-{ 
+{
     //End------------
 // Indicate that the back buffer will now be used to present.
     auto rtv_ps_barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -934,174 +828,70 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateFallBackTextureData()
 
 
 
-
-
-void D3D12HelloRenderer::SetMeshDescriptors()
+void D3D12HelloRenderer::SubmitMesh(StaticMeshActorProxy* meshProxy)
 {
-    std::cout << "set main pass descriptors" << std::endl;
-    for (auto& mesh : m_staticMeshes)
-    {
-        m_shaderPerm->SetSRV("baseMap", mesh->material->baseMap->GetRawResource(), mesh->material->baseMap->GetSRVDesc(), mesh->mainPassHeapOffset);
+    //m_staticMeshes.push_back(mesh);
+    //meshDirty = true;     
+  
 
-        m_shaderPerm->SetSRV("shadowMap", m_shadowMap->GetRawResource(), m_shadowMap->GetSRVDesc(), mesh->mainPassHeapOffset);
-        //m_shaderPerm->SetSRV("shadowMap", m_shadowMap->GetRawResource(), m_shadowMap->GetSRVDesc(), mesh->mainPassHeapOffset);
+    FStaticMeshProxy proxy = {
+    .modelMatrix = meshProxy->modelMatrix,
+    .mesh = meshProxy->mesh.get(), 
+    .material = meshProxy->material.get(),
+    .instanceData = meshProxy->instanceData.data(),
+    .instanceCount = meshProxy->instanceData.size(),
+    };
+    staticMeshes.push_back(proxy);
 
-        //auto constBufferRes = mesh->mainMVPConstantBuffer;
-        //m_shaderPerm->SetCBV("MVPConstantBuffer", constBufferRes->GetRawResource(), constBufferRes->GetCBVDesc(), mesh->mainPassHeapOffset);
-        auto constBufferRes = mesh->objectCB;
-        m_shaderPerm->SetCBV("ObjectCB", constBufferRes->GetCBVDesc(), mesh->mainPassHeapOffset);
-
-	/*	auto sceneCB = mesh->sceneCB;
-		m_shaderPerm->SetCBV("SceneCB", sceneCB->GetRawResource(), sceneCB->GetCBVDesc(), mesh->mainPassHeapOffset);*/
-    }
-
-    std::cout << " set shadow pass descriptors" << std::endl;
-    for (auto& mesh : m_staticMeshes)
-    {
-        auto constBufferRes = mesh->shadowMVPConstantBuffer;
-        m_shadowShaderPerm->SetCBV("MVPConstantBuffer", constBufferRes->GetCBVDesc(), mesh->shadowPassHeapOffset);
-    }
-}
-
-
-
-// Update frame-based values.
-void D3D12HelloRenderer::OnUpdate(float delta)
-{
-
-    //DebugDraw::Get().OnUpdate(delta, dummyCamera.pvMatrix);
-    if (mainCamera) {
-        DebugDraw::Get().OnUpdate(delta, mainCamera->pvMatrix);
-
-        //scene cb: 
-        if (sceneCB != nullptr) {
-
-            SceneCB sceneCBData = {};
-            sceneCBData.pvMatrix = mainCamera->pvMatrix; // Use the main camera's projection-view matrix
-            // Upload the scene constant buffer data.
-            sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
-        }
-
-
-    }
-    else
-    {
-        //std::cout << "no camera" << '\n';
-    }
-
-
-      
-}
-
-void D3D12HelloRenderer::SubmitMesh(StaticMeshActorProxy* mesh)
-{
-    m_staticMeshes.push_back(mesh);
-    meshDirty = true;
+    //litPassCtx.data.mainCamera = camera;
 }
 
 void D3D12HelloRenderer::ClearMesh()
 {
-    m_staticMeshes.clear();
+    staticMeshes.clear();
+}
+
+void D3D12HelloRenderer::SubmitCamera(FCameraProxy* camera)
+{ 
+    mainCamera = camera; 
+    //litPassCtx.data.mainCamera = camera;
 }
 
 
-inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
-    float ndcX = (2.0f * static_cast<float>(x + 0.5f) / static_cast<float>(screenWidth)) - 1.0f;
-    float ndcY = 1.0f - (2.0f * static_cast<float>(y + 0.5f) / static_cast<float>(screenHeight)); // Invert Y for top-left 
-    //std::cout << "get ndc:" << ndcX << " " << ndcY << '\n';
-    return { ndcX, ndcY };
-}
 
-
-
-void D3D12HelloRenderer::AddQuad(const FQuadDesc& desc)
+void D3D12HelloRenderer::AddQuad(const UI::FQuadDesc& desc)
 {
-	int screenWidth = GameApplication::GetInstance()->GetWidth();
-	int screenHeight = GameApplication::GetInstance()->GetHeight();
 
-	Float2 tl = ScreenToNDC(desc.rect.x, desc.rect.y, screenWidth, screenHeight);
-	Float2 tr = ScreenToNDC(desc.rect.x + desc.rect.w, desc.rect.y, screenWidth, screenHeight);
-	Float2 bl = ScreenToNDC(desc.rect.x, desc.rect.y + desc.rect.h, screenWidth, screenHeight);
-	Float2 br = ScreenToNDC(desc.rect.x + desc.rect.w, desc.rect.y + desc.rect.h, screenWidth, screenHeight);
-
-	auto& batchData = uiPassCtx.data.batchData;
-	uint32_t baseVertex = static_cast<uint32_t>(batchData.vertices.size());
-	batchData.vertices.push_back({ tl, {desc.uvTL.x(), desc.uvTL.y()}, desc.color}); // 0
-	batchData.vertices.push_back({ tr, {desc.uvBR.x(), desc.uvTL.y()}, desc.color }); // 1
-	batchData.vertices.push_back({ bl, {desc.uvTL.x(), desc.uvBR.y()}, desc.color }); // 2
-	batchData.vertices.push_back({ br, {desc.uvBR.x(), desc.uvBR.y()}, desc.color }); // 3
-
-	uint32_t baseIndex = static_cast<uint32_t>(batchData.indices.size());
-	batchData.indices.push_back(baseVertex + 0);
-	batchData.indices.push_back(baseVertex + 1);
-	batchData.indices.push_back(baseVertex + 2);
-	batchData.indices.push_back(baseVertex + 2);
-	batchData.indices.push_back(baseVertex + 1);
-	batchData.indices.push_back(baseVertex + 3);
-
-
-
-
-    UI::UISettingsCB uiSettings = {
-        .useTexture = desc.useAtlas,
-    };
-     
-    auto& shader = uiPassCtx.res.shader;
-
-    auto& cbAllocator = uiPassCtx.res.cbAllocator; 
-	auto bufferView = cbAllocator->Upload(&uiSettings);
-
-
-	auto heapStartOffset = uiPassCtx.res.heapOffset;
-	auto currIndex = batchData.cmds.size();
-    auto objectHeapOffset = static_cast<uint32_t>(heapStartOffset + currIndex * shader->GetDescriptorTableSize());
-
-	shader->SetCBV("UISettingsCB", GetCBVDesc(bufferView), objectHeapOffset);
-
-	auto& atlasTex = uiPassCtx.data.font->texture;
-    shader->SetSRV("fontAtlas", atlasTex->GetRawResource(), atlasTex->GetSRVDesc(), objectHeapOffset);
-
-
-
-    UI::UIDrawCmd cmd = {
-        .indexOffset = baseIndex,
-        .indexCount = 6,
-        .useAtlas = desc.useAtlas,
-		.heapOffset = static_cast<uint32_t>(objectHeapOffset) ,
-    };
-
-    batchData.cmds.push_back(cmd);
-    uiPassCtx.data.dirty = true;
+    uiPassCtx.data.pendings.push_back(desc);  
 }
 
 void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float4& color)
 {
-	//delegate to  
-	FQuadDesc desc = {
-		.rect = rect,
-		.uvTL = Float2(0.0f, 0.0f), // default UV coordinates
-		.uvBR = Float2(1.0f, 1.0f), // default UV coordinates
-		.color = color,
-		.useAtlas = false, 
-	};
-	AddQuad(desc);
+    //delegate to  
+    UI::FQuadDesc desc = {
+        .rect = rect,
+        .uvTL = Float2(0.0f, 0.0f), // default UV coordinates
+        .uvBR = Float2(1.0f, 1.0f), // default UV coordinates
+        .color = color,
+        .useAtlas = false,
+    };
+    AddQuad(desc);
 
 }
 
 void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR)
 {
-    
-	//delegate to
-	FQuadDesc desc = {
-		.rect = rect,
-		.uvTL = uvTL, 
-		.uvBR = uvBR, 
-		.color = Float4(1.0f, 1.0f, 1.0f, 1.0f), 
-		.useAtlas = true,
-	};
 
-	AddQuad(desc);
+    //delegate to
+    UI::FQuadDesc desc = {
+        .rect = rect,
+        .uvTL = uvTL,
+        .uvBR = uvBR,
+        .color = Float4(1.0f, 1.0f, 1.0f, 1.0f),
+        .useAtlas = true,
+    };
+
+    AddQuad(desc);
 }
 
 
- 

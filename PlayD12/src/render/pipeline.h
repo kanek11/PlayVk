@@ -42,15 +42,4 @@ private:
     WeakPtr<ShaderLibrary> library;
     std::unordered_map<PSOKey, ComPtr<ID3D12PipelineState>> cache;
 };
-
-
-struct RenderPassInitContext
-{
-    ID3D12Device* device;
-    ID3D12CommandAllocator* cmdAllocator;
-    ID3D12GraphicsCommandList* cmdList;
-    ID3D12CommandQueue* cmdQueue;
-
-    SharedPtr<ShaderLibrary> m_shaderManager;
-    SharedPtr<PSOManager> m_psoManager;
-};
+ 

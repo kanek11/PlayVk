@@ -4,7 +4,7 @@
 
 
 //a dummy type
-using TextureHandle = std::string; 
+using TextureHandle = std::string;
 
 struct MaterialDesc {
     std::string name;
@@ -13,7 +13,7 @@ struct MaterialDesc {
     //std::unordered_map<std::string, float> scalarParams;
     //std::unordered_map<std::string, bool> keywords; // like USE_NORMAL_MAP
 
-	//todo: other blend mode;
+    //todo: other blend mode;
     bool enableAlphaBlend = false;
     bool doubleSided = false;
     bool depthWrite = true;
@@ -23,18 +23,5 @@ struct MaterialDesc {
 
 // a simple solution of material registry;
 namespace Materials {
-     
-    inline MaterialDesc shadowMaterialDesc = {
-        .name = "Shadow",
-        .shaderTag = "Lit",
 
-        .textures = {
-            {"baseMap", "default_shadow_texture"}, // Placeholder texture handle
-        },
-
-        .enableAlphaBlend = false,
-        .doubleSided = false,
-        .depthWrite = true 
-    };
-     
 }

@@ -19,38 +19,61 @@
 #include "StaticMeshActor.h"
 
 #include "UIPass.h" 
+#include "GeometryPass.h"
 
 
-constexpr size_t MaxUIBatch = 256; 
+constexpr size_t MaxUIBatch = 256;
+constexpr size_t MaxStaticMesh = 256;
 constexpr size_t MaxLines = 1024;
-constexpr uint32_t descriptorPoolSize = 2048;
- 
-struct RendererFactoryContext {
+constexpr uint32_t descriptorPoolSize = 4096;
+
+struct RendererContext {
     ID3D12Device* device;
-    SharedPtr<FD3D12ShaderPermutation> mainShaderPerm;
-    SharedPtr<FD3D12ShaderPermutation> shadowShaderPerm;
-    SharedPtr<FD3D12Texture> fallBackTexture;
-}; 
+
+    ID3D12CommandAllocator* cmdAllocator;
+    ID3D12GraphicsCommandList* cmdList;
+    ID3D12CommandQueue* cmdQueue;
+
+    SharedPtr<ShaderLibrary> shaderManager;
+    SharedPtr<PSOManager> psoManager;
+};
+
+struct RenderGraphContext { 
+    UINT shadowMapWidth;
+    UINT shadowMapHeight;
+    SharedPtr<FD3D12Texture> shadowMap;
+
+    SharedPtr<FD3D12Texture> fallBackTexture; 
+};
+
+
+struct FrameContext {
+     //std::vector<StaticMeshActorProxy*> staticMeshes;  
+     std::vector<FStaticMeshProxy> staticMeshes;
+     FCameraProxy* mainCamera;
+};
 
 namespace Render {
-    inline RendererFactoryContext* rendererContext = nullptr;
-
+    inline RendererContext* rendererContext = nullptr;
+    inline RenderGraphContext* graphContext = nullptr;
+    inline FrameContext* frameContext = nullptr;
 }
+ 
 
 
-struct StaticMeshShadowVertex
+struct MVPConstantBuffer
 {
-    Float3 position; 
+    //XMFLOAT4X4 modelMatrix; // 64 bytes  
+    //XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
+    Float4x4 modelMatrix; // 64 bytes 
+    Float4x4 projectionViewMatrix; // 64 bytes
+
+    //padding:
+    float padding[32];
 };
 
-template<>
-struct VertexLayoutTraits<StaticMeshShadowVertex> {
-    static constexpr bool is_specialized = true;
-	static constexpr auto attributes = std::to_array<VertexAttribute>({
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshShadowVertex, position) }
-		});
-};
 
+static_assert((sizeof(MVPConstantBuffer) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
 
 
 //struct DebugLine {
@@ -69,10 +92,10 @@ struct DebugLineVertex {
 template<>
 struct VertexLayoutTraits<DebugLineVertex> {
     static constexpr bool is_specialized = true;
-	static constexpr auto attributes = std::to_array<VertexAttribute>({
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(DebugLineVertex, position) },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(DebugLineVertex, color) }
-		});
+    static constexpr auto attributes = std::to_array<VertexAttribute>({
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(DebugLineVertex, position) },
+        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(DebugLineVertex, color) }
+        });
 };
 
 
@@ -80,7 +103,7 @@ class DebugDraw {
 public:
     static DebugDraw& Get();
 
-    void Init(RenderPassInitContext ctx);
+    void Init(const RendererContext* ctx);
 
     void OnUpdate(float delta, const Float4x4& pv);
 
@@ -128,38 +151,7 @@ private:
     };
 
 };
-
-
-
-struct MVPConstantBuffer
-{
-    //XMFLOAT4X4 modelMatrix; // 64 bytes  
-    //XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
-    Float4x4 modelMatrix; // 64 bytes 
-    Float4x4 projectionViewMatrix; // 64 bytes
-
-    //padding:
-    float padding[32];
-};
-
-
-struct SceneCB
-{
-	Float4x4  pvMatrix; 
-    //padding:
-	float padding[48]; // 64 bytes total
-};
-
-struct ObjectCB
-{
-	Float4x4 modelMatrix; // 64 bytes 
-	float padding[48]; // 64 bytes total
-};
-
-
-static_assert((sizeof(MVPConstantBuffer) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
-static_assert((sizeof(SceneCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
-static_assert((sizeof(ObjectCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
+ 
 
 
 class D3D12HelloRenderer
@@ -221,50 +213,32 @@ private:
     void InitRenderPass();
     void BeginRenderPass(ID3D12GraphicsCommandList* commandList);
     void EndRenderPass(ID3D12GraphicsCommandList* commandList);
-    void RecordRenderPassCommands(ID3D12GraphicsCommandList* commandList);
+    //void RecordRenderPassCommands(ID3D12GraphicsCommandList* commandList);
 
 
-    ComPtr<ID3D12PipelineState> m_PSO;
-    SharedPtr<FD3D12ShaderPermutation> m_shaderPerm;
-     
-    SharedPtr<FD3D12Buffer> sceneCB;
-
-    CameraProxy* mainCamera; 
+    //ComPtr<ID3D12PipelineState> m_PSO;
+    //SharedPtr<FD3D12ShaderPermutation> m_shaderPerm;
 
     ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
     SharedPtr<FD3D12Texture> m_depthStencil;
     FRenderPassBindings m_bindings;
-
      
-
-
     //---------
 
     void InitShadowPass();
     void BeginShadowPass(ID3D12GraphicsCommandList* commandList);
     void EndShadowPass(ID3D12GraphicsCommandList* commandList);
-    void RecordShadowPassCommands(ID3D12GraphicsCommandList* commandList);
+    //void RecordShadowPassCommands(ID3D12GraphicsCommandList* commandList); 
 
-
-    ComPtr<ID3D12PipelineState> m_shadowPSO;
-    SharedPtr<FD3D12ShaderPermutation> m_shadowShaderPerm;
+    //ComPtr<ID3D12PipelineState> m_shadowPSO;
+    //SharedPtr<FD3D12ShaderPermutation> m_shadowShaderPerm;
 
     //shadowmap tex:
     SharedPtr<FD3D12Texture> m_shadowMap;
     FRenderPassBindings m_shadowBindings;
 
-    UINT m_shadowMapWidth = 1024;
-    UINT m_shadowMapHeight = 1024;
-
-
-    RenderPassDesc shadowPassDesc = {
-       .passTag = "Shadow",
-       .colorFormat = DXGI_FORMAT_UNKNOWN, // no color
-       .depthFormat = DXGI_FORMAT_D32_FLOAT,
-       .enableDepth = true,
-       .enableBlend = false,
-       .cullMode = D3D12_CULL_MODE_BACK,
-    };
+    UINT m_shadowMapWidth = 2048;
+    UINT m_shadowMapHeight = 2048; 
 
 
     //---------
@@ -289,7 +263,7 @@ private:
 
     SharedPtr<ShaderLibrary> m_shaderManager;
 
-    SharedPtr<PSOManager> m_psoManager; 
+    SharedPtr<PSOManager> m_psoManager;
 
     //new: 6.27 texturing
     static const UINT TextureWidth = 256;
@@ -299,50 +273,46 @@ private:
     SharedPtr<FD3D12Texture> m_fallBackTexture;
     std::vector<UINT8> GenerateFallBackTextureData();
 
-    std::vector<StaticMeshActorProxy*> m_staticMeshes;
+public: 
 
-
-public:
+    //std::vector<StaticMeshActorProxy*> m_staticMeshes;  
+    std::vector<FStaticMeshProxy> staticMeshes;
+    FCameraProxy* mainCamera; 
 
     //todo:
     void SubmitMesh(StaticMeshActorProxy* mesh);
     void ClearMesh();
-    void SetMeshDescriptors();
-    bool meshDirty = false;
+    //void SetMeshDescriptors();
+    //bool meshDirty = false; 
+
+    void SubmitCamera(FCameraProxy* camera);
 
 
-    void SubmitCamera(CameraProxy* camera) {
-        mainCamera = camera;
-    }
+public:
+    Lit::PassContext litPassCtx;
+
+    public:
+        Shadow::PassContext shadowPassCtx;
 
 
 public:
     //SharedPtr<DebugRenderer> m_debugRenderer;
     //SharedPtr<UIRenderer> uiRenderer;
 
-	UI::UIPassContext uiPassCtx;
+    UI::UIPassContext uiPassCtx;
 
-    struct FQuadDesc {
-        FRect  rect;
-        Float2 uvTL = { 0,0 };
-        Float2 uvBR = { 1,1 };
-        Float4 color = Color::White;
-        bool   useAtlas = false;
-    };
-
-    void AddQuad(const FQuadDesc& desc); 
+    void AddQuad(const UI::FQuadDesc& desc);
 
     void AddQuad(const FRect& rect, const Float4& color);
-    void AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR); 
+    void AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR);
 
-	void ClearUI()
-	{
-		uiPassCtx.data.batchData.Clear(); 
-		uiPassCtx.data.dirty = true;
-	}
+    void ClearUI()
+    {
+        UI::EndFrame(uiPassCtx);
+    }
 
-	SharedPtr<FontAtlas> GetFontAtlas() const {
-		return uiPassCtx.data.font;
-	}
+    SharedPtr<FontAtlas> GetFontAtlas() const {
+        return uiPassCtx.data.font;
+    }
 
 };
