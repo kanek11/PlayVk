@@ -47,6 +47,23 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC FD3D12Buffer::GetCBVDesc() const
 	};
 }
 
+D3D12_UNORDERED_ACCESS_VIEW_DESC FD3D12Buffer::GetUAVDesc() const
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {
+		.Format = m_bufferDesc.Format,
+		.ViewDimension = D3D12_UAV_DIMENSION_BUFFER,
+		.Buffer = {
+			.FirstElement = 0,
+			.NumElements = static_cast<UINT>(m_bufferDesc.SizeInBytes / m_bufferDesc.StrideInBytes),
+			.StructureByteStride = static_cast<UINT>(m_bufferDesc.StrideInBytes),
+			.CounterOffsetInBytes = 0,
+			.Flags = D3D12_BUFFER_UAV_FLAG_NONE
+		}
+	};
+
+	return desc;
+}
+
 void FD3D12Buffer::CreateResource()
 {
 	auto heapType = GetHeapType(m_bufferDesc.Usage);

@@ -73,7 +73,7 @@ public:
     D3D12_INDEX_BUFFER_VIEW GetIndexBufferView() const;
     D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc() const;
     //D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc() const;
-    //D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc() const; 
+    D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc() const; 
 
 private:
 
