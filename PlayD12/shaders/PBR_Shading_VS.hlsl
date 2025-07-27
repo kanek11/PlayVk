@@ -1,7 +1,11 @@
 
 
 
-
+struct VS_OUT
+{
+    float4 pos : SV_POSITION;
+    float2 uv : TEXCOORD0;
+};
 
 
 VS_OUT VSMain(uint vertexID : SV_VertexID)
