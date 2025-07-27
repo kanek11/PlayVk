@@ -75,8 +75,8 @@ public:
 public:
 
 	void GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount);
-	float roadWidth = 10;
-	float goalLength = 500;
+	float roadWidth = 20;
+	float goalLength = 20;
 
 	float timeCount{};
 };

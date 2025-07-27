@@ -8,6 +8,8 @@
  
 void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
 {
+	auto& frameData = Render::frameContext;
+
     auto& res = passCtx.res;
     auto& shader = res.shader;
 
@@ -18,7 +20,7 @@ void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext&
     shader->SetDescriptorHeap(cmdList);
     shader->SetSceneRootCBV(
         cmdList,
-        res.sceneCB->GetRawResource()
+        frameData->sceneCB->GetRawResource()
     );
      
 
@@ -43,6 +45,15 @@ void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext&
     }
 }
 
+void Mesh::EndFrame(PassContext& passCtx) noexcept
+{
+    passCtx.data.Clear();
+
+    //reset the allocator:
+    passCtx.res.objCBAllocator->Reset();
+    passCtx.res.instanceBufferAllocator->Reset();
+}
+
 
 
 
@@ -50,19 +61,7 @@ void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
 {
 
     {
-        auto& sceneCB = passCtx.res.sceneCB;
-        sceneCB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-            .SizeInBytes = sizeof(SceneCB),
-            .Format = DXGI_FORMAT_UNKNOWN, // Not used for constant buffers 
-            .StrideInBytes = sizeof(SceneCB),
-            .Usage = EBufferUsage::Upload | EBufferUsage::Constant
-            }); 
-
-    } 
-
-
-    {
-        passCtx.res.cbAllocator
+        passCtx.res.objCBAllocator
             = CreateShared<FRingBufferAllocator<ObjectCB>>(ctx->device, MaxStaticMesh);
 
         passCtx.res.instanceBufferAllocator
@@ -133,20 +132,10 @@ void Lit::BeginFrame(PassContext& passCtx) noexcept
     assert(passCtx.res.baseHeapOffset.has_value()); 
     auto baseHeapOffset = passCtx.res.baseHeapOffset;
 
-    auto& cbAllocator = passCtx.res.cbAllocator;  
+    auto& cbAllocator = passCtx.res.objCBAllocator;  
     auto& instAllocator = passCtx.res.instanceBufferAllocator;
-     
-
-    if (frameCtx->mainCamera) {
-
-        SceneCB sceneCBData = {};
-        sceneCBData.pvMatrix = frameCtx->mainCamera->pvMatrix; 
-        passCtx.res.sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
-    } 
-
-
-    auto& fallbackTex = graphCtx->fallBackTexture;
-
+ 
+ 
     for (auto& proxy : frameCtx->staticMeshes) {
 
         auto currIndex = batchData.cmds.size();
@@ -157,23 +146,27 @@ void Lit::BeginFrame(PassContext& passCtx) noexcept
         ObjectCB cb =
         {
             .modelMatrix = proxy.modelMatrix,
+			.normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
         }; 
         auto cbView = cbAllocator->Upload(&cb); 
         shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);  
 
-        if (proxy.material->baseMap)
-        {
-            shader->SetSRV("baseMap", proxy.material->baseMap->GetRawResource(), proxy.material->baseMap->GetSRVDesc(), localHeapOffset);
-        }
-        else
-        { 
-            shader->SetSRV("baseMap", fallbackTex->GetRawResource(), fallbackTex->GetSRVDesc(), localHeapOffset);
-
-        }
+		for (auto& [name, tex] : proxy.material->textures)
+		{
+			if (tex)
+			{
+				shader->SetSRV(name, tex->GetRawResource(), tex->GetSRVDesc(), localHeapOffset);
+			} 
+		} 
+    
  
         if(graphCtx->shadowMap)
         shader->SetSRV("shadowMap", graphCtx->shadowMap->GetRawResource(), graphCtx->shadowMap->GetSRVDesc(), localHeapOffset);
 
+   /*     auto shadowMap = graphCtx->graph->GetTexture(RGNode{ "ShadowPass","Depth" });
+        shader->SetSRV("shadowMap", shadowMap->GetRawResource(), shadowMap->GetSRVDesc(), localHeapOffset);*/
+
+        
 
         Mesh::DrawCmd cmd =
         {
@@ -197,29 +190,15 @@ void Lit::BeginFrame(PassContext& passCtx) noexcept
 }
 
 void Lit::EndFrame(PassContext& passCtx) noexcept
-{
-    passCtx.data.Clear();
-
-    //reset the allocator:
-    passCtx.res.cbAllocator->Reset();
-    passCtx.res.instanceBufferAllocator->Reset();
+{ 
+	Mesh::EndFrame(passCtx);
 }
 
 void Shadow::Init(const RendererContext* ctx, PassContext& passCtx)
-{
-    {
-        auto& sceneCB = passCtx.res.sceneCB;
-        sceneCB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-            .SizeInBytes = sizeof(SceneCB),
-            .Format = DXGI_FORMAT_UNKNOWN, // Not used for constant buffers 
-            .StrideInBytes = sizeof(SceneCB),
-            .Usage = EBufferUsage::Upload | EBufferUsage::Constant
-            }); 
-    }
-
+{ 
 
     {
-        passCtx.res.cbAllocator
+        passCtx.res.objCBAllocator
             = CreateShared<FRingBufferAllocator<ObjectCB>>(ctx->device, MaxStaticMesh);
 
         passCtx.res.instanceBufferAllocator
@@ -282,15 +261,9 @@ void Shadow::BeginFrame(PassContext& passCtx) noexcept
     assert(passCtx.res.baseHeapOffset.has_value());
     auto baseHeapOffset = passCtx.res.baseHeapOffset;
 
-    auto& cbAllocator = passCtx.res.cbAllocator;
+    auto& cbAllocator = passCtx.res.objCBAllocator;
     auto& instAllocator = passCtx.res.instanceBufferAllocator;
 
-    if (frameCtx->mainCamera) {
-
-        SceneCB sceneCBData = {};
-        sceneCBData.pvMatrix = frameCtx->mainCamera->pvMatrix; 
-        passCtx.res.sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
-    }
 
     for (auto& proxy : frameCtx->staticMeshes) {
 
@@ -301,7 +274,8 @@ void Shadow::BeginFrame(PassContext& passCtx) noexcept
 
         ObjectCB cb =
         {
-            .modelMatrix = proxy.modelMatrix,
+            .modelMatrix = proxy.modelMatrix, 
+			.normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
         };
         auto cbView = cbAllocator->Upload(&cb);
         shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset); 
@@ -331,10 +305,179 @@ void Shadow::BeginFrame(PassContext& passCtx) noexcept
 
 void Shadow::EndFrame(PassContext& passCtx) noexcept
 {
-    passCtx.data.Clear();
+	Mesh::EndFrame(passCtx);
+}
 
-    //reset the allocator:
-    passCtx.res.cbAllocator->Reset();
-    passCtx.res.instanceBufferAllocator->Reset();
+void GBuffer::Init(const RendererContext* ctx, PassContext& passCtx)
+{
+    {
+        passCtx.res.objCBAllocator
+            = CreateShared<FRingBufferAllocator<ObjectCB>>(ctx->device, MaxStaticMesh);
+
+        passCtx.res.instanceBufferAllocator
+            = CreateShared<FRingBufferAllocator<InstanceData>>(ctx->device, MaxStaticMesh * 100);
+    
+		passCtx.res.matCBAllocator
+			= CreateShared<FRingBufferAllocator<Materials::PBRMaterialCB>>(ctx->device, MaxStaticMesh);
+    
+    }
+
+     {
+        auto& shader = passCtx.res.shader;
+
+        ShaderPermutationKey key = {
+            .shaderTag = "PBR",
+            .passTag = "GBuffer", };
+
+        shader = ctx->shaderManager->GetOrLoad(key);
+
+        shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap(0)); 
+        shader->CreateRootSignature();
+
+        passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap(MaxStaticMesh);
+
+    }
+
+
+    {
+        auto& pso = passCtx.res.PSO;
+
+        //assemble input layout:
+        auto inputDescs = InputLayoutBuilder::Build<StaticMeshVertex>(0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
+        auto perInstanceDescs = InputLayoutBuilder::Build<InstanceData>(1, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1);
+
+        inputDescs.insert(inputDescs.end(), perInstanceDescs.begin(), perInstanceDescs.end());
+
+        //------------ 
+        pso = ctx->psoManager->GetOrCreate(
+			Materials::PBRMaterialDesc,
+			Passes::GBufferPassDesc,
+            inputDescs
+        );
+
+    }
+}
+
+void GBuffer::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
+{
+    auto& frameData = Render::frameContext;
+
+    auto& res = passCtx.res;
+    auto& shader = res.shader;
+
+    cmdList->SetPipelineState(res.PSO.Get());
+    cmdList->SetGraphicsRootSignature(shader->GetRootSignature().Get());
+
+
+    shader->SetDescriptorHeap(cmdList);
+    shader->SetSceneRootCBV(
+        cmdList,
+        frameData->sceneCB->GetRawResource()
+    );
+
+
+    for (const auto& cmd : passCtx.data.cmds)
+    {
+
+        shader->SetDescriptorTables(cmdList, cmd.localHeapOffset);
+
+        //cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        cmdList->IASetPrimitiveTopology(cmd.topology);
+
+        cmdList->IASetVertexBuffers(0, 1, &cmd.vbv);
+        cmdList->IASetVertexBuffers(1, 1, &cmd.instanceVBV);
+
+        cmdList->IASetIndexBuffer(&cmd.ibv);
+
+        //cmdList->DrawInstanced(3, 1, 0, 0);
+        //cmdList->DrawIndexedInstanced(36, 1, 0, 0, 0);  
+        auto indexCount = static_cast<UINT>(cmd.indexCount);
+        auto instanceCount = static_cast<UINT>(cmd.instanceCount);
+        cmdList->DrawIndexedInstanced(indexCount, instanceCount, 0, 0, 0);
+    }
+}
+
+void GBuffer::BeginFrame(PassContext& passCtx) noexcept
+{
+    auto& frameCtx = Render::frameContext;
+    auto& graphCtx = Render::graphContext;
+
+    if (frameCtx == nullptr || graphCtx == nullptr) {
+        std::cerr << "render context is not inited" << std::endl;
+        return;
+    }
+
+    auto& shader = passCtx.res.shader;
+    auto& batchData = passCtx.data;
+
+    assert(passCtx.res.baseHeapOffset.has_value());
+    auto baseHeapOffset = passCtx.res.baseHeapOffset;
+
+    auto& cbAllocator = passCtx.res.objCBAllocator;
+    auto& instAllocator = passCtx.res.instanceBufferAllocator;
+
+
+    for (auto& proxy : frameCtx->staticMeshes) {
+
+        auto currIndex = batchData.cmds.size();
+        auto localHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
+
+        auto instBV = instAllocator->Upload(proxy.instanceData, proxy.instanceCount);
+
+        ObjectCB cb =
+        {
+            .modelMatrix = proxy.modelMatrix,
+            .normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
+        };
+        auto objCBV = cbAllocator->Upload(&cb);
+        shader->SetCBV("ObjectCB", GetCBVDesc(objCBV), localHeapOffset);
+
+
+        Materials::PBRMaterialCB matParams{};
+		auto matCBView = passCtx.res.matCBAllocator->Upload(&matParams);
+		shader->SetCBV("MaterialCB", GetCBVDesc(matCBView), localHeapOffset);
+
+		for (auto& [name, tex] : proxy.material->textures)
+		{
+			if (tex)
+			{
+				shader->SetSRV(name, tex->GetRawResource(), tex->GetSRVDesc(), localHeapOffset);
+			}
+		}
+	 
+
+
+        //todo
+
+        Mesh::DrawCmd cmd =
+        {
+            .vbv = proxy.mesh->GetVertexBuffer()->GetVertexBufferView(),
+
+            .topology = proxy.mesh->GetTopology(),
+
+            .ibv = proxy.mesh->GetIndexBuffer()->GetIndexBufferView(),
+
+            .indexCount = proxy.mesh->GetIndexCount(),
+
+            .instanceVBV = GetVertexBufferView(instBV),
+            .instanceCount = proxy.instanceCount,
+
+
+            .localHeapOffset = localHeapOffset,
+
+        };
+
+        batchData.cmds.push_back(cmd);
+    }
+
+}
+
+void GBuffer::EndFrame(PassContext& passCtx) noexcept
+{ 
+	passCtx.data.Clear();
+	//reset the allocator:
+	passCtx.res.objCBAllocator->Reset();
+	passCtx.res.matCBAllocator->Reset();
+	passCtx.res.instanceBufferAllocator->Reset();
 }
 

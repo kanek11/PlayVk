@@ -8,7 +8,7 @@ set "DXC_PATH=dxc"  rem change to the path of your DXC executable if needed
 rem set "DXC_PATH="C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\dxc.exe""
 
 rem DXIL target flags (DXIL)
-set "DXC_FLAGS=-Zi -Qembed_debug -O3"
+set "DXC_FLAGS=-Zi -Qembed_debug -O3 -WX"
 
 if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
 
@@ -20,9 +20,9 @@ for /r "%SHADER_DIR%" %%f in (*.hlsl) do (
         findstr /i /c:"%%e" "%%f" >nul
         if !errorlevel! == 0 (
             set "ENTRY=%%e"
-            if "%%e"=="VSMain" set "TARGET=vs_6_0"
-            if "%%e"=="PSMain" set "TARGET=ps_6_0"
-            if "%%e"=="CSMain" set "TARGET=cs_6_0"
+            if "%%e"=="VSMain" set "TARGET=vs_6_6"
+            if "%%e"=="PSMain" set "TARGET=ps_6_6"
+            if "%%e"=="CSMain" set "TARGET=cs_6_6"
  
             if "%%e"=="VSMain" set "AFFIX=VS"
             if "%%e"=="PSMain" set "AFFIX=PS"

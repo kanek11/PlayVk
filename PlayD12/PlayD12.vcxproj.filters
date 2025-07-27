@@ -129,6 +129,15 @@
     <ClInclude Include="src\render\GeometryPass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\render\DebugRay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Math\Graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\ShaderParameters.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp">
@@ -200,6 +209,12 @@
     <ClCompile Include="src\render\GeometryPass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\render\DebugRay.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="legacy.txt" />
@@ -209,5 +224,17 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="shaders\Common\Scene.hlsli" />
+    <None Include="shaders\Common\Object.hlsli" />
+    <None Include="shaders\Common\SpaceBindings.hlsli" />
+    <None Include="shaders\PBR\PBR_Material.hlsli" />
+    <None Include="shaders\PBR\GBuffer_Common.hlsli" />
+    <None Include="shaders\Common\VertexLayouts.hlsli" />
+    <None Include="shaders\PBR\Shadow.hlsli" />
+    <None Include="shaders\PBR\BRDF.hlsli" />
+    <None Include="shaders\Common\Math.hlsli" />
+    <None Include="shaders\PBR\IBL.hlsli" />
+    <None Include="shaders\Common\Random.hlsli" />
+    <None Include="shaders\Common\Permutation.hlsli" />
   </ItemGroup>
 </Project>

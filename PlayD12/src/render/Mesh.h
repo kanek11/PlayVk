@@ -70,8 +70,9 @@ struct StaticMeshVertex
 	Float3 position;
 	Float3 normal;
 	Float3 tangent;
-	Float4 color;
+	float tan_sign{};
 	Float2 texCoord0;
+	Float4 color;
 };
 
 
@@ -81,9 +82,10 @@ struct VertexLayoutTraits<StaticMeshVertex> {
 	static constexpr auto attributes = std::to_array<VertexAttribute>({
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, position) },
 		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, normal)   },
-		//{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, tangent)  },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(StaticMeshVertex, color) },
+		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, tangent)  },
+		{ "TANGENT_SIGN", 0, DXGI_FORMAT_R32_FLOAT,       offsetof(StaticMeshVertex, tan_sign) }, 
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    offsetof(StaticMeshVertex, texCoord0)},
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(StaticMeshVertex, color) },
 		});
 };
 

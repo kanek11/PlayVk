@@ -143,6 +143,28 @@ namespace MMath {
 
 	}
 
+
+	inline Float4x4 OrthographicOffCenterLH(
+		float left, float right,
+		float bottom, float top,
+		float nearZ, float farZ)
+	{
+		Float4x4 ortho = MatrixIdentity<float, 4>();
+
+		float rl = right - left;
+		float tb = top - bottom;
+		float fn = farZ - nearZ;
+
+		ortho[0] = { 2.0f / rl, 0.0f,      0.0f,        0.0f };
+		ortho[1] = { 0.0f,      2.0f / tb, 0.0f,        0.0f };
+		ortho[2] = { 0.0f,      0.0f,      1.0f / fn,   0.0f };
+		ortho[3] = { -(right + left) / rl, -(top + bottom) / tb, -nearZ / fn, 1.0f };
+
+		return ortho;
+	}
+
+
+
 	inline Float4x4 OrthographicLH
 	(
 		float width,
@@ -151,12 +173,9 @@ namespace MMath {
 		float farZ
 	)
 	{
-		Float4x4 orthoMatrix = MatrixIdentity<float, 4>();
-		orthoMatrix[0] = { 2.0f / width, 0.0f, 0.0f, 0.0f };
-		orthoMatrix[1] = { 0.0f, 2.0f / height, 0.0f, 0.0f };
-		orthoMatrix[2] = { 0.0f, 0.0f, 1.0f / (farZ - nearZ), 0.0f };
-		orthoMatrix[3] = { 0.0f, 0.0f, -nearZ / (farZ - nearZ), 1.0f };
-		return orthoMatrix;
+		float halfW = width * 0.5f;
+		float halfH = height * 0.5f;
+		return OrthographicOffCenterLH(-halfW, halfW, -halfH, halfH, nearZ, farZ);
 	}
 
 
@@ -166,7 +185,7 @@ namespace MMath {
 
 
 	//matrix3x3 inverse
-	inline Float3x3 Inverse(const Float3x3& m)
+	inline Float3x3 Inverse3x3(const Float3x3& m)
 	{
 		Float3x3 inv;
 		float det = m[0].x() * (m[1].y() * m[2].z() - m[1].z() * m[2].y()) -
@@ -196,6 +215,23 @@ namespace MMath {
 		return inv;
 	}
 
+
+	inline Float3x3 ToFloat3x3(const Float4x4& mat) {
+		Float3x3 result;
+		result[0] = { mat[0][0], mat[0][1], mat[0][2] };
+		result[1] = { mat[1][0], mat[1][1], mat[1][2] };
+		result[2] = { mat[2][0], mat[2][1], mat[2][2] };
+		return result; 
+	}
+
+	inline Float4x4 ToFloat4x4(const Float3x3& mat) {
+		Float4x4 result = MatrixIdentity<float, 4>();
+		result[0] = { mat[0][0], mat[0][1], mat[0][2], 0.0f };
+		result[1] = { mat[1][0], mat[1][1], mat[1][2], 0.0f };
+		result[2] = { mat[2][0], mat[2][1], mat[2][2], 0.0f };
+		result[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		return result;
+	}
 
 
 

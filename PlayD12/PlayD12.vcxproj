@@ -166,12 +166,14 @@
     <ClInclude Include="src\Gameplay\Object.h" />
     <ClInclude Include="src\InputSystem.h" />
     <ClInclude Include="src\Level.h" />
+    <ClInclude Include="src\Math\Graph.h" />
     <ClInclude Include="src\Math\Matrix.h" />
     <ClInclude Include="src\Math\MMath.h" />
     <ClInclude Include="src\Math\MathUtility.h" />
     <ClInclude Include="src\physics\Collision.h" />
     <ClInclude Include="src\physics\PhysicsScene.h" />
     <ClInclude Include="src\physics\Shape.h" />
+    <ClInclude Include="src\render\DebugRay.h" />
     <ClInclude Include="src\render\GeometryPass.h" />
     <ClInclude Include="src\render\Heap.h" />
     <ClInclude Include="src\render\Loader.h" />
@@ -186,6 +188,7 @@
     <ClInclude Include="src\D12Helper.h" />
     <ClInclude Include="src\render\Shader.h" />
     <ClInclude Include="src\Math\Vector.h" />
+    <ClInclude Include="src\render\ShaderParameters.h" />
     <ClInclude Include="src\render\Texture.h" />
     <ClInclude Include="src\render\UIPass.h" />
     <ClInclude Include="src\StaticMeshActor.h" />
@@ -202,8 +205,10 @@
     <ClCompile Include="src\InputSystem.cpp" />
     <ClCompile Include="src\Level.cpp" />
     <ClCompile Include="src\physics\PhysicsScene.cpp" />
+    <ClCompile Include="src\render\DebugRay.cpp" />
     <ClCompile Include="src\render\GeometryPass.cpp" />
     <ClCompile Include="src\render\Loader.cpp" />
+    <ClCompile Include="src\render\Material.cpp" />
     <ClCompile Include="src\render\Mesh.cpp" />
     <ClCompile Include="src\PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -231,6 +236,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="shaders\Common\Math.hlsli" />
+    <None Include="shaders\Common\Object.hlsli" />
+    <None Include="shaders\Common\Permutation.hlsli" />
+    <None Include="shaders\Common\Random.hlsli" />
+    <None Include="shaders\Common\Scene.hlsli" />
+    <None Include="shaders\Common\SpaceBindings.hlsli" />
+    <None Include="shaders\Common\VertexLayouts.hlsli" />
+    <None Include="shaders\PBR\BRDF.hlsli" />
+    <None Include="shaders\PBR\IBL.hlsli" />
+    <None Include="shaders\PBR\PBR_Material.hlsli" />
+    <None Include="shaders\PBR\GBuffer_Common.hlsli" />
+    <None Include="shaders\PBR\Shadow.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

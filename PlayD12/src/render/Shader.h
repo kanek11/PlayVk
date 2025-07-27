@@ -16,10 +16,12 @@ enum class EShaderStage {
 	COMPUTE,
 }; 
  
-enum class ResourceScope { Scene, Object, Unknown };
+enum class ResourceScope { Scene, Object, Material, Unknown };
 
 static ResourceScope InferScope(const std::string& name, UINT bindPoint) {
 	if (bindPoint == 0  && name.find("Scene") != std::string::npos) return ResourceScope::Scene; 
+	if (bindPoint == 0 && name.find("Object") != std::string::npos) return ResourceScope::Object;
+	if (bindPoint == 0 && name.find("Material") != std::string::npos) return ResourceScope::Object;
 	return ResourceScope::Object;
 }
 

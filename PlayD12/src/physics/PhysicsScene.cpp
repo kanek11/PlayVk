@@ -84,7 +84,7 @@ void PhysicsScene::Integrate(float delta)
 			continue;
 		}
 		//new: consider torque:
-		rb->angularVelocity = rb->angularVelocity + Inverse(rb->worldInertia) * rb->torque * delta;
+		rb->angularVelocity = rb->angularVelocity + Inverse3x3(rb->worldInertia) * rb->torque * delta;
 		rb->torque = Float3{}; //reset torque 
 
 		rb->prevRot = rb->rotation;
@@ -108,7 +108,7 @@ void PhysicsScene::Integrate(float delta)
 
 		auto worldInertia = MatrixMultiply(MatrixMultiply(R, rb->localInertia), Transpose(R));
 		rb->worldInertia = worldInertia;
-		rb->invWorldInertia = Inverse(worldInertia);
+		rb->invWorldInertia = Inverse3x3(worldInertia);
 	}
 }
 
@@ -282,7 +282,7 @@ void PhysicsScene::PostPBD(float delta)
 		rb->RotationMatrix = R;
 
 		rb->worldInertia = MatrixMultiply(MatrixMultiply(R, rb->localInertia), Transpose(R));
-		rb->invWorldInertia = Inverse(rb->worldInertia);
+		rb->invWorldInertia = Inverse3x3(rb->worldInertia);
 		//if (LengthSq(rb->angularVelocity) < 0.1f) {
 		//	rb->angularVelocity = Float3{};
 		//} 
@@ -483,6 +483,6 @@ RigidBody::RigidBody(StaticMeshActorProxy* owner, ShapeType type)
 	RotationMatrix = R;
 
 	worldInertia = MatrixMultiply(MatrixMultiply(R, localInertia), Transpose(R));
-	invWorldInertia = Inverse(worldInertia);
+	invWorldInertia = Inverse3x3(worldInertia);
 	 
 }

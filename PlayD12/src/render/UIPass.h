@@ -24,7 +24,7 @@ namespace Passes {
 
     inline RenderPassDesc UIPassDesc = {
         .passTag = "UI",
-        .colorFormat = DXGI_FORMAT_R8G8B8A8_UNORM,
+        .colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM },
         .depthFormat = DXGI_FORMAT_UNKNOWN,
         .enableDepth = false,
         .cullMode = D3D12_CULL_MODE_NONE

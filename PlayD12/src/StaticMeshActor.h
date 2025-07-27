@@ -7,6 +7,7 @@
 
 #include "Render/Mesh.h"
 #include "Render/Texture.h" 
+#include "Render/Material.h" 
 
 #include "physics/PhysicsScene.h"
 
@@ -40,10 +41,7 @@ struct VertexLayoutTraits<InstanceData> {
     };
 };
 
-struct FMaterialProxy {
 
-    SharedPtr<FD3D12Texture> baseMap;
-};
 
 //strip out the minimum to render a static mesh:
 struct StaticMeshActorProxy {

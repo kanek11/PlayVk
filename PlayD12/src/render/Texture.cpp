@@ -2,32 +2,7 @@
 #include "Texture.h"
 
 
-D3D12_RESOURCE_FLAGS GetResourceFlags(const std::vector<ETextureUsage>& usages) {
-    D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-    for (auto usage : usages) {
-        switch (usage) {
-        case ETextureUsage::RenderTarget: flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; break;
-        case ETextureUsage::DepthStencil: flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL; break;
-        case ETextureUsage::UnorderedAccess: flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; break;
-        default: break; // SRV ooesn't require special flags
-        }
-    }
-    return flags;
-}
 
-D3D12_RESOURCE_STATES GetInitialResourceState(const std::vector<ETextureUsage>& usages) {
-    // usually,sampling : PIXEL_SHADER_RESOURCE,
-    // write: RTV or UAV
-    for (auto usage : usages) {
-        switch (usage) {
-        case ETextureUsage::RenderTarget: return D3D12_RESOURCE_STATE_RENDER_TARGET;
-        case ETextureUsage::DepthStencil: return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        case ETextureUsage::UnorderedAccess: return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-        case ETextureUsage::ShaderResource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        }
-    }
-    return D3D12_RESOURCE_STATE_COMMON; // fallback
-}
 
 D3D12_CLEAR_VALUE MakeClearValue(const FTextureDesc& desc) {
     D3D12_CLEAR_VALUE cv = {};
@@ -76,6 +51,7 @@ FD3D12Texture::FD3D12Texture(ID3D12Device* device, const FTextureDesc& desc)
 
     //init state: 
     D3D12_RESOURCE_STATES initialState = GetInitialResourceState(desc.usages);
+	this->m_initialState = initialState;
 
     //clear value for rtv/dsv:
     D3D12_CLEAR_VALUE clearValue;
@@ -110,6 +86,15 @@ D3D12_SHADER_RESOURCE_VIEW_DESC FD3D12Texture::GetSRVDesc() const
     return srvDesc;
 }
 
+D3D12_RENDER_TARGET_VIEW_DESC FD3D12Texture::GetRTVDesc() const
+{ 
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = m_desc.format;  
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Texture2D.MipSlice = 0; 
+	return rtvDesc;
+}
+
 D3D12_DEPTH_STENCIL_VIEW_DESC FD3D12Texture::GetDSVDesc() const
 {
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
@@ -120,6 +105,13 @@ D3D12_DEPTH_STENCIL_VIEW_DESC FD3D12Texture::GetDSVDesc() const
 }
 
 
+
+FD3D12Texture::FD3D12Texture(ID3D12Device* device, ComPtr<ID3D12Resource> resource, const FTextureDesc& desc):
+	m_device(device), m_desc(desc),
+	m_resource(resource) 
+{
+
+}
 
 void FD3D12Texture::UploadFromCPU(ID3D12GraphicsCommandList* cmdList, const void* data, size_t rowPitch,
     size_t slicePitch) {
@@ -144,12 +136,19 @@ void FD3D12Texture::UploadFromCPU(ID3D12GraphicsCommandList* cmdList, const void
             IID_PPV_ARGS(uploadBuffer.GetAddressOf()))
     );
 
+    auto preBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_resource.Get(),
+        m_initialState,
+        D3D12_RESOURCE_STATE_COPY_DEST);
+	cmdList->ResourceBarrier(1, &preBarrier);
+
+
     UpdateSubresources(cmdList, m_resource.Get(), uploadBuffer.Get(), 0, 0, 1, &subresource);
 
-    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+    auto postBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
         m_resource.Get(),
         D3D12_RESOURCE_STATE_COPY_DEST,
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-    cmdList->ResourceBarrier(1, &barrier);
+		m_initialState);
+ 
+    cmdList->ResourceBarrier(1, &postBarrier);
 }

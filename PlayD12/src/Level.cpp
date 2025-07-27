@@ -201,10 +201,10 @@ void GamePlayWorld::OnLoad()
         }
 
         else if (debugPlayer->position.z() > goalLength / 2 - 20) {
-            std::cout << "goal?" << '\n';
-            if (timeCount < Global::lastUsedTime)
-                Global::lastUsedTime = timeCount;
-            gameManager->RequestTransitState(GameStateId::MainMenu);
+            //std::cout << "goal?" << '\n';
+            //if (timeCount < Global::lastUsedTime)
+            //    Global::lastUsedTime = timeCount;
+            //gameManager->RequestTransitState(GameStateId::MainMenu);
         }
 
         };

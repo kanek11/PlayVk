@@ -42,11 +42,15 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(
  
 
     psoDesc.InputLayout = { inputDesc.data(), static_cast<UINT>(inputDesc.size()) };
-    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoDesc.PrimitiveTopologyType = pass.topology;
 
     // RenderTarget
-    psoDesc.NumRenderTargets = 1;
-    psoDesc.RTVFormats[0] = pass.colorFormat;
+	assert(pass.colorFormats.size() <= 8);
+	psoDesc.NumRenderTargets = static_cast<UINT>(pass.colorFormats.size());
+	for (size_t i = 0; i < pass.colorFormats.size(); ++i) {
+		psoDesc.RTVFormats[i] = pass.colorFormats[i];
+	} 
+    
     psoDesc.DSVFormat = pass.depthFormat;
     psoDesc.SampleDesc.Count = 1;
     psoDesc.SampleMask = UINT_MAX; // No multisampling
