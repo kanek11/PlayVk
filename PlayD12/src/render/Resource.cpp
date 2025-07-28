@@ -1,18 +1,53 @@
 #include "PCH.h"
 #include "Resource.h"
 
+//custom heap is rarely used.
 static inline D3D12_HEAP_TYPE GetHeapType(const EBufferUsage& usage) {
 	if ((usage & EBufferUsage::Upload) != EBufferUsage{}) return D3D12_HEAP_TYPE_UPLOAD;
 	if ((usage & EBufferUsage::Readback) != EBufferUsage{}) return D3D12_HEAP_TYPE_READBACK;
 	return D3D12_HEAP_TYPE_DEFAULT;
 }
-
+ 
+//in case bitmask matters for priorities, we may care about the order,
 static inline D3D12_RESOURCE_STATES GetInitialState(const EBufferUsage& usage) {
-	if ((usage & EBufferUsage::Upload) != EBufferUsage{}) return D3D12_RESOURCE_STATE_GENERIC_READ;
-	if ((usage & EBufferUsage::Readback) != EBufferUsage{}) return D3D12_RESOURCE_STATE_COPY_DEST;
-	if ((usage & EBufferUsage::CopyDst) != EBufferUsage{}) return D3D12_RESOURCE_STATE_COPY_DEST;
+	// usually most short-lived buffers are upload/readback 
+	if ((usage & EBufferUsage::Upload) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_GENERIC_READ;
+	if ((usage & EBufferUsage::Readback) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_COPY_DEST;
+	if ((usage & EBufferUsage::CopySrc) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_COPY_SOURCE;
+	if ((usage & EBufferUsage::CopyDst) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_COPY_DEST;
+
+	//  
+	if ((usage & EBufferUsage::UAV) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_UNORDERED_ACCESS; 
+	if ((usage & EBufferUsage::SRV) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+	//less common but could be ;
+	if ((usage & EBufferUsage::Index) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_INDEX_BUFFER;
+	if ((usage & EBufferUsage::Constant) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	if ((usage & EBufferUsage::Vertex) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	if ((usage & EBufferUsage::Indirect) != EBufferUsage{})
+		return D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+
+	//Fallback
 	return D3D12_RESOURCE_STATE_COMMON;
 }
+
+// RT/DS is rarely used for buffers 
+static inline D3D12_RESOURCE_FLAGS GetResourceFlags(const EBufferUsage& usage) {
+	D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+	if ((usage & EBufferUsage::UAV) != EBufferUsage{}) flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+	return flags;
+}
+
 
 
 FD3D12Buffer::FD3D12Buffer(ID3D12Device* m_device, const FBufferDesc& desc):
@@ -47,14 +82,32 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC FD3D12Buffer::GetCBVDesc() const
 	};
 }
 
+D3D12_SHADER_RESOURCE_VIEW_DESC FD3D12Buffer::GetSRVDesc() const
+{
+	UINT numElements = static_cast<UINT>(m_bufferDesc.SizeInBytes / m_bufferDesc.StrideInBytes);
+	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {
+		.Format = m_bufferDesc.Format,  //ok to remain DXGI_FORMAT_UNKNOWN
+		.ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
+		.Buffer = {
+			.FirstElement = 0,
+			.NumElements = numElements,
+			.StructureByteStride = static_cast<UINT>(m_bufferDesc.StrideInBytes),
+			.Flags = D3D12_BUFFER_SRV_FLAG_NONE
+		}
+	};
+	return desc;
+	 
+}
+
 D3D12_UNORDERED_ACCESS_VIEW_DESC FD3D12Buffer::GetUAVDesc() const
 {
+	UINT numElements = static_cast<UINT>(m_bufferDesc.SizeInBytes / m_bufferDesc.StrideInBytes);
 	D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {
-		.Format = m_bufferDesc.Format,
+		.Format = m_bufferDesc.Format,  //ok to remain DXGI_FORMAT_UNKNOWN
 		.ViewDimension = D3D12_UAV_DIMENSION_BUFFER,
 		.Buffer = {
 			.FirstElement = 0,
-			.NumElements = static_cast<UINT>(m_bufferDesc.SizeInBytes / m_bufferDesc.StrideInBytes),
+			.NumElements = numElements,
 			.StructureByteStride = static_cast<UINT>(m_bufferDesc.StrideInBytes),
 			.CounterOffsetInBytes = 0,
 			.Flags = D3D12_BUFFER_UAV_FLAG_NONE
@@ -70,11 +123,11 @@ void FD3D12Buffer::CreateResource()
 	auto initialState = GetInitialState(m_bufferDesc.Usage);
 
 	auto bufferSize = static_cast<UINT64>(m_bufferDesc.SizeInBytes);
-
+	 
 	ThrowIfFailed(m_device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(heapType),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize),
+		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize, GetResourceFlags(m_bufferDesc.Usage)),
 		initialState,
 		nullptr,
 		IID_PPV_ARGS(m_resource.GetAddressOf())));

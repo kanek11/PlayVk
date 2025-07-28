@@ -117,6 +117,11 @@ public:
 		m_vertexShader = CreateShared<FD3D12ShaderModule>(dxcUtils, assetPathVS);
 		m_pixelShader = CreateShared<FD3D12ShaderModule>(dxcUtils, assetPathPS);
 	}
+
+	void LoadShaderCompute(IDxcUtils* dxcUtils, const std::string& assetPathCS) {
+		m_computeShader = CreateShared<FD3D12ShaderModule>(dxcUtils, assetPathCS); 
+	}
+
 	 
 	void ReflectRootSignatureLayout(IDxcUtils* dxcUtils);
 	 
@@ -130,6 +135,7 @@ public:
 
 	void SetDescriptorHeap(ID3D12GraphicsCommandList* commandList) const;
 	void SetDescriptorTables(ID3D12GraphicsCommandList* commandList, uint32_t baseOffset) const;
+	void SetDescriptorTablesCompute(ID3D12GraphicsCommandList* commandList, uint32_t baseOffset) const; 
 	void SetSceneRootCBV(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* sceneCB) const {
 		assert(sceneCB != nullptr && "Scene constant buffer must not be null");  
 		if (resourceLayout.rootIndexMap.contains(ResourceScope::Scene)) {
@@ -140,6 +146,17 @@ public:
 			std::cerr << "Scene-level resource not found." << std::endl;
 		}
 	} 
+	void SetSceneRootCBVCompute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* sceneCB) const {
+		assert(sceneCB != nullptr && "Scene constant buffer must not be null");
+		if (resourceLayout.rootIndexMap.contains(ResourceScope::Scene)) {
+			auto sceneCBIndex = resourceLayout.rootIndexMap.at(ResourceScope::Scene);
+			cmdList->SetComputeRootConstantBufferView(sceneCBIndex, sceneCB->GetGPUVirtualAddress());
+		}
+		else {
+			std::cerr << "Scene-level resource not found." << std::endl;
+		}
+	}
+
 
 	//getter:
 	ComPtr<ID3D12RootSignature> GetRootSignature() const {
@@ -155,6 +172,15 @@ public:
 		ComPtr<ID3DBlob> psBlob;
 		ThrowIfFailed(m_pixelShader->GetShaderBlob().As(&psBlob));
 		return psBlob;
+	}
+
+	ComPtr<ID3DBlob> GetCSBlob() const {
+		if (m_computeShader) {
+			ComPtr<ID3DBlob> csBlob;
+			ThrowIfFailed(m_computeShader->GetShaderBlob().As(&csBlob));
+			return csBlob;
+		}
+		return nullptr; // No compute shader loaded
 	}
 	 
 	//get descriptor heap:
@@ -176,6 +202,8 @@ public:
 private:
 	SharedPtr<FD3D12ShaderModule> m_vertexShader;
 	SharedPtr<FD3D12ShaderModule> m_pixelShader;
+	SharedPtr<FD3D12ShaderModule> m_computeShader;
+
 
 	ComPtr<ID3D12RootSignature> m_rootSignature;  
 	std::vector<D3D12_STATIC_SAMPLER_DESC> m_staticSamplers;
@@ -231,7 +259,7 @@ public:
 
 	[[nodiscard]]
 	SharedPtr<FD3D12ShaderPermutation> GetOrLoad(const ShaderPermutationKey& key);
-	 
+	SharedPtr<FD3D12ShaderPermutation> GetOrLoadCompute(const ShaderPermutationKey& key);
 private:
 	ComPtr<IDxcUtils> dxcUtils;
 	ComPtr<IDxcCompiler3> dxcCompiler;

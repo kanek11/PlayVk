@@ -272,8 +272,11 @@ public:
 
 
 public:
-    PBR::PassContext pbrShadingCtx; 
+    PBR::PassContext pbrShadingCtx;  
 
+
+public:
+	Compute::ComputeContext computeCtx;
 
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;
 };

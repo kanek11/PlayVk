@@ -67,17 +67,49 @@ namespace PBR {
 }
 
 
+namespace Passes {
+
+    inline RenderPassDesc ComputePassDesc = {
+        .passTag = "Test", 
+    };
+
+}
+
+namespace Materials {
+
+    inline MaterialDesc ComputeMaterialDesc = {
+    .shaderTag = "Test", 
+    };
+}
+
+
 
 namespace Compute {
 
+    struct DispatchCmd {
+		uint32_t groupX = 64;
+		uint32_t groupY = 1;
+		uint32_t groupZ = 1;
+    };
 
+    struct GPUResources { 
+        SharedPtr<FD3D12ShaderPermutation> shader;
+        ComPtr<ID3D12PipelineState> pso;
 
-	struct PassContext {
-		BuildData data;
+        std::optional<uint32_t> baseHeapOffset = 0;
+    };
+
+    struct ComputeContext {  
+		DispatchCmd cmd;
 		GPUResources res;
-	};
-	void Init(const RendererContext* ctx, PassContext& passCtx);
-	void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
-	void BeginFrame(PassContext& passCtx) noexcept;
-	void EndFrame(PassContext& passCtx) noexcept;
+
+        SharedPtr<FD3D12Buffer> testBuffer;
+    };
+
+
+	void Init(const RendererContext* ctx, ComputeContext& passCtx);
+	void DispatchCompute(ID3D12GraphicsCommandList* cmdList, const ComputeContext& ctx) noexcept;
+	
+    void BeginFrame(ComputeContext& passCtx) noexcept;
+	//void EndFrame(PassContext& passCtx) noexcept;
 }

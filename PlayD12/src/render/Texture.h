@@ -7,67 +7,56 @@
 
 
 
-enum class ETextureUsage {
-	Undefined = 0, 
-    CopyDest,
-    RenderTarget,
-    DepthStencil,
-    ShaderResource,
-    UnorderedAccess,
-	Present, 
-    // ...
+enum class ETextureUsage : uint32_t {
+    Undefined = 0,
+    CopySrc = 1 << 0,
+    CopyDest = 1 << 1,
+    RenderTarget = 1 << 2,
+    DepthStencil = 1 << 3,
+    ShaderResource = 1 << 4,
+    UnorderedAccess = 1 << 5,
+    Present = 1 << 6,
+    ResolveSrc = 1 << 7,
+    ResolveDest = 1 << 8,
+    DepthRead = 1 << 9, 
 };
 
-inline D3D12_RESOURCE_FLAGS GetResourceFlags(const std::vector<ETextureUsage>& usages) {
+inline ETextureUsage operator|(ETextureUsage a, ETextureUsage b) {
+    return static_cast<ETextureUsage>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+inline bool operator&(ETextureUsage a, ETextureUsage b) {
+    return (static_cast<uint32_t>(a) & static_cast<uint32_t>(b)) != 0;
+}
+inline D3D12_RESOURCE_FLAGS GetResourceFlags(ETextureUsage usage) {
     D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-    for (auto usage : usages) {
-        switch (usage) {
-        case ETextureUsage::RenderTarget: flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET; break;
-        case ETextureUsage::DepthStencil: flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL; break;
-        case ETextureUsage::UnorderedAccess: flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; break; 
-        default: break; // SRV ooesn't require special flags
-        }
-    }
+    if (usage & ETextureUsage::RenderTarget) flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    if (usage & ETextureUsage::DepthStencil) flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    if (usage & ETextureUsage::UnorderedAccess) flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	// SRV / Present doent require special flags, as they are just views on the resource.
     return flags;
 }
 
-inline D3D12_RESOURCE_STATES GetInitialResourceState(const std::vector<ETextureUsage>& usages) {
-    // usually,sampling : PIXEL_SHADER_RESOURCE,
-    // write: RTV or UAV
-    for (auto& usage : usages) {
-        switch (usage) {
-        //case ETextureUsage::CopyDest: return D3D12_RESOURCE_STATE_COPY_DEST;
-        case ETextureUsage::RenderTarget: return D3D12_RESOURCE_STATE_RENDER_TARGET;
-        case ETextureUsage::DepthStencil: return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        case ETextureUsage::UnorderedAccess: return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-        case ETextureUsage::ShaderResource: return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		case ETextureUsage::CopyDest: return D3D12_RESOURCE_STATE_COPY_DEST;  
-		case ETextureUsage::Present: return D3D12_RESOURCE_STATE_PRESENT; 
-        }
-    }
-    return D3D12_RESOURCE_STATE_COMMON; // fallback
-}
-
-inline D3D12_RESOURCE_STATES GetInitialResourceState(const ETextureUsage& usage) { 
-    switch (usage) { 
-    //case ETextureUsage::CopyDest: return D3D12_RESOURCE_STATE_COPY_DEST;
-    case ETextureUsage::RenderTarget: return D3D12_RESOURCE_STATE_RENDER_TARGET;
-    case ETextureUsage::DepthStencil: return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-    case ETextureUsage::UnorderedAccess: return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    case ETextureUsage::ShaderResource: return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-    case ETextureUsage::CopyDest: return D3D12_RESOURCE_STATE_COPY_DEST;
-    case ETextureUsage::Present: return D3D12_RESOURCE_STATE_PRESENT;
-    } 
-    return D3D12_RESOURCE_STATE_COMMON; // fallback
-}
-
+inline D3D12_RESOURCE_STATES GetInitialResourceState(ETextureUsage usage) {
+    if (usage & ETextureUsage::Present)        return D3D12_RESOURCE_STATE_PRESENT;
+    if (usage & ETextureUsage::CopyDest)       return D3D12_RESOURCE_STATE_COPY_DEST;
+    if (usage & ETextureUsage::CopySrc)        return D3D12_RESOURCE_STATE_COPY_SOURCE;
+    if (usage & ETextureUsage::ResolveSrc)     return D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+    if (usage & ETextureUsage::ResolveDest)    return D3D12_RESOURCE_STATE_RESOLVE_DEST;
+    if (usage & ETextureUsage::UnorderedAccess)return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    if (usage & ETextureUsage::RenderTarget)   return D3D12_RESOURCE_STATE_RENDER_TARGET;
+    if (usage & ETextureUsage::DepthStencil)   return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+    if (usage & ETextureUsage::DepthRead)      return D3D12_RESOURCE_STATE_DEPTH_READ;
+    if (usage & ETextureUsage::ShaderResource) return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    return D3D12_RESOURCE_STATE_COMMON;
+} 
 
 struct FTextureDesc {
     UINT width, height;
     DXGI_FORMAT format;
     std::optional<DXGI_FORMAT> dsvFormat{};
     std::optional<DXGI_FORMAT> srvFormat{};
-    std::vector<ETextureUsage> usages; 
+
+    ETextureUsage usages; 
     //ETextureUsage initUsage = ETextureUsage::ShaderResource; 
     // mip, array size, etc.
 };

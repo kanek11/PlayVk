@@ -7,13 +7,13 @@
 D3D12_CLEAR_VALUE MakeClearValue(const FTextureDesc& desc) {
     D3D12_CLEAR_VALUE cv = {};
     cv.Format = desc.dsvFormat.has_value() ? desc.dsvFormat.value() : desc.format;
-    if (std::find(desc.usages.begin(), desc.usages.end(), ETextureUsage::RenderTarget) != desc.usages.end()) {
+	if (desc.usages & ETextureUsage::RenderTarget) {
         cv.Color[0] = 0.0f;
         cv.Color[1] = 0.0f;
         cv.Color[2] = 0.0f;
         cv.Color[3] = 1.0f;
     }
-    else if (std::find(desc.usages.begin(), desc.usages.end(), ETextureUsage::DepthStencil) != desc.usages.end()) {
+	else if (desc.usages & ETextureUsage::DepthStencil) {
         cv.DepthStencil.Depth = 1.0f;
         cv.DepthStencil.Stencil = 0;
     }
@@ -21,11 +21,11 @@ D3D12_CLEAR_VALUE MakeClearValue(const FTextureDesc& desc) {
     return cv;
 }
 
-bool NeedsClearValue(const std::vector<ETextureUsage>& usages) {
-    for (auto u : usages) {
-        if (u == ETextureUsage::RenderTarget || u == ETextureUsage::DepthStencil)
-            return true;
-    }
+bool NeedsClearValue(ETextureUsage usage) { 
+	if (usage & ETextureUsage::RenderTarget || usage & ETextureUsage::DepthStencil) {
+		return true;
+	}
+   
     return false;
 }
 
@@ -102,6 +102,16 @@ D3D12_DEPTH_STENCIL_VIEW_DESC FD3D12Texture::GetDSVDesc() const
     dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsvDesc.Flags = D3D12_DSV_FLAG_NONE; // no special flags
     return dsvDesc;
+}
+
+D3D12_UNORDERED_ACCESS_VIEW_DESC FD3D12Texture::GetUAVDesc() const
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.Format = m_desc.format; // just use the texture format
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	uavDesc.Texture2D.MipSlice = 0; // assuming no mipmaps for now
+	return uavDesc;
+   
 }
 
 

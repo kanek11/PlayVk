@@ -9,11 +9,10 @@
 #include "RenderPass.h"
 
 struct PSOKey {
-    ShaderPermutationKey permutationKey;
-    RenderPassDesc pass;
+    ShaderPermutationKey permutationKey; 
 
     bool operator==(const PSOKey& other) const {
-        return permutationKey == other.permutationKey && pass.passTag == other.pass.passTag;
+        return permutationKey == other.permutationKey; //&& pass.passTag == other.pass.passTag;
     }
 };
 
@@ -21,7 +20,7 @@ namespace std {
     template<>
     struct hash<PSOKey> {
         size_t operator()(const PSOKey& key) const {
-            return hash<ShaderPermutationKey>()(key.permutationKey) ^ hash<std::string>()(key.pass.passTag);
+            return hash<ShaderPermutationKey>()(key.permutationKey); //^ hash<std::string>()(key.pass.passTag);
         }
     };
 }
@@ -37,6 +36,11 @@ public:
         const MaterialDesc& mat,
         const RenderPassDesc& pass,
         const std::vector<D3D12_INPUT_ELEMENT_DESC> layout);
+
+
+    ComPtr<ID3D12PipelineState> GetOrCreateCompute(const MaterialDesc& mat,
+        const RenderPassDesc& pass);
+
 private:
     ComPtr<ID3D12Device> m_device;
     WeakPtr<ShaderLibrary> library;

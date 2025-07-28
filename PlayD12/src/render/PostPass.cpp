@@ -182,3 +182,80 @@ void PBR::EndFrame(PassContext& passCtx) noexcept
 {
     passCtx.data.Clear();
 }
+
+void Compute::Init(const RendererContext* ctx, ComputeContext& passCtx)
+{
+    // Create shader permutation for compute shader
+	ShaderPermutationKey key = {
+		.shaderTag = "Test",
+		.passTag = "Test",
+	};
+	
+    passCtx.res.shader = ctx->shaderManager->GetOrLoadCompute(key);
+	passCtx.res.shader->CreateRootSignature();
+
+	//// Create PSO for compute shader
+	passCtx.res.pso = ctx->psoManager->GetOrCreateCompute(
+		Materials::ComputeMaterialDesc,
+		Passes::ComputePassDesc
+	);  
+
+	passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap();
+
+
+    {
+        auto& buffer = passCtx.testBuffer;
+
+        size_t bufferSize = 1024;
+
+		FBufferDesc bufferDesc = { 
+            .SizeInBytes = bufferSize * sizeof(UINT), 
+            .Format = DXGI_FORMAT_UNKNOWN,
+            .StrideInBytes = sizeof(UINT),
+			.Usage = EBufferUsage::UAV,
+		};  
+		buffer = CreateShared<FD3D12Buffer>(ctx->device, bufferDesc);
+
+    }
+}
+
+void Compute::DispatchCompute(ID3D12GraphicsCommandList* cmdList, const ComputeContext& ctx) noexcept
+{
+	//if (!passCtx.res.pso) return;
+	cmdList->SetPipelineState(ctx.res.pso.Get());
+	cmdList->SetComputeRootSignature(ctx.res.shader->GetRootSignature().Get());
+	ctx.res.shader->SetDescriptorHeap(cmdList);
+	ctx.res.shader->SetDescriptorTablesCompute(cmdList, ctx.res.baseHeapOffset.value());
+    //todo: set table;
+	// Set the UAV for the compute shader
+
+
+	cmdList->Dispatch(ctx.cmd.groupX, ctx.cmd.groupY, ctx.cmd.groupZ);
+     
+   
+}
+
+void Compute::BeginFrame(ComputeContext& passCtx) noexcept
+{
+    auto& frameCtx = Render::frameContext;
+    auto& graphCtx = Render::graphContext;
+
+    if (frameCtx == nullptr || graphCtx == nullptr) {
+        std::cerr << "render context is not inited" << std::endl;
+        return;
+    }
+
+    auto& shader = passCtx.res.shader; 
+
+    assert(passCtx.res.baseHeapOffset.has_value());
+    auto baseHeapOffset = passCtx.res.baseHeapOffset; 
+
+	auto& buffer = passCtx.testBuffer;
+	shader->SetUAV("OutputBuffer",
+        buffer->GetRawResource(),
+		buffer->GetUAVDesc(),
+		baseHeapOffset.value()
+	);
+  
+ 
+}

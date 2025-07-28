@@ -83,10 +83,8 @@ void D3D12HelloRenderer::OnInit()
 
       
     //after system;
-    LoadSystemResources();
+    LoadSystemResources(); 
 
-
-     
     InitPresentPass();
 
     //for valid shadowmap;
@@ -120,6 +118,8 @@ void D3D12HelloRenderer::OnInit()
     //for valid atlas
     UI::Init(Render::rendererContext, uiPassCtx);
 
+	Compute::Init(Render::rendererContext, computeCtx); 
+
 }
 
 // Render the scene.
@@ -132,6 +132,8 @@ void D3D12HelloRenderer::OnRender()
     Shadow::BeginFrame(shadowPassCtx);
     GBuffer::BeginFrame(gbufferPassCtx);
     PBR::BeginFrame(pbrShadingCtx);
+	Compute::BeginFrame(computeCtx);
+
 
     BeginFrame();
 
@@ -159,6 +161,8 @@ void D3D12HelloRenderer::OnRender()
     UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
 
     //DebugDraw::Get().FlushAndRender(m_commandList.Get()); 
+
+	Compute::DispatchCompute(m_commandList.Get(), computeCtx);
 
     EndPresentPass(m_commandList.Get());
 
@@ -485,7 +489,7 @@ void D3D12HelloRenderer::InitShadowPass()
             .format = DXGI_FORMAT_R32_TYPELESS, //D32_FLOAT
             .dsvFormat = DXGI_FORMAT_D32_FLOAT,
             .srvFormat = DXGI_FORMAT_R32_FLOAT,
-            .usages = { ETextureUsage::DepthStencil, ETextureUsage::ShaderResource }
+            .usages =  ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
         };
         m_shadowMap = CreateShared<FD3D12Texture>(m_device.Get(), shadowMapDesc);
 
@@ -855,7 +859,7 @@ void D3D12HelloRenderer::InitGBuffers()
              .width = m_width,
              .height = m_height,
              .format = colorFormat,
-             .usages = { ETextureUsage::RenderTarget, ETextureUsage::ShaderResource }
+             .usages = ETextureUsage::RenderTarget | ETextureUsage::ShaderResource,
         };
         auto gbufferTex = CreateShared<FD3D12Texture>(m_device.Get(), gbufferDesc);
 
