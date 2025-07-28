@@ -11,11 +11,12 @@
 constexpr size_t InvalidTex = UINT32_MAX;
 
 
- 
+
 
 struct RenderPassDesc {
-    std::string passTag; 
-	std::vector<DXGI_FORMAT> colorFormats; 
+    std::string passTag;
+    std::vector<DXGI_FORMAT> colorFormats;
+    std::vector<std::string> rtvNames;
     DXGI_FORMAT depthFormat = DXGI_FORMAT_D32_FLOAT;
     bool enableDepth = true;
     bool enableBlend = false;
@@ -30,17 +31,17 @@ namespace Passes {
 
 
 }
- 
+
 
 struct FRenderPassAttachments {
     std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs;
     std::optional<D3D12_CPU_DESCRIPTOR_HANDLE> dsv;
-}; 
-  
+};
+
 
 struct RGNode {
     std::string passName;
-    std::string bindingName; 
+    std::string bindingName;
 
     bool operator==(const RGNode& other) const noexcept {
         return passName == other.passName && bindingName == other.bindingName;
@@ -60,62 +61,62 @@ namespace std {
     };
 }
 
- 
+
 enum class LoadOp { Load, Clear, DontCare };
 
 enum class AccessType { Read, Write };
 
-struct RGTexture { 
-	ETextureUsage usage = ETextureUsage::Undefined;
+struct RGTexture {
+    ETextureUsage usage = ETextureUsage::Undefined;
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
 
-	std::optional<RGNode> src; 
+    std::optional<RGNode> src;
     std::optional<FTextureDesc> desc;
 
-	LoadOp loadOp = LoadOp::Clear;
-	bool systemOwned = false; 
+    LoadOp loadOp = LoadOp::Clear;
+    bool systemOwned = false;
 };
 
 struct RGTextureHandle {
-	size_t id{ InvalidTex };
+    size_t id{ InvalidTex };
     D3D12_RESOURCE_STATES currState = D3D12_RESOURCE_STATE_COMMON;
-	std::optional<D3D12_CPU_DESCRIPTOR_HANDLE> heapHandle; 
+    std::optional<D3D12_CPU_DESCRIPTOR_HANDLE> heapHandle;
 };
 
 
 class RenderGraph;
 struct RenderPassBuilder {
-    RenderPassBuilder(RenderGraph& graph_, const std::string& name_) : 
-		graph(graph_), name(name_) { 
-	}
-     
-    void AddBinding(const std::string& name, const RGTexture& texture); 
+    RenderPassBuilder(RenderGraph& graph_, const std::string& name_) :
+        graph(graph_), name(name_) {
+    }
+
+    void AddBinding(const std::string& name, const RGTexture& texture);
 
     std::string name;
-	//uint32_t passId = 0;
+    //uint32_t passId = 0;
 
     std::unordered_map<std::string, RGTexture> bindingDescs;
 
-    std::function<void(ID3D12GraphicsCommandList*)> executeCB; 
+    std::function<void(ID3D12GraphicsCommandList*)> executeCB;
 
     RenderGraph& graph;
 };
 
 
- 
- 
+
+
 class RenderGraph {
 public:
-	RenderGraph();
-      
-    RenderPassBuilder& AddPass(const std::string& name); 
+    RenderGraph();
+
+    RenderPassBuilder& AddPass(const std::string& name);
     std::optional<RenderPassBuilder> GetPass(const std::string& name);
 
     void Compile();
     void Execute(ID3D12GraphicsCommandList* cmdList);
 
     //expose to passes;
-    RGTextureHandle& GetTextureHandle( const RGNode& node);
+    RGTextureHandle& GetTextureHandle(const RGNode& node);
     SharedPtr<FD3D12Texture> GetTexture(const RGNode& node);
     SharedPtr<FD3D12Texture> GetTexture(const RGTextureHandle& handle) const;
 
@@ -124,15 +125,14 @@ public:
     RGTextureHandle& RegisterNewTexture(const RGNode& node, const FTextureDesc& desc);
     RGTextureHandle& RegisterExistingTexture(const RGNode& node, SharedPtr<FD3D12Texture> texture);
 
-private: 
+private:
     std::optional<RGTexture> GetBindingInfo(const RGNode& node);
 
-	std::unordered_map<RGNode, RGTextureHandle> nodeBindings;
+    std::unordered_map<RGNode, RGTextureHandle> nodeBindings;
 
 private:
     std::vector<RenderPassBuilder> passes;
 
-	std::vector<SharedPtr<FD3D12Texture>> textures;
+    std::vector<SharedPtr<FD3D12Texture>> textures;
 };
-
 

@@ -42,4 +42,3 @@ private:
     WeakPtr<ShaderLibrary> library;
     std::unordered_map<PSOKey, ComPtr<ID3D12PipelineState>> cache;
 };
- 

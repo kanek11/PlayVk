@@ -5,49 +5,37 @@
 
 #include "Application.h"
 
+#include "Loader.h"
+
 namespace UI {
 
     void Init(const RendererContext* ctx, UIPassContext& passCtx)
     {
+        auto& graphCtx = Render::graphContext;
         //----------------------
-        auto& font = passCtx.data.font;
+        auto& font = passCtx.font;
         font = CreateShared<FontAtlas>();
-        if (font->LoadTexture("assets/ASCII_10x10.png")) {
-
-            auto metaInfo = font->imageData.value().metaInfo;
-            //auto atlasData  = font->imageData.value().data;
-            FTextureDesc atlasDesc =
-                FTextureDesc{
-                .width = static_cast<UINT>(metaInfo.width),
-                .height = static_cast<UINT>(metaInfo.height),
-                .format = metaInfo.format,
-                .usages = {ETextureUsage::ShaderResource},
-            };
-
-
-            auto atlasTex = CreateShared<FD3D12Texture>(ctx->device, atlasDesc);
-            font->texture = atlasTex;
-
-            float cellWidth = (metaInfo.width - 1) / 10.0f;
-            float cellHeight = (metaInfo.height - 1) / 10.0f;
-            font->LoadGridAtlas(cellWidth, cellHeight, 10, 10);
-
-            //font->LoadGridAtlas(80, 80, metaInfo.width ,metaInfo.height); 
+        if (auto& tex = graphCtx->loadedTextures["ASCII_10x10.png"]; tex) {
+            font->texture = tex;
+            auto& desc = tex->GetDesc(); 
+            float cellWidth = (desc.width - 1) / 10.0f;
+            float cellHeight = (desc.height - 1) / 10.0f;
+            font->LoadGridAtlas(cellWidth, cellHeight, 10, 10); 
         }
         else
         {
             std::cerr << "fail to load atlas" << std::endl;
         }
-         
+
         //----------------------
         size_t MaxVertices = 4 * MaxUIBatch;
         size_t MaxIndices = 6 * MaxUIBatch;
 
         // Create vertex buffer for debug lines
         passCtx.res.batchVB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-            sizeof(UIVertex) * MaxVertices,
+            sizeof(Vertex) * MaxVertices,
             DXGI_FORMAT_UNKNOWN,
-            sizeof(UIVertex),
+            sizeof(Vertex),
             EBufferUsage::Upload | EBufferUsage::Vertex
             });
 
@@ -68,12 +56,12 @@ namespace UI {
 
         auto& shader = passCtx.res.shader;
         shader = ctx->shaderManager->GetOrLoad(key);
-        shader->SetStaticSampler("fontAtlasSampler", Samplers::LinearWrap());
+        shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap());
         shader->CreateRootSignature();
 
 
         //input desc:
-        auto inputDesc = InputLayoutBuilder::Build<UIVertex>(0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
+        auto inputDesc = InputLayoutBuilder::Build<Vertex>(0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
 
 
         // Create PSO for debug rendering
@@ -84,27 +72,29 @@ namespace UI {
         );
 
 
-        passCtx.res.cbAllocator = CreateShared<FRingBufferAllocator<UISettingsCB>>(ctx->device, MaxUIBatch);
+        passCtx.cbAllocator = CreateShared<FRingBufferAllocator<UISettingsCB>>(ctx->device, MaxUIBatch);
 
 
         passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap(MaxUIBatch);
 
     }
-     
+
     void BeginFrame(UIPassContext& passCtx) noexcept
     {
+        auto& graphCtx = Render::graphContext;
 
         int screenWidth = GameApplication::GetInstance()->GetWidth();
-        int screenHeight = GameApplication::GetInstance()->GetHeight(); 
-         
+        int screenHeight = GameApplication::GetInstance()->GetHeight();
+
         auto& shader = passCtx.res.shader;
 
-        auto& cbAllocator = passCtx.res.cbAllocator;
+        auto& cbAllocator = passCtx.cbAllocator;
 
         assert(passCtx.res.baseHeapOffset.has_value());
         auto baseHeapOffset = passCtx.res.baseHeapOffset;
 
-        auto& atlasTex = passCtx.data.font->texture;
+        auto& baseColorTex = passCtx.font->texture;
+        //auto& baseColorTex = graphCtx->loadedTextures["A"]
         auto& batchData = passCtx.data;
 
         for (auto& proxy : passCtx.data.pendings) {
@@ -125,7 +115,7 @@ namespace UI {
             batchData.indices.push_back(baseVertex + 2);
             batchData.indices.push_back(baseVertex + 2);
             batchData.indices.push_back(baseVertex + 1);
-            batchData.indices.push_back(baseVertex + 3); 
+            batchData.indices.push_back(baseVertex + 3);
 
             UI::UISettingsCB uiSettings = {
                 .useTexture = static_cast<int>(proxy.useAtlas),
@@ -138,12 +128,12 @@ namespace UI {
             auto bufferView = cbAllocator->Upload(&uiSettings);
             shader->SetCBV("UISettingsCB", GetCBVDesc(bufferView), objectHeapOffset);
 
-            shader->SetSRV("fontAtlas", atlasTex->GetRawResource(), atlasTex->GetSRVDesc(), objectHeapOffset);
-             
+            shader->SetSRV("baseColorMap", baseColorTex->GetRawResource(), baseColorTex->GetSRVDesc(), objectHeapOffset);
 
-            UI::UIDrawCmd cmd = {
+
+            UI::DrawCmd cmd = {
                 .indexOffset = baseIndex,
-                .indexCount = 6, 
+                .indexCount = 6,
                 .heapOffset = static_cast<uint32_t>(objectHeapOffset) ,
             };
 
@@ -154,26 +144,22 @@ namespace UI {
     }
 
     void EndFrame(UIPassContext& passCtx) noexcept
-    {  
-        passCtx.data.Clear(); 
+    {
+        passCtx.data.Clear();
 
         //reset the allocator:
-        passCtx.res.cbAllocator->Reset();
+        passCtx.cbAllocator->Reset();
 
-    }
-
-    void EndFrame()
-    {
-    }
+    } 
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const UIPassContext& passCtx) noexcept
     {
         auto& batchData = passCtx.data;
         if (batchData.cmds.empty()) return;
-         
-        passCtx.res.batchVB->UploadData(passCtx.data.vertices.data(), passCtx.data.vertices.size() * sizeof(UIVertex));
+
+        passCtx.res.batchVB->UploadData(passCtx.data.vertices.data(), passCtx.data.vertices.size() * sizeof(Vertex));
         passCtx.res.batchIB->UploadData(passCtx.data.indices.data(), passCtx.data.indices.size() * sizeof(INDEX_FORMAT));
-     
+
 
         //std::cout << "flush UI draw cmd: " << m_data.cmds.size()  << '\n';
 

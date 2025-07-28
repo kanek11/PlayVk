@@ -10,7 +10,7 @@ VSOutput VSMain(VSInput input)
     VSOutput output;
 
     float4 worldPos = mul(gModelMatrix, float4(input.Position, 1.0f));
-    output.Position = mul(gPVMatrix , worldPos);
+    output.Position = mul(gPVMatrix, worldPos);
 
     output.WorldPos = worldPos.xyz;
       

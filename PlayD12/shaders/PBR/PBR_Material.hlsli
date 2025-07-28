@@ -6,12 +6,12 @@
 struct PBRParameters
 {
     float3 baseColor;
-    uint useBaseColorMap; 
+    uint useBaseColorMap;
      
     float ao;
     uint useAOMap;
     
-    uint useNormalMap; 
+    uint useNormalMap;
     
     float roughness;
     uint useRoughnessMap;
@@ -51,7 +51,7 @@ SamplerState linearWrapSampler : register(s0);
 
 float3 GetBaseColor(float2 uv)
 {
-    return gMaterial.useBaseColorMap ? baseColorMap.Sample(linearWrapSampler, uv).rgb :  gMaterial.baseColor;
+    return gMaterial.useBaseColorMap ? baseColorMap.Sample(linearWrapSampler, uv).rgb : gMaterial.baseColor;
 }
 
 float GetMetallic(float2 uv)

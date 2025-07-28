@@ -1,3 +1,7 @@
+#ifndef BRDF_HLSLI
+#define BRDF_HLSLI
+
+
 #include "../Common/Math.hlsli"
  
 //Fresnel term, Schlick approximation 
@@ -41,3 +45,5 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 
     return ggxV * ggxL; //height-correlated Smith
 }
+
+#endif

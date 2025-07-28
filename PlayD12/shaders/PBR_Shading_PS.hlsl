@@ -1,44 +1,62 @@
-#include "Common/SpaceBindings.hlsli"
+#include "Common/Scene.hlsli" 
 #include "Common/Math.hlsli"
-#include "PBR/GBuffer_Common.hlsli"       
-#include "PBR/PBR_Material.hlsli"         
-
-
  
+#include "PBR/PBR_Shading_Common.hlsli"
+#include "PBR/BRDF.hlsli"   
+#include "PBR/lighting.hlsli"
 
+#include "PBR/Shadow.hlsli"
 
-float4 PSMain(VS_OUT i) : SV_Target0
+struct VSOutput
 {
-    float2 uv = i.uv;
+    float4 position : SV_POSITION;
+    float2 texCoord : TEXCOORD;
+    float4 color : COLOR;
+};
+
+float4 PSMain(VSOutput input) : SV_Target0
+{
+    float2 uv = input.texCoord;
 
     //---
-    float4 albMet = gAlbedoMetal.Sample(gLinearClamp, uv);
-    float4 nrmRgh = gNormalRoughness.Sample(gLinearClamp, uv);
-    float4 aoEmit = gAOEmissive.Sample(gLinearClamp, uv);
-    float depth = gDeviceDepth.Load(int3(uint2(uv * gAlbedoMetal.GetDimensions()), 0)).r;
+    float4 alb_ao = rt0_albedo_ao.Sample(linearWrapSampler, uv);
+    float4 norm_rough = rt1_normal_rough.Sample(linearWrapSampler, uv);
+    float4 pos_metal = rt2_position_metallic.Sample(linearWrapSampler, uv);
 
-    float3 albedo = albMet.rgb;
-    float metallic = albMet.a;
+    float3 albedo = alb_ao.rgb;
+    float ao = alb_ao.a;
+    
+    float3 N = DecodeRGB(norm_rough.xyz);
+    float rough = norm_rough.w;
+     
+    float3 worldPos = pos_metal.xyz;
+    float metallic = pos_metal.a;
 
-    float3 N = DecodeNormal(nrmRgh.xyz);
-    float rough = nrmRgh.w;
-
-    float ao = aoEmit.r;
-    float emissiveStrength = aoEmit.g;
-    float3 emissive = aoEmit.bgr * emissiveStrength;
-
-    float3 worldPos = ReconstructWorldPos(uv, depth);
-    float3 V = normalize(gCameraWS - worldPos);
-
+    float3 V = normalize(gCameraPos - worldPos);
+     
+     
+    //mimic light
+    DirectionalLight light;
+    light.direction = gLightDir;
+    light.color = gLightColor;
+    light.intensity = gLightIntensity * 5; 
+    
+    float4 lightSpacePos = mul(gLightPVMatrix, float4(worldPos.xyz , 1.0f));
+    bool inShadow = isInShadow(lightSpacePos);
+    
+    
+    
     //lighting loop
-    float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic);
+    float3 F0 = lerp(float3(0.04f, 0.04f, 0.04f), albedo, metallic); 
 
     float3 Lo = 0.0f;
-    [loop]
-    for (uint l = 0; l < gActiveLightCount; ++l)
+    //[loop]
+    //for (uint l = 0; l < gActiveLightCount; ++l)
+    //{ 
+    for (uint l = 0; l < 1; ++l)
     {
-        DirectionalLight light = gLights[l];
-        float3 L = normalize(-light.directionWS);
+        //DirectionalLight light = gLights[l]; 
+        float3 L = normalize(light.direction);
         float3 H = normalize(V + L);
 
         float NdotL = NdotLClamp(N, L);
@@ -55,17 +73,21 @@ float4 PSMain(VS_OUT i) : SV_Target0
 
         float3 irradiance = light.color * light.intensity * NdotL;
         Lo += (kD * albedo / PI + spec) * irradiance;
+        //Lo += (spec) * irradiance;
     }
 
-    // --- Ambient / IBL hook ------------------------------------------------------
-    float3 ambient = albedo * ao; // replace with proper IBL if available
+    //Ambient / IBL hook ,replace with proper IBL if available,
+    // + emissive if avaliable;
+    //float3 ambient = albedo * ao; 
+    float3 ambient = albedo * 0.2 * ao;
+    float3 color = ambient;
+    if(!inShadow)
+        color += Lo;
 
-    float3 color = ambient + Lo + emissive;
+    //Simple ACES approx tonemap + gamma 
+    //color = pow(color / (color + 1.0f), 1.0f / 2.2f);
 
-    // --- Simple ACES?approx tonemap + gamma --------------------------------------
-    color = pow(color / (color + 1.0f), 1.0f / 2.2f);
-
+    //return float4(EncodeRGB(N), 1.0f);
     return float4(color, 1.0f);
 }
-
 

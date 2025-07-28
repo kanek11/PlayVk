@@ -5,10 +5,10 @@
 
 #include "StaticMeshActor.h"
 
- 
+
 void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
 {
-	auto& frameData = Render::frameContext;
+    auto& frameData = Render::frameContext;
 
     auto& res = passCtx.res;
     auto& shader = res.shader;
@@ -22,7 +22,7 @@ void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext&
         cmdList,
         frameData->sceneCB->GetRawResource()
     );
-     
+
 
     for (const auto& cmd : passCtx.data.cmds)
     {
@@ -79,10 +79,10 @@ void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
             .passTag = "Forward", };
 
         shader = ctx->shaderManager->GetOrLoad(key);
-         
+
         shader->SetStaticSampler("baseMapSampler", Samplers::LinearWrap(0));
         shader->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1));
-        shader->CreateRootSignature(); 
+        shader->CreateRootSignature();
 
         passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap(MaxStaticMesh);
 
@@ -100,26 +100,26 @@ void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
 
         //------------ 
         pso = ctx->psoManager->GetOrCreate(
-                MaterialDesc{ .shaderTag = "Lit" },
-                RenderPassDesc{ .passTag = "Forward" },
-                inputDescs
-            );
+            MaterialDesc{ .shaderTag = "Lit" },
+            RenderPassDesc{ .passTag = "Forward" },
+            inputDescs
+        );
 
     }
-     
+
 }
 
 void Lit::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
-{ 
-    Mesh::FlushAndRender(cmdList, passCtx); 
+{
+    Mesh::FlushAndRender(cmdList, passCtx);
 
 }
 
 void Lit::BeginFrame(PassContext& passCtx) noexcept
 {
-     
+
     auto& frameCtx = Render::frameContext;
-    auto& graphCtx = Render::graphContext; 
+    auto& graphCtx = Render::graphContext;
 
     if (frameCtx == nullptr || graphCtx == nullptr) {
         std::cerr << "render context is not inited" << std::endl;
@@ -129,44 +129,51 @@ void Lit::BeginFrame(PassContext& passCtx) noexcept
     auto& shader = passCtx.res.shader;
     auto& batchData = passCtx.data;
 
-    assert(passCtx.res.baseHeapOffset.has_value()); 
+    assert(passCtx.res.baseHeapOffset.has_value());
     auto baseHeapOffset = passCtx.res.baseHeapOffset;
 
-    auto& cbAllocator = passCtx.res.objCBAllocator;  
+    auto& cbAllocator = passCtx.res.objCBAllocator;
     auto& instAllocator = passCtx.res.instanceBufferAllocator;
- 
- 
+
+
     for (auto& proxy : frameCtx->staticMeshes) {
 
         auto currIndex = batchData.cmds.size();
         auto localHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
-         
-        auto instBV = instAllocator->Upload(proxy.instanceData, proxy.instanceCount);  
+
+        auto instBV = instAllocator->Upload(proxy.instanceData, proxy.instanceCount);
 
         ObjectCB cb =
         {
             .modelMatrix = proxy.modelMatrix,
-			.normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
-        }; 
-        auto cbView = cbAllocator->Upload(&cb); 
-        shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);  
+            .normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
+        };
+        auto cbView = cbAllocator->Upload(&cb);
+        shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);
 
-		for (auto& [name, tex] : proxy.material->textures)
-		{
-			if (tex)
-			{
-				shader->SetSRV(name, tex->GetRawResource(), tex->GetSRVDesc(), localHeapOffset);
-			} 
-		} 
-    
- 
-        if(graphCtx->shadowMap)
-        shader->SetSRV("shadowMap", graphCtx->shadowMap->GetRawResource(), graphCtx->shadowMap->GetSRVDesc(), localHeapOffset);
+        auto& baseMap = graphCtx->loadedTextures["assets/textures/rusty_metal_diff.png"];
 
-   /*     auto shadowMap = graphCtx->graph->GetTexture(RGNode{ "ShadowPass","Depth" });
-        shader->SetSRV("shadowMap", shadowMap->GetRawResource(), shadowMap->GetSRVDesc(), localHeapOffset);*/
+        for (auto& [name, texName] : proxy.material->textures)
+        {
+            auto& tex = graphCtx->loadedTextures[texName];
+            if (tex)
+            {
+                shader->SetSRV(name, tex->GetRawResource(), tex->GetSRVDesc(), localHeapOffset);
+            }
+            else
+            {
+                std::cerr << "didn't find load tex:" << texName << std::endl;
+            }
 
-        
+        } 
+
+        if (graphCtx->shadowMap)
+            shader->SetSRV("shadowMap", graphCtx->shadowMap->GetRawResource(), graphCtx->shadowMap->GetSRVDesc(), localHeapOffset);
+
+        /*     auto shadowMap = graphCtx->graph->GetTexture(RGNode{ "ShadowPass","Depth" });
+             shader->SetSRV("shadowMap", shadowMap->GetRawResource(), shadowMap->GetSRVDesc(), localHeapOffset);*/
+
+
 
         Mesh::DrawCmd cmd =
         {
@@ -190,12 +197,12 @@ void Lit::BeginFrame(PassContext& passCtx) noexcept
 }
 
 void Lit::EndFrame(PassContext& passCtx) noexcept
-{ 
-	Mesh::EndFrame(passCtx);
+{
+    Mesh::EndFrame(passCtx);
 }
 
 void Shadow::Init(const RendererContext* ctx, PassContext& passCtx)
-{ 
+{
 
     {
         passCtx.res.objCBAllocator
@@ -230,23 +237,23 @@ void Shadow::Init(const RendererContext* ctx, PassContext& passCtx)
         //------------
 
         pso = ctx->psoManager->GetOrCreate(
-                Materials::ShadowMaterialDesc,
-                Passes::ShadowPassDesc,
-                inputDescs
-            );
+            Materials::ShadowMaterialDesc,
+            Passes::ShadowPassDesc,
+            inputDescs
+        );
 
-    } 
+    }
 
 }
 
 void Shadow::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
 {
-    Mesh::FlushAndRender(cmdList, passCtx); 
+    Mesh::FlushAndRender(cmdList, passCtx);
 }
 
 void Shadow::BeginFrame(PassContext& passCtx) noexcept
 {
-     
+
     auto& frameCtx = Render::frameContext;
     auto& graphCtx = Render::graphContext;
 
@@ -269,17 +276,17 @@ void Shadow::BeginFrame(PassContext& passCtx) noexcept
 
         auto currIndex = batchData.cmds.size();
         auto localHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
-         
+
         auto instBV = instAllocator->Upload(proxy.instanceData, proxy.instanceCount);
 
         ObjectCB cb =
         {
-            .modelMatrix = proxy.modelMatrix, 
-			.normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
+            .modelMatrix = proxy.modelMatrix,
+            .normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
         };
         auto cbView = cbAllocator->Upload(&cb);
-        shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset); 
-         
+        shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);
+
 
         Mesh::DrawCmd cmd =
         {
@@ -289,8 +296,8 @@ void Shadow::BeginFrame(PassContext& passCtx) noexcept
 
             .ibv = proxy.mesh->GetIndexBuffer()->GetIndexBufferView(),
 
-            .indexCount = proxy.mesh->GetIndexCount(), 
-            
+            .indexCount = proxy.mesh->GetIndexCount(),
+
             .instanceVBV = GetVertexBufferView(instBV),
             .instanceCount = proxy.instanceCount,
 
@@ -305,7 +312,7 @@ void Shadow::BeginFrame(PassContext& passCtx) noexcept
 
 void Shadow::EndFrame(PassContext& passCtx) noexcept
 {
-	Mesh::EndFrame(passCtx);
+    Mesh::EndFrame(passCtx);
 }
 
 void GBuffer::Init(const RendererContext* ctx, PassContext& passCtx)
@@ -316,13 +323,13 @@ void GBuffer::Init(const RendererContext* ctx, PassContext& passCtx)
 
         passCtx.res.instanceBufferAllocator
             = CreateShared<FRingBufferAllocator<InstanceData>>(ctx->device, MaxStaticMesh * 100);
-    
-		passCtx.res.matCBAllocator
-			= CreateShared<FRingBufferAllocator<Materials::PBRMaterialCB>>(ctx->device, MaxStaticMesh);
-    
+
+        passCtx.res.matCBAllocator
+            = CreateShared<FRingBufferAllocator<Materials::PBRMaterialCB>>(ctx->device, MaxStaticMesh);
+
     }
 
-     {
+    {
         auto& shader = passCtx.res.shader;
 
         ShaderPermutationKey key = {
@@ -350,8 +357,8 @@ void GBuffer::Init(const RendererContext* ctx, PassContext& passCtx)
 
         //------------ 
         pso = ctx->psoManager->GetOrCreate(
-			Materials::PBRMaterialDesc,
-			Passes::GBufferPassDesc,
+            Materials::PBRMaterialDesc,
+            Passes::GBufferPassDesc,
             inputDescs
         );
 
@@ -433,22 +440,24 @@ void GBuffer::BeginFrame(PassContext& passCtx) noexcept
         shader->SetCBV("ObjectCB", GetCBVDesc(objCBV), localHeapOffset);
 
 
-        Materials::PBRMaterialCB matParams{};
-		auto matCBView = passCtx.res.matCBAllocator->Upload(&matParams);
-		shader->SetCBV("MaterialCB", GetCBVDesc(matCBView), localHeapOffset);
+        Materials::PBRMaterialCB matParams = proxy.material->materialCB;
+        auto matCBView = passCtx.res.matCBAllocator->Upload(&matParams);
+        shader->SetCBV("MaterialCB", GetCBVDesc(matCBView), localHeapOffset);
+        for (auto& [name, texName] : proxy.material->textures)
+        {
+            auto& tex = graphCtx->loadedTextures[texName];
+            if (tex)
+            {
+                shader->SetSRV(name, tex->GetRawResource(), tex->GetSRVDesc(), localHeapOffset);
+            }
+            else
+            {
+                std::cerr << "didn't find load tex:" << texName << std::endl;
+            }
 
-		for (auto& [name, tex] : proxy.material->textures)
-		{
-			if (tex)
-			{
-				shader->SetSRV(name, tex->GetRawResource(), tex->GetSRVDesc(), localHeapOffset);
-			}
-		}
-	 
+        }
 
-
-        //todo
-
+        //todo 
         Mesh::DrawCmd cmd =
         {
             .vbv = proxy.mesh->GetVertexBuffer()->GetVertexBufferView(),
@@ -473,11 +482,10 @@ void GBuffer::BeginFrame(PassContext& passCtx) noexcept
 }
 
 void GBuffer::EndFrame(PassContext& passCtx) noexcept
-{ 
-	passCtx.data.Clear();
-	//reset the allocator:
-	passCtx.res.objCBAllocator->Reset();
-	passCtx.res.matCBAllocator->Reset();
-	passCtx.res.instanceBufferAllocator->Reset();
+{
+    passCtx.data.Clear();
+    //reset the allocator:
+    passCtx.res.objCBAllocator->Reset();
+    passCtx.res.matCBAllocator->Reset();
+    passCtx.res.instanceBufferAllocator->Reset();
 }
-

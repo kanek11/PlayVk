@@ -85,8 +85,23 @@ void GamePlayWorld::OnLoad()
     debugSphereProxy->rigidBody->debugName = "debug sphere";
     debugSphereProxy->rigidBody->material.friction = 10.0f;
 
+
     //------------------------- 
-    auto debugCubeProxy = CreateBoxActor({ 3.0f, 3.0f, 0.0f }, { 1.0f, 1.0f, 1.0f });
+    auto& sphereMat = debugSphereProxy->material;
+    //sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png"; 
+    //sphereMat->textures["normalMap"]    = "rusty_metal_04_nor_dx_1k.png"; 
+    //sphereMat->textures["metallicMap"]  = "rusty_metal_04_metal_1k.png"; 
+    //sphereMat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png"; 
+    //sphereMat->textures["AOMap"]        = "rusty_metal_04_ao_1k.png"; 
+
+    //sphereMat->materialCB.useBaseColorMap = true;
+    //sphereMat->materialCB.useNormalMap = true;
+    //sphereMat->materialCB.useMetallicMap = true;
+    //sphereMat->materialCB.useRoughnessMap = true;
+    //sphereMat->materialCB.useAOMap = true;
+
+    //------------------------- 
+    auto debugCubeProxy = CreateBoxActor({ 3.0f, 3.0f,-3.0f }, { 1.0f, 1.0f, 1.0f });
     debugCubeProxy->rigidBody->simulatePhysics = true;
     debugCubeProxy->rigidBody->simulateRotation = false;
     debugCubeProxy->rigidBody->material.friction = 0.1f;
@@ -94,6 +109,22 @@ void GamePlayWorld::OnLoad()
     //--------------- 
     auto planeProxy = CreatePlaneActor({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, static_cast<uint32_t>(roadWidth), static_cast<uint32_t>(goalLength));
 
+     
+    auto& planeMat = planeProxy->material;
+    ////planeMat->textures["baseColorMap"] = "stone_wall_05_diff_1k.png";
+    //planeMat->textures["normalMap"]    = "stone_wall_05_nor_dx_1k.png";
+    ////planeMat->textures["metallicMap"]  "floor_tiles_metal.png"];
+    //planeMat->textures["RoughnessMap"] = "stone_wall_05_rough_1k.png";
+    //planeMat->textures["AOMap"]        = "stone_wall_05_ao_1k.png"; 
+    //planeMat->materialCB.useBaseColorMap = true;
+    //planeMat->materialCB.useNormalMap = true;
+    //planeMat->materialCB.useMetallicMap = false;
+    //planeMat->materialCB.metallic = 0.0f;
+    //planeMat->materialCB.useRoughnessMap = true;
+    //planeMat->materialCB.useAOMap = true;
+
+
+    //----
     //auto debugPlayer = debugCubeProxy;
     auto debugPlayer = debugSphereProxy;
 
@@ -201,10 +232,10 @@ void GamePlayWorld::OnLoad()
         }
 
         else if (debugPlayer->position.z() > goalLength / 2 - 20) {
-            //std::cout << "goal?" << '\n';
-            //if (timeCount < Global::lastUsedTime)
-            //    Global::lastUsedTime = timeCount;
-            //gameManager->RequestTransitState(GameStateId::MainMenu);
+            std::cout << "goal?" << '\n';
+            if (timeCount < Global::lastUsedTime)
+                Global::lastUsedTime = timeCount;
+            gameManager->RequestTransitState(GameStateId::MainMenu);
         }
 
         };

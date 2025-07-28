@@ -2,8 +2,14 @@
 #include "Renderer.h" 
 
 #include "Application.h"
-using namespace DirectX;
 
+#include "Loader.h"
+#include "Texture.h"
+
+#include "Asset.h"
+
+using namespace DirectX;
+ 
 D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring name,
     SharedPtr<WindowBase> mainWindow
 )
@@ -14,17 +20,22 @@ D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring nam
 
     m_mainWindow = mainWindow;
 }
-
-
+ 
 // Update frame-based values.  make sure comes before OnRender;
-void D3D12HelloRenderer::OnUpdate(float delta)
-{ 
+void D3D12HelloRenderer::OnUpdate(float delta) 
+{
+
+    SceneCB sceneCBData = {};
     if (this->mainCamera) {
 
-        SceneCB sceneCBData = {};
         sceneCBData.pvMatrix = mainCamera->pvMatrix;
-        this->sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
-    }
+        sceneCBData.cameraPos = mainCamera->position;
+    } 
+
+    sceneCBData.deltaTime = delta;
+    sceneCBData.viewportSize = { (float)m_width, (float)m_height }; 
+    this->sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
+
 
 
     auto frameData = Render::frameContext;
@@ -34,7 +45,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
 
     frameData->currentRTV = m_presentBindings.rtvs[m_frameIndex];
 
-	frameData->sceneCB = this->sceneCB.get(); 
+    frameData->sceneCB = this->sceneCB.get(); 
 
     //if (mainCamera) {
     //    DebugDraw::Get().OnUpdate(delta, mainCamera->pvMatrix); 
@@ -64,46 +75,50 @@ void D3D12HelloRenderer::OnInit()
         .shaderManager = this->m_shaderManager,
         .psoManager = this->m_psoManager,
 
-	    .dsvHeapAllocator = this->m_dsvHeapAllocator,
-	    .rtvHeapAllocator = this->m_rtvHeapAllocator,
+        .dsvHeapAllocator = this->m_dsvHeapAllocator,
+        .rtvHeapAllocator = this->m_rtvHeapAllocator,
 
-    }; 
-     
+    };
+      
 
-    //for valid atlas
-    UI::Init(Render::rendererContext, uiPassCtx); 
-
-
+      
+    //after system;
     LoadSystemResources();
 
-    //for valid fallback tex;
+
+     
     InitPresentPass();
 
     //for valid shadowmap;
     InitShadowPass();
 
-	InitGBuffers();
+    InitGBuffers();
 
-    Lit::Init(Render::rendererContext, litPassCtx);
-    Shadow::Init(Render::rendererContext, shadowPassCtx); 
+    //Lit::Init(Render::rendererContext, litPassCtx);
+    Shadow::Init(Render::rendererContext, shadowPassCtx);
 
-	GBuffer::Init(Render::rendererContext, gbufferPassCtx);
+    GBuffer::Init(Render::rendererContext, gbufferPassCtx);
+
+    PBR::Init(Render::rendererContext, pbrShadingCtx);
 
     //DebugDraw::Get().Init(Render::rendererContext);   
 
     Render::frameContext = new FrameDataContext{};
 
-
     Render::graphContext = new RenderGraphContext{
-		//.graph = rg,
+        //.graph = rg,
         .shadowMapWidth = m_shadowMapWidth,
         .shadowMapHeight = m_shadowMapHeight,
         .shadowMap = m_shadowMap,
 
-        .fallBackTexture = m_fallBackTexture,
+        .gbuffers = this->gbuffers,
+
+        .loadedTextures = this->loadTextures,
     };
 
 
+    //for valid atlas
+    UI::Init(Render::rendererContext, uiPassCtx);
 
 }
 
@@ -112,46 +127,49 @@ void D3D12HelloRenderer::OnRender()
 {
     // Record all the commands we need to render the scene into the command list.
     //PopulateCommandList();  
-    Lit::BeginFrame(litPassCtx);
+    //Lit::BeginFrame(litPassCtx);
     UI::BeginFrame(uiPassCtx);
     Shadow::BeginFrame(shadowPassCtx);
-	GBuffer::BeginFrame(gbufferPassCtx);
+    GBuffer::BeginFrame(gbufferPassCtx);
+    PBR::BeginFrame(pbrShadingCtx);
 
-    BeginFrame(); 
+    BeginFrame();
 
-	//rg->Execute(m_commandList.Get());
+    //rg->Execute(m_commandList.Get());
 
-    BeginShadowPass(m_commandList.Get()); 
+    BeginShadowPass(m_commandList.Get());
     Shadow::FlushAndRender(m_commandList.Get(), shadowPassCtx);
-    
-    EndShadowPass(m_commandList.Get()); 
-    
-    //
-	BeginGBufferPass(m_commandList.Get());
 
+    EndShadowPass(m_commandList.Get());
+
+    //
+    BeginGBufferPass(m_commandList.Get());
     GBuffer::FlushAndRender(m_commandList.Get(), gbufferPassCtx);
 
-	EndGBufferPass(m_commandList.Get());
-     
+    EndGBufferPass(m_commandList.Get());
+
 
     BeginPresentPass(m_commandList.Get());
 
-    Lit::FlushAndRender(m_commandList.Get(), litPassCtx);
+    //Lit::FlushAndRender(m_commandList.Get(), litPassCtx);
+
+    PBR::FlushAndRender(m_commandList.Get(), pbrShadingCtx);
 
     //uiRenderer->FlushAndRender(m_commandList.Get());
-    UI::FlushAndRender(m_commandList.Get(), uiPassCtx); 
+    UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
 
     //DebugDraw::Get().FlushAndRender(m_commandList.Get()); 
 
     EndPresentPass(m_commandList.Get());
 
 
-    EndFrame(); 
+    EndFrame();
 
-    Lit::EndFrame(litPassCtx);
+    //Lit::EndFrame(litPassCtx);
     UI::EndFrame(uiPassCtx);
-    Shadow::EndFrame(shadowPassCtx); 
-	GBuffer::EndFrame(gbufferPassCtx);
+    Shadow::EndFrame(shadowPassCtx);
+    GBuffer::EndFrame(gbufferPassCtx);
+    PBR::EndFrame(pbrShadingCtx);
 }
 
 
@@ -168,13 +186,19 @@ void D3D12HelloRenderer::LoadPipeline()
     // Enable the debug layer (requires the Graphics Tools "optional feature").
     // NOTE: Enabling the debug layer after device creation will invalidate the active device.
     {
-        ComPtr<ID3D12Debug> debugController;
+        ComPtr<ID3D12Debug> debugController; 
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf()))))
         {
+
+
             debugController->EnableDebugLayer();
 
             // Enable additional debug layers.
             dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+
+            ComPtr<ID3D12Debug1> debug1Controller;
+            debugController.As< ID3D12Debug1>(&debug1Controller);
+            debug1Controller->SetEnableGPUBasedValidation(true);
         }
 
     }
@@ -225,11 +249,11 @@ void D3D12HelloRenderer::LoadPipeline()
 
     //optional: cache the rtv:
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.Format = swapChainDesc.Format;  //must match the swap chain format
+    rtvDesc.Format = swapChainDesc.Format;  //must match the swap chain format
     rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     rtvDesc.Texture2D.MipSlice = 0;
     rtvDesc.Texture2D.PlaneSlice = 0;
-	this->sc_RTV = rtvDesc;
+    this->sc_RTV = rtvDesc;
 
 
     ComPtr<IDXGISwapChain1> swapChain;
@@ -277,7 +301,7 @@ void D3D12HelloRenderer::LoadPipeline()
         constexpr uint32_t dsvPoolSize = 16;
         m_dsvHeapAllocator = CreateShared<FDescriptorHeapAllocator>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, dsvPoolSize);
 
-    } 
+    }
 
     {
         ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf())));
@@ -295,13 +319,13 @@ void D3D12HelloRenderer::LoadPipelineCommon()
     m_shaderManager = CreateShared<ShaderLibrary>(m_device, m_rangeHeapAllocator);
 
     m_psoManager = CreateShared<PSOManager>(m_device, m_shaderManager);
-     
+
 
 }
 
 void D3D12HelloRenderer::LoadSystemResources()
 {
-     
+
     {
         this->sceneCB = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
             .SizeInBytes = sizeof(SceneCB),
@@ -310,9 +334,11 @@ void D3D12HelloRenderer::LoadSystemResources()
             .Usage = EBufferUsage::Upload | EBufferUsage::Constant
             });
 
-    }
-     
+    } 
 
+    auto assetMgr = AssetManager::Get();
+    assetMgr.LoadResources();
+    auto& assets = assetMgr.textures; 
 
     //teturing:
   // Note: ComPtr's are CPU objects but this resource needs to stay in scope until
@@ -337,37 +363,44 @@ void D3D12HelloRenderer::LoadSystemResources()
             .usages = { ETextureUsage::ShaderResource }
         };
 
-        m_fallBackTexture = CreateShared<FD3D12Texture>(m_device.Get(), texDesc);
+        auto& tex = CreateShared<FD3D12Texture>(m_device.Get(), texDesc);
+        loadTextures["Checkerboard"] = tex;
 
         // Copy data to the intermediate upload heap and then schedule a copy 
         // from the upload heap to the Texture2D.
-        std::vector<UINT8> texture = GenerateFallBackTextureData();
+        std::vector<UINT8> texture = GenerateCheckerboardData();
 
-        m_fallBackTexture->UploadFromCPU(
+        tex->UploadFromCPU(
             m_commandList.Get(),
             texture.data(),
             TextureWidth * TexturePixelSize, // Row pitch,
             TextureWidth * TexturePixelSize * TextureHeight //slice pitch
         );
     }
+     
 
-    //new:
-    if (uiPassCtx.data.font)
-    {
+    for (auto& [name, texData] : assets) {  
 
-        auto atlasTex = uiPassCtx.data.font->texture;
-        assert(atlasTex != nullptr && "Font texture must be initialized before uploading data.");
+        auto metaInfo = texData.metaInfo; 
+        FTextureDesc desc =
+            FTextureDesc{
+            .width = static_cast<UINT>(metaInfo.width),
+            .height = static_cast<UINT>(metaInfo.height),
+            .format = metaInfo.format,
+            .usages = {ETextureUsage::ShaderResource},
+        };
+         
+        auto tex = CreateShared<FD3D12Texture>(m_device.Get(), desc);
+        this->loadTextures[name] = tex;
 
-        auto atlasData = uiPassCtx.data.font->imageData;
-        atlasTex->UploadFromCPU(m_commandList.Get(), atlasData->data,
-            atlasData->metaInfo.rowPitch,
-            atlasData->metaInfo.slicePitch);
-
+        tex->UploadFromCPU(
+            m_commandList.Get(),
+            texData.data,
+            texData.metaInfo.rowPitch,
+            texData.metaInfo.slicePitch
+        );
     }
-    else
-    {
-        std::cerr << "atlas is not init" << std::endl;
-    }
+     
 
     // Close the command list and execute it to begin the initial GPU setup.
     ThrowIfFailed(m_commandList->Close());
@@ -396,8 +429,8 @@ void D3D12HelloRenderer::LoadSystemResources()
 }
 
 void D3D12HelloRenderer::InitPresentPass()
-{ 
-    { 
+{
+    {
 
         for (UINT n = 0; n < FrameCount; n++)
         {
@@ -414,7 +447,7 @@ void D3D12HelloRenderer::InitPresentPass()
         }
     }
 
-       
+
     {
 
         // Create a depth stencil texture.
@@ -433,19 +466,19 @@ void D3D12HelloRenderer::InitPresentPass()
         m_device->CreateDepthStencilView(m_depthStencil->GetRawResource(), nullptr, dsvHandle);
 
         m_presentBindings.dsv = dsvHandle;
-		m_dsv = dsvHandle; 
+        m_dsv = dsvHandle;
     }
 
- }
+}
 
 
 
 void D3D12HelloRenderer::InitShadowPass()
-{ 
+{
 
     //--------- 
 //attachments
-    { 
+    {
         auto shadowMapDesc = FTextureDesc{
             .width = m_shadowMapWidth,
             .height = m_shadowMapHeight,
@@ -488,7 +521,7 @@ void D3D12HelloRenderer::BeginShadowPass(ID3D12GraphicsCommandList* commandList)
     commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 
-     
+
     auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_shadowMapWidth), static_cast<float>(m_shadowMapHeight));
     auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_shadowMapWidth), static_cast<LONG>(m_shadowMapHeight));
 
@@ -508,7 +541,7 @@ void D3D12HelloRenderer::EndShadowPass(ID3D12GraphicsCommandList* commandList)
     );
     commandList->ResourceBarrier(1, &dsvToSrvBarrier);
 }
- 
+
 
 
 
@@ -527,7 +560,7 @@ void D3D12HelloRenderer::OnDestroy()
 
 
 void D3D12HelloRenderer::BeginFrame()
-{ 
+{
     // Command list allocators can only be reset when the associated 
  // command lists have finished execution on the GPU; apps should use 
  // fences to determine GPU execution progress. 
@@ -599,7 +632,7 @@ void D3D12HelloRenderer::BeginPresentPass(ID3D12GraphicsCommandList* commandList
 
 }
 
- 
+
 
 void D3D12HelloRenderer::EndPresentPass(ID3D12GraphicsCommandList* commandList)
 {
@@ -706,7 +739,7 @@ void D3D12HelloRenderer::GetHardwareAdapter(
 
 
 // Generate a simple black and white checkerboard texture.
-std::vector<UINT8> D3D12HelloRenderer::GenerateFallBackTextureData()
+std::vector<UINT8> D3D12HelloRenderer::GenerateCheckerboardData()
 {
     const UINT size = 2;
 
@@ -748,11 +781,11 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateFallBackTextureData()
 
 
 void D3D12HelloRenderer::SubmitMesh(StaticMeshActorProxy* meshProxy)
-{ 
+{
 
     FStaticMeshProxy proxy = {
     .modelMatrix = meshProxy->modelMatrix,
-    .mesh = meshProxy->mesh.get(), 
+    .mesh = meshProxy->mesh.get(),
     .material = meshProxy->material.get(),
     .instanceData = meshProxy->instanceData.data(),
     .instanceCount = meshProxy->instanceData.size(),
@@ -769,21 +802,21 @@ void D3D12HelloRenderer::ClearMesh()
 }
 
 void D3D12HelloRenderer::SubmitCamera(FCameraProxy* camera)
-{ 
-    mainCamera = camera;  
+{
+    mainCamera = camera;
 }
 
 
 
-void D3D12HelloRenderer::AddQuad(const UI::FQuadDesc& desc)
-{ 
-    uiPassCtx.data.pendings.push_back(desc);  
+void D3D12HelloRenderer::AddQuad(const FQuadDesc& desc)
+{
+    uiPassCtx.data.pendings.push_back(desc);
 }
 
 void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float4& color)
 {
     //delegate to  
-    UI::FQuadDesc desc = {
+    FQuadDesc desc = {
         .rect = rect,
         .uvTL = Float2(0.0f, 0.0f), // default UV coordinates
         .uvBR = Float2(1.0f, 1.0f), // default UV coordinates
@@ -795,10 +828,9 @@ void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float4& color)
 }
 
 void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR)
-{
-
+{ 
     //delegate to
-    UI::FQuadDesc desc = {
+    FQuadDesc desc = {
         .rect = rect,
         .uvTL = uvTL,
         .uvBR = uvBR,
@@ -813,68 +845,73 @@ void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float2& uvTL, const Fl
 
 void D3D12HelloRenderer::InitGBuffers()
 {
+    assert(Passes::GBufferPassDesc.rtvNames.size() == Passes::GBufferPassDesc.colorFormats.size());
 
-	for (auto& colorFormat : Passes::GBufferPassDesc.colorFormats)
-	{
-		FTextureDesc gbufferDesc = {
-			 .width = m_width,
-			 .height = m_height,
-			 .format = colorFormat,
-			 .usages = { ETextureUsage::RenderTarget, ETextureUsage::ShaderResource }
-		};
-		auto gbufferTex = CreateShared<FD3D12Texture>(m_device.Get(), gbufferDesc);
-		 
-		auto rtvHandle = AllocateCustomRT(gbufferTex.get());
+    auto& names = Passes::GBufferPassDesc.rtvNames;
+    int index{};
+    for (auto& colorFormat : Passes::GBufferPassDesc.colorFormats)
+    {
+        FTextureDesc gbufferDesc = {
+             .width = m_width,
+             .height = m_height,
+             .format = colorFormat,
+             .usages = { ETextureUsage::RenderTarget, ETextureUsage::ShaderResource }
+        };
+        auto gbufferTex = CreateShared<FD3D12Texture>(m_device.Get(), gbufferDesc);
 
-        m_gbufferAttachments.rtvs.push_back(rtvHandle); 
-        gbuffers.push_back(gbufferTex);
-	}
+        auto rtvHandle = AllocateCustomRT(gbufferTex.get());
 
-     
+        m_gbufferAttachments.rtvs.push_back(rtvHandle);
+
+        auto& name = names[index++];
+        gbuffers[name] = gbufferTex;
+    }
+
+
     {
         //depth reusing the system:
         m_gbufferAttachments.dsv = m_dsv;
     }
-    
-     
-     
+
+
+
 }
 
 void D3D12HelloRenderer::BeginGBufferPass(ID3D12GraphicsCommandList* commandList)
-{ 
+{
 
-	//transition the GBuffer textures to render target state.
+    //transition the GBuffer textures to render target state.
 
-	for (const auto& gbufferTex : gbuffers)
-	{
-		auto gbufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			gbufferTex->GetRawResource(),
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-			D3D12_RESOURCE_STATE_RENDER_TARGET
-		);
-		commandList->ResourceBarrier(1, &gbufferBarrier);
-	}
+    for (const auto& [name, gbufferTex]:gbuffers)
+    {
+        auto gbufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            gbufferTex->GetRawResource(),
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+            D3D12_RESOURCE_STATE_RENDER_TARGET
+        );
+        commandList->ResourceBarrier(1, &gbufferBarrier);
+    }
 
-     
+
 
     //
     const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	for (const auto& rtv : m_gbufferAttachments.rtvs)
-	{
-		commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-	}
-	// Clear the depth stencil view.
-	if (m_gbufferAttachments.dsv.has_value())
-	{
-		commandList->ClearDepthStencilView(m_gbufferAttachments.dsv.value(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-		commandList->OMSetRenderTargets(static_cast<UINT>(m_gbufferAttachments.rtvs.size()), m_gbufferAttachments.rtvs.data(), FALSE, &m_gbufferAttachments.dsv.value());
-	}
+    for (const auto& rtv : m_gbufferAttachments.rtvs)
+    {
+        commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
+    }
+    // Clear the depth stencil view.
+    if (m_gbufferAttachments.dsv.has_value())
+    {
+        commandList->ClearDepthStencilView(m_gbufferAttachments.dsv.value(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+        commandList->OMSetRenderTargets(static_cast<UINT>(m_gbufferAttachments.rtvs.size()), m_gbufferAttachments.rtvs.data(), FALSE, &m_gbufferAttachments.dsv.value());
+    }
     else {
-		std::cerr << "GBuffer pass: DSV is not set!" << std::endl;
-    } 
+        std::cerr << "GBuffer pass: DSV is not set!" << std::endl;
+    }
 
     auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_width), static_cast<float>(m_height));
-    auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height)); 
+    auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height));
 
     m_commandList->RSSetViewports(1, &viewport);
     m_commandList->RSSetScissorRects(1, &scissorRect);
@@ -884,20 +921,19 @@ void D3D12HelloRenderer::BeginGBufferPass(ID3D12GraphicsCommandList* commandList
 void D3D12HelloRenderer::EndGBufferPass(ID3D12GraphicsCommandList* commandList)
 {
 
-	// Transition the GBuffer textures back to shader resource state.
-	for (const auto& gbufferTex : gbuffers)
-	{
-		auto gbufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			gbufferTex->GetRawResource(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
-		);
-		commandList->ResourceBarrier(1, &gbufferBarrier);
-	}
+    // Transition the GBuffer textures back to shader resource state.
+    for (const auto& [ name , gbufferTex] : gbuffers)
+    {
+        auto gbufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            gbufferTex->GetRawResource(),
+            D3D12_RESOURCE_STATE_RENDER_TARGET,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+        );
+        commandList->ResourceBarrier(1, &gbufferBarrier);
+    }
 
 
 
 
 }
-
 

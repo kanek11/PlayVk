@@ -44,62 +44,48 @@ namespace Materials {
 }
 
 
+struct FQuadDesc {
+    FRect  rect;
+    Float2 uvTL = { 0,0 };
+    Float2 uvBR = { 1,1 };
+    Float4 color = Color::White;
+    bool   useAtlas = false;
 
-namespace UI {
-     
-    struct FQuadDesc {
-        FRect  rect;
-        Float2 uvTL = { 0,0 };
-        Float2 uvBR = { 1,1 };
-        Float4 color = Color::White;
-        bool   useAtlas = false;
+};
+//Screen space;
+namespace SS { 
 
-
-
-    };
-    struct UIVertex {
+    struct Vertex {
         Float2 position;
         Float2 UV;
         Float4 color;
     };
 
     template<>
-    struct VertexLayoutTraits<UIVertex> {
+    struct VertexLayoutTraits<Vertex> {
 
         static constexpr bool is_specialized = true;
         static constexpr auto attributes = std::to_array<VertexAttribute>({
-            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, position) },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(UIVertex, UV) },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(UIVertex, color) }
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(Vertex, position) },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, offsetof(Vertex, UV) },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(Vertex, color) }
             });
     };
 
 
     //per object context
-    struct UIDrawCmd {
+    struct DrawCmd {
         uint32_t indexOffset, indexCount;
         //uint32_t textureSlot;
 
         uint32_t heapOffset = 0;
-
     };
-
-    //all the data for a single batch / pass execution;
-    //basically transient; 
-    //bug fix: make sure 256 byte aligned
-    struct UISettingsCB
-    {
-        int useTexture = 0;
-        float padding[63];
-    };
-    static_assert(sizeof(UISettingsCB) % 256 == 0, "UISettingsCB must be 256-byte aligned");
-
 
     //basically the CPU side;
-    struct UIBuildData {
-        std::vector<UIVertex> vertices;
+    struct BuildData {
+        std::vector<Vertex> vertices;
         std::vector<INDEX_FORMAT> indices;
-        std::vector<UIDrawCmd> cmds;
+        std::vector<DrawCmd> cmds;
 
         std::vector<FQuadDesc> pendings;
 
@@ -110,30 +96,46 @@ namespace UI {
             indices.clear();
             vertices.clear();
         }
-
-        SharedPtr<FontAtlas> font;
     };
 
 
+
     //persistant
-    struct UIGPUResources {
+    struct GPUResources {
         SharedPtr<FD3D12Buffer> batchVB;
         SharedPtr<FD3D12Buffer> batchIB;
         SharedPtr<FD3D12ShaderPermutation> shader;
         ComPtr<ID3D12PipelineState> pso;
 
-
         std::optional<uint32_t> baseHeapOffset = 0;
+    }; 
 
-        //SharedPtr<FD3D12Buffer> constantBuffer;
-        SharedPtr<FRingBufferAllocator<UISettingsCB>> cbAllocator;
+}
+ 
+namespace UI { 
+
+    using Vertex = SS::Vertex;
+    using DrawCmd = SS::DrawCmd;
+    using BuildData = SS::BuildData;
+    using GPUResources = SS::GPUResources;
+
+    //all the data for a single batch / pass execution;
+    //basically transient; 
+    //bug fix: make sure 256 byte aligned
+    struct alignas(256) UISettingsCB
+    {
+        int useTexture = 0;
+        float padding[63];
     };
+    static_assert(sizeof(UISettingsCB) % 256 == 0, "CB must be 256-byte aligned");
 
-
-
+     
     struct UIPassContext {
-        UIBuildData data;
-        UIGPUResources res;
+        BuildData data;
+        GPUResources res;
+         
+        SharedPtr<FontAtlas> font;  
+        SharedPtr<FRingBufferAllocator<UISettingsCB>> cbAllocator;
     };
 
 

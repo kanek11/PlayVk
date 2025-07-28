@@ -15,12 +15,13 @@ struct StaticMeshActorProxy;
 
 struct FCameraProxy {
     Float4x4 pvMatrix;
+    Float3 position;
 
     virtual void Tick(float delta);
 };
 
 struct FollowCameraProxy : public FCameraProxy {
-    Float3 offset = { 0.0f, +5.0f , -10.0f };
+    Float3 offset = { 0.0f, +5.0f , -5.0f };
     WeakPtr<StaticMeshActorProxy> target;
 
     virtual void Tick(float delta) override;
@@ -54,8 +55,8 @@ struct StaticMeshActorProxy {
     Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
 
     SharedPtr<UStaticMesh> mesh;
-     
-    SharedPtr<FMaterialProxy> material; 
+
+    SharedPtr<FMaterialProxy> material;
 
 
     //uint32_t shadowPassHeapOffset = 0; // for shadow pass

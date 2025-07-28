@@ -1,3 +1,5 @@
+#ifndef GBUFFER_COMMON_HLSLI
+#define GBUFFER_COMMON_HLSLI
 
 struct VSInput
 {
@@ -19,13 +21,13 @@ struct VSOutput
     float3 WorldTangent : TEXCOORD2;
     float TangentSign : TEXCOORD3;
     float2 UV : TEXCOORD4;
-};
-
-
+}; 
 
 struct GBufferOutput
 {
     float4 rt0_albedo_ao : SV_Target0; //R8G8B8A8_UNORM
     float4 rt1_normal_rough : SV_Target1; //R16G16B16A16_FLOAT
-    float4 rt2_metallic_misc : SV_Target2; //R16G16B16A16_FLOAT
+    float4 rt2_position_metallic : SV_Target2; //R16G16B16A16_FLOAT
 };
+
+#endif

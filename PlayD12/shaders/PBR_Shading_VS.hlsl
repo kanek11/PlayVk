@@ -1,18 +1,27 @@
 
-
-
-struct VS_OUT
+struct VSInput
 {
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
+    float2 position : POSITION;
+    float2 texCoord : TEXCOORD;
+    float4 color : COLOR;
 };
 
-
-VS_OUT VSMain(uint vertexID : SV_VertexID)
+struct VSOutput
 {
-    float2 uv = float2((vertexID << 1) & 2, vertexID & 2);
-    VS_OUT o;
-    o.uv = uv;
-    o.pos = float4(uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);
-    return o;
+    float4 position : SV_POSITION;
+    float2 texCoord : TEXCOORD;
+    float4 color : COLOR;
+};
+
+VSOutput VSMain(VSInput input)
+{
+    VSOutput result;
+    //float4 worldPosition = mul(modelMatrix, float4(input.position.xy, 0.0f, 1.0f));
+    float4 worldPosition = float4(input.position.xy, 0.0f, 1.0f);
+    result.position = worldPosition;
+    result.color = input.color;
+    result.texCoord = input.texCoord;
+
+    return result;
 }
+

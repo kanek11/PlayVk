@@ -21,13 +21,18 @@
 #include "UIPass.h" 
 #include "GeometryPass.h"
 #include "DebugRay.h"
+#include "PostPass.h"
 
 
-constexpr size_t MaxUIBatch = 256;
-constexpr size_t MaxStaticMesh = 256;
+constexpr size_t MaxUIBatch = 128;
+constexpr size_t MaxStaticMesh = 128;
 constexpr size_t MaxLines = 1024;
-constexpr uint32_t descriptorPoolSize = 4096;
+constexpr uint32_t descriptorPoolSize = 4096; 
 
+struct FResourcePool {
+
+   
+};
 
 
 struct RendererContext {
@@ -40,20 +45,20 @@ struct RendererContext {
     SharedPtr<ShaderLibrary> shaderManager;
     SharedPtr<PSOManager> psoManager;
 
- 
+
     SharedPtr<FDescriptorHeapAllocator> dsvHeapAllocator;
-    SharedPtr<FDescriptorHeapAllocator> rtvHeapAllocator; 
+    SharedPtr<FDescriptorHeapAllocator> rtvHeapAllocator;
 };
 
 
 struct FrameDataContext {
-     //std::vector<StaticMeshActorProxy*> staticMeshes;  
-     std::vector<FStaticMeshProxy> staticMeshes;
-     FCameraProxy* mainCamera;
+    //std::vector<StaticMeshActorProxy*> staticMeshes;  
+    std::vector<FStaticMeshProxy> staticMeshes;
+    FCameraProxy* mainCamera;
 
-     FD3D12Buffer* sceneCB; 
-     //current present rtv:
-	 D3D12_CPU_DESCRIPTOR_HANDLE currentRTV;
+    FD3D12Buffer* sceneCB;
+    //current present rtv:
+    D3D12_CPU_DESCRIPTOR_HANDLE currentRTV;
 };
 
 struct RenderGraphContext {
@@ -61,9 +66,12 @@ struct RenderGraphContext {
 
     UINT shadowMapWidth;
     UINT shadowMapHeight;
+
     SharedPtr<FD3D12Texture> shadowMap;
 
-    SharedPtr<FD3D12Texture> fallBackTexture;
+    std::unordered_map<std::string, SharedPtr<FD3D12Texture>> gbuffers;
+
+    std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadedTextures;
 };
 
 
@@ -72,7 +80,7 @@ namespace Render {
     inline FrameDataContext* frameContext = nullptr;
 
     inline RenderGraphContext* graphContext = nullptr;
-} 
+}
 
 
 class D3D12HelloRenderer
@@ -117,7 +125,7 @@ private:
     UINT m_frameIndex{ 0 };
     HANDLE m_fenceEvent;
     ComPtr<ID3D12Fence> m_fence;
-    UINT64 m_fenceValue; 
+    UINT64 m_fenceValue;
 
     //void PopulateCommandList();
     void BeginFrame();
@@ -128,7 +136,25 @@ private:
 
     void LoadPipeline();
     void LoadPipelineCommon();
-	void LoadSystemResources();
+    void LoadSystemResources();
+
+
+
+    D3D12_CPU_DESCRIPTOR_HANDLE AllocateCustomRT(FD3D12Texture* tex)
+    {
+        auto currIndex = m_rtvHeapAllocator->Allocate(1);
+        auto rtvHandle = m_rtvHeapAllocator->GetCPUHandle(currIndex);
+        m_device->CreateRenderTargetView(tex->GetRawResource(), nullptr, rtvHandle);
+        return rtvHandle;
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE AllocateCustomDS(FD3D12Texture* tex)
+    {
+        auto currIndex = m_dsvHeapAllocator->Allocate(1);
+        auto dsvHandle = m_dsvHeapAllocator->GetCPUHandle(currIndex);
+        m_device->CreateDepthStencilView(tex->GetRawResource(), nullptr, dsvHandle);
+        return dsvHandle;
+    }
 
 
     //-------- 
@@ -140,27 +166,27 @@ private:
     void BeginPresentPass(ID3D12GraphicsCommandList* commandList);
     void EndPresentPass(ID3D12GraphicsCommandList* commandList);
     //void RecordRenderPassCommands(ID3D12GraphicsCommandList* commandList);
-     
-	D3D12_RENDER_TARGET_VIEW_DESC sc_RTV {};
-    ComPtr<ID3D12Resource> m_renderTargets[FrameCount]; 
+
+    D3D12_RENDER_TARGET_VIEW_DESC sc_RTV{};
+    ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
     SharedPtr<FD3D12Texture> m_depthStencil;
 
-	D3D12_CPU_DESCRIPTOR_HANDLE m_dsv;
+    D3D12_CPU_DESCRIPTOR_HANDLE m_dsv;
     FRenderPassAttachments m_presentBindings;
-     
+
     //---------
 
     void InitShadowPass();
     void BeginShadowPass(ID3D12GraphicsCommandList* commandList);
     void EndShadowPass(ID3D12GraphicsCommandList* commandList);
     //void RecordShadowPassCommands(ID3D12GraphicsCommandList* commandList); 
-     
+
     //shadowmap tex:
     SharedPtr<FD3D12Texture> m_shadowMap;
     FRenderPassAttachments m_shadowBindings;
 
     UINT m_shadowMapWidth = 2048;
-    UINT m_shadowMapHeight = 2048; 
+    UINT m_shadowMapHeight = 2048;
 
 
     //---------
@@ -192,18 +218,17 @@ private:
     static const UINT TextureHeight = 256;
     static const UINT TexturePixelSize = 4;  //bytes/channel (RGBA)
 
-    SharedPtr<FD3D12Texture> m_fallBackTexture;
-    std::vector<UINT8> GenerateFallBackTextureData();
+    std::vector<UINT8> GenerateCheckerboardData();
 
-public: 
+public:
 
     //std::vector<StaticMeshActorProxy*> m_staticMeshes;  
     std::vector<FStaticMeshProxy> staticMeshes;
-    FCameraProxy* mainCamera; 
+    FCameraProxy* mainCamera;
 
     //todo:
     void SubmitMesh(StaticMeshActorProxy* mesh);
-    void ClearMesh(); 
+    void ClearMesh();
 
     void SubmitCamera(FCameraProxy* camera);
 
@@ -212,9 +237,7 @@ public:
     Lit::PassContext litPassCtx;
 
 public:
-    Shadow::PassContext shadowPassCtx;
-
-
+    Shadow::PassContext shadowPassCtx;  
 
 public:
     //SharedPtr<DebugRenderer> m_debugRenderer;
@@ -222,7 +245,7 @@ public:
 
     UI::UIPassContext uiPassCtx;
 
-    void AddQuad(const UI::FQuadDesc& desc);
+    void AddQuad(const FQuadDesc& desc);
 
     void AddQuad(const FRect& rect, const Float4& color);
     void AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR);
@@ -233,36 +256,24 @@ public:
     }
 
     SharedPtr<FontAtlas> GetFontAtlas() const {
-        return uiPassCtx.data.font;
+        return uiPassCtx.font;
     }
-
-
-private: 
+     
 
 public:
     GBuffer::PassContext gbufferPassCtx;
 
-    std::vector<SharedPtr<FD3D12Texture>> gbuffers;
+    std::unordered_map<std::string,  SharedPtr<FD3D12Texture>> gbuffers;
     FRenderPassAttachments m_gbufferAttachments;
 
     void InitGBuffers();
-	void BeginGBufferPass(ID3D12GraphicsCommandList* commandList);
-	void EndGBufferPass(ID3D12GraphicsCommandList* commandList); 
+    void BeginGBufferPass(ID3D12GraphicsCommandList* commandList);
+    void EndGBufferPass(ID3D12GraphicsCommandList* commandList);
 
 
-	D3D12_CPU_DESCRIPTOR_HANDLE AllocateCustomRT(FD3D12Texture* tex)
-	{
-		auto currIndex = m_rtvHeapAllocator->Allocate(1);
-		auto rtvHandle = m_rtvHeapAllocator->GetCPUHandle(currIndex);
-        m_device->CreateRenderTargetView(tex->GetRawResource(), nullptr, rtvHandle); 
-		return rtvHandle;
-	}
+public:
+    PBR::PassContext pbrShadingCtx; 
 
-	D3D12_CPU_DESCRIPTOR_HANDLE AllocateCustomDS(FD3D12Texture* tex)
-	{
-		auto currIndex = m_dsvHeapAllocator->Allocate(1);
-		auto dsvHandle = m_dsvHeapAllocator->GetCPUHandle(currIndex);
-		m_device->CreateDepthStencilView(tex->GetRawResource(), nullptr, dsvHandle);
-		return dsvHandle;
-	} 
+
+    std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;
 };

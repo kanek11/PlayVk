@@ -18,7 +18,7 @@
 #include "StaticMeshActor.h"
 
 #include "ShaderParameters.h"
- 
+
 
 struct RendererContext;
 
@@ -44,7 +44,7 @@ namespace Materials {
     .depthWrite = true,
     };
 }
- 
+
 
 //strip out the minimum to render a static mesh:
 struct FStaticMeshProxy {
@@ -58,10 +58,10 @@ struct FStaticMeshProxy {
     InstanceData* instanceData;
     size_t instanceCount;
 };
-     
 
-namespace Mesh{
-     
+
+namespace Mesh {
+
 
     struct GPUResources {
         ComPtr<ID3D12PipelineState> PSO;
@@ -72,7 +72,7 @@ namespace Mesh{
         SharedPtr<FRingBufferAllocator<InstanceData>> instanceBufferAllocator;
         std::optional <uint32_t> baseHeapOffset = 0;
     };
-     
+
 
     struct DrawCmd {
 
@@ -80,7 +80,7 @@ namespace Mesh{
         D3D12_VERTEX_BUFFER_VIEW vbv;
         D3D12_PRIMITIVE_TOPOLOGY topology;
         D3D12_INDEX_BUFFER_VIEW ibv;
-        size_t indexCount; 
+        size_t indexCount;
 
         //Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
         //SharedPtr<FD3D12Buffer> objectCB;
@@ -105,33 +105,33 @@ namespace Mesh{
             cmds.clear();
         }
     };
-     
+
     struct PassContext {
         BuildData data;
         GPUResources res;
-    }; 
+    };
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
 
     void EndFrame(PassContext& passCtx) noexcept;
 }
- 
 
-  
+
+
 namespace Lit
-{  
-    using PassContext = Mesh::PassContext;  
+{
+    using PassContext = Mesh::PassContext;
     using ObjectCB = Mesh::ObjectCB;
-     
+
     void Init(const RendererContext* ctx, PassContext& passCtx);
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
 
     void BeginFrame(PassContext& passCtx) noexcept;
-    void EndFrame(PassContext& passCtx) noexcept; 
+    void EndFrame(PassContext& passCtx) noexcept;
 
 }
 
- 
+
 namespace Passes {
 
     inline RenderPassDesc ShadowPassDesc = {
@@ -145,24 +145,24 @@ namespace Passes {
 
 }
 
-namespace Materials { 
+namespace Materials {
 
     inline MaterialDesc ShadowMaterialDesc = {
         .name = "Shadow",
-        .shaderTag = "Lit", 
+        .shaderTag = "Lit",
 
         .enableAlphaBlend = false,
         .doubleSided = false,
         .depthWrite = true
     };
-} 
+}
 
 
 
 namespace Shadow
-{ 
-    using PassContext = Mesh::PassContext; 
-    using ObjectCB = Mesh::ObjectCB;  
+{
+    using PassContext = Mesh::PassContext;
+    using ObjectCB = Mesh::ObjectCB;
 
     struct StaticMeshShadowVertex
     {
@@ -175,14 +175,14 @@ namespace Shadow
         static constexpr auto attributes = std::to_array<VertexAttribute>({
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshShadowVertex, position) }
             });
-    };  
-     
+    };
 
-    void Init(const RendererContext* ctx,PassContext& passCtx);
+
+    void Init(const RendererContext* ctx, PassContext& passCtx);
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
 
     void BeginFrame(PassContext& passCtx) noexcept;
-    void EndFrame(PassContext& passCtx) noexcept; 
+    void EndFrame(PassContext& passCtx) noexcept;
 
 }
 
@@ -190,7 +190,12 @@ namespace Passes {
 
     inline RenderPassDesc GBufferPassDesc = {
        .passTag = "GBuffer",
-	   .colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT },
+       .colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT },
+       .rtvNames = {
+        "rt0_albedo_ao",
+        "rt1_normal_rough",
+        "rt2_position_metallic",
+       },
        .depthFormat = DXGI_FORMAT_D32_FLOAT,
        .enableDepth = true,
        .enableBlend = false,
@@ -212,19 +217,19 @@ namespace Materials {
 }
 
 namespace GBuffer
-{ 
-    using ObjectCB = Mesh::ObjectCB; 
+{
+    using ObjectCB = Mesh::ObjectCB;
 
-	struct GPUResources : public Mesh::GPUResources{
+    struct GPUResources : public Mesh::GPUResources {
 
         //material CB:
-		SharedPtr<FRingBufferAllocator<Materials::PBRMaterialCB>> matCBAllocator;
-	};
+        SharedPtr<FRingBufferAllocator<Materials::PBRMaterialCB>> matCBAllocator;
+    };
 
-	struct PassContext {
-		Mesh::BuildData data;
-		GPUResources res;
-	};
+    struct PassContext {
+        Mesh::BuildData data;
+        GPUResources res;
+    };
 
     void Init(const RendererContext* ctx, PassContext& passCtx);
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;

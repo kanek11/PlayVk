@@ -7,9 +7,7 @@
 
 namespace Global {
 	static float lastUsedTime = std::numeric_limits<float>::max();
-}
-
-
+} 
 
 class ILevel {
 public:
@@ -75,8 +73,8 @@ public:
 public:
 
 	void GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount);
-	float roadWidth = 20;
-	float goalLength = 20;
+	float roadWidth = 10;
+	float goalLength = 500;
 
 	float timeCount{};
 };

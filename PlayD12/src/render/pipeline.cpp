@@ -3,7 +3,7 @@
 
 
 ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(
-    const MaterialDesc& mat, 
+    const MaterialDesc& mat,
     const RenderPassDesc& pass,
     const std::vector<D3D12_INPUT_ELEMENT_DESC> inputDesc
 ) {
@@ -39,18 +39,18 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(
     //psoDesc.pRootSignature = GetRootSignature(mat.shaderTag);
     assert(shaderPerm->GetRootSignature() != nullptr);
     psoDesc.pRootSignature = shaderPerm->GetRootSignature().Get();
- 
+
 
     psoDesc.InputLayout = { inputDesc.data(), static_cast<UINT>(inputDesc.size()) };
     psoDesc.PrimitiveTopologyType = pass.topology;
 
     // RenderTarget
-	assert(pass.colorFormats.size() <= 8);
-	psoDesc.NumRenderTargets = static_cast<UINT>(pass.colorFormats.size());
-	for (size_t i = 0; i < pass.colorFormats.size(); ++i) {
-		psoDesc.RTVFormats[i] = pass.colorFormats[i];
-	} 
-    
+    assert(pass.colorFormats.size() <= 8);
+    psoDesc.NumRenderTargets = static_cast<UINT>(pass.colorFormats.size());
+    for (size_t i = 0; i < pass.colorFormats.size(); ++i) {
+        psoDesc.RTVFormats[i] = pass.colorFormats[i];
+    }
+
     psoDesc.DSVFormat = pass.depthFormat;
     psoDesc.SampleDesc.Count = 1;
     psoDesc.SampleMask = UINT_MAX; // No multisampling

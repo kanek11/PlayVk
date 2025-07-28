@@ -13,12 +13,15 @@ GBufferOutput PSMain(VSOutput input)
     float3 worldTangent = input.WorldTangent;
 
     //
-    float3 normal_TS = normalMap.Sample(linearWrapSampler, input.UV).rgb ; 
-    normal_TS = UnpackRGB(normal_TS);
+    if (gMaterial.useNormalMap)
+    {
+        float3 normal_TS = normalMap.Sample(linearWrapSampler, input.UV).rgb;
+        normal_TS = DecodeRGB(normal_TS);
     
-    float3x3 TBN = BuildTBN(worldNormal, worldTangent, input.TangentSign);
-    worldNormal = TangentToWorld(TBN, normal_TS); 
-     
+        //normal_TS = float3(0.0f, 0.0f, 1.0f);
+        float3x3 TBN = BuildTBN(worldNormal, worldTangent, input.TangentSign);
+        worldNormal = TangentToWorld(TBN, normal_TS); 
+    } 
     
     // 
     float3 albedo = GetBaseColor(input.UV);
@@ -29,8 +32,11 @@ GBufferOutput PSMain(VSOutput input)
     
     // GBuffer packing:
     output.rt0_albedo_ao = float4(albedo, ao);
-    output.rt1_normal_rough = float4(worldNormal * 0.5f + 0.5f, roughness); // normal packed into [0,1]
-    output.rt2_metallic_misc = float4(metallic, 0.0f, 0.0f, 0.0f); 
+    output.rt1_normal_rough = float4(EncodeRGB(worldNormal), roughness); // normal packed into [0,1]
+ 
+    //output.rt1_normal_rough = float4(EncodeRGB(input.WorldNormal), roughness); // normal packed into [0,1]
+    //output.rt1_normal_rough = float4(EncodeRGB(input.WorldTangent), roughness); // normal packed into [0,1]
+    output.rt2_position_metallic = float4(input.WorldPos, metallic);
 
     return output;
 }

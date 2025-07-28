@@ -45,7 +45,7 @@ SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mes
 )
 {
     auto ctx = Render::rendererContext;
-    if (ctx) { 
+    if (ctx) {
         mesh->CreateGPUResource(ctx->device);
     }
 
@@ -242,4 +242,5 @@ void FollowCameraProxy::Tick(float delta)
     );
 
     this->pvMatrix = MatrixMultiply(proj_, view_);
+    this->position = eyePos;
 }

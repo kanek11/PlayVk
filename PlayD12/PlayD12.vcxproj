@@ -80,6 +80,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(projectDir);$(projectDir)\src;</AdditionalIncludeDirectories>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -99,6 +101,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(projectDir);$(projectDir)\src;</AdditionalIncludeDirectories>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -118,6 +122,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(projectDir);$(projectDir)\src;</AdditionalIncludeDirectories>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -137,6 +143,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>PCH.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(projectDir);$(projectDir)\src;</AdditionalIncludeDirectories>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\Asset.h" />
     <ClInclude Include="src\Base.h" />
     <ClInclude Include="src\Controller.h" />
     <ClInclude Include="src\Delegate.h" />
@@ -180,6 +189,7 @@
     <ClInclude Include="src\render\Material.h" />
     <ClInclude Include="src\render\Mesh.h" />
     <ClInclude Include="src\PCH.h" />
+    <ClInclude Include="src\render\PostPass.h" />
     <ClInclude Include="src\render\Samplers.h" />
     <ClInclude Include="src\render\pipeline.h" />
     <ClInclude Include="src\render\Renderer.h" />
@@ -198,6 +208,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\Asset.cpp" />
     <ClCompile Include="src\Controller.cpp" />
     <ClCompile Include="src\Entry.cpp" />
     <ClCompile Include="src\Gameplay\Actor.cpp" />
@@ -216,6 +227,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\render\PostPass.cpp" />
     <ClCompile Include="src\render\UIPass.cpp" />
     <ClCompile Include="src\render\pipeline.cpp" />
     <ClCompile Include="src\render\Renderer.cpp" />
@@ -245,8 +257,10 @@
     <None Include="shaders\Common\VertexLayouts.hlsli" />
     <None Include="shaders\PBR\BRDF.hlsli" />
     <None Include="shaders\PBR\IBL.hlsli" />
+    <None Include="shaders\PBR\Lighting.hlsli" />
     <None Include="shaders\PBR\PBR_Material.hlsli" />
     <None Include="shaders\PBR\GBuffer_Common.hlsli" />
+    <None Include="shaders\PBR\PBR_Shading_Common.hlsli" />
     <None Include="shaders\PBR\Shadow.hlsli" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

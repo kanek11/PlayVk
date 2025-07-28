@@ -2,27 +2,14 @@
 #include "Text.h"
 
 #include "Loader.h"
-  
-bool FontAtlas::LoadTexture(const std::string& filePath)
-{
-    if (auto texData = Loader::LoadTextureDX(filePath); texData.has_value())
-    {
-        this->imageData = texData;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
 
-
-}
 
 void FontAtlas::LoadGridAtlas(
     float cellWidth, float cellHeight,
     size_t columns, size_t rows)
 {
 
+    assert(texture!=nullptr);
     auto texDesc = texture->GetDesc();
     auto texWidth = texDesc.width;
     auto texHeight = texDesc.height;

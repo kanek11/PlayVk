@@ -3,11 +3,11 @@
 
 #include "Renderer.h"
 
+
+
 FMaterialProxy::FMaterialProxy()
 {
 	auto& graphContext = Render::graphContext;
 
-	textures.insert(
-		{ std::string("baseColorMap"), graphContext->fallBackTexture }
-	);
+	textures.insert( { "baseColorMap", "Checkerboard" } );
 }
