@@ -80,9 +80,10 @@ void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
 
         shader = ctx->shaderManager->GetOrLoad(key);
 
-        shader->SetStaticSampler("baseMapSampler", Samplers::LinearWrap(0));
-        shader->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1));
-        shader->CreateRootSignature();
+        //shader->SetStaticSampler("baseMapSampler", Samplers::LinearWrap(0));
+        //shader->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1));
+        //shader->AutoSetSamplers();
+        //shader->CreateRootSignature();
 
         passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap(MaxStaticMesh);
 
@@ -116,8 +117,7 @@ void Lit::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& 
 }
 
 void Lit::BeginFrame(PassContext& passCtx) noexcept
-{
-
+{ 
     auto& frameCtx = Render::frameContext;
     auto& graphCtx = Render::graphContext;
 
@@ -147,6 +147,7 @@ void Lit::BeginFrame(PassContext& passCtx) noexcept
         {
             .modelMatrix = proxy.modelMatrix,
             .normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
+ 
         };
         auto cbView = cbAllocator->Upload(&cb);
         shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);
@@ -222,7 +223,7 @@ void Shadow::Init(const RendererContext* ctx, PassContext& passCtx)
        .passTag = "Shadow", };
 
         shader = ctx->shaderManager->GetOrLoad(key);
-        shader->CreateRootSignature();
+        //shader->CreateRootSignature();
 
         passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap(MaxStaticMesh);
     }
@@ -338,8 +339,9 @@ void GBuffer::Init(const RendererContext* ctx, PassContext& passCtx)
 
         shader = ctx->shaderManager->GetOrLoad(key);
 
-        shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap(0)); 
-        shader->CreateRootSignature();
+        //shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap(0)); 
+        //shader->AutoSetSamplers();
+        //shader->CreateRootSignature();
 
         passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap(MaxStaticMesh);
 

@@ -107,6 +107,31 @@ namespace MMath {
 		return matrix;
 	}
 
+	inline Float4x4 InverseLookToLH(
+		Float3 EyePosition,
+		Float3 EyeDirection,
+		Float3 UpDirection
+	)
+	{
+		Float3 forward = Normalize(EyeDirection); 
+		Float3 right_N = Vector3Cross(UpDirection, forward);
+		right_N = Normalize(right_N); 
+		Float3 up_N = Vector3Cross(forward, right_N);
+		 
+		Float4x4 inv = MatrixIdentity<float, 4>();
+		//3x3 is transpose,  translation is minus:
+		inv[0] = { right_N.x(), up_N.x(), forward.x(), EyePosition.x() };
+		inv[1] = { right_N.y(), up_N.y(), forward.y(), EyePosition.y() };
+		inv[2] = { right_N.z(), up_N.z(), forward.z(), EyePosition.z() };
+		inv[3] = { 0.0f, 0.0f, 0.0f, 1.0f };        
+
+
+		inv = Transpose(inv); 
+
+		return inv;
+	}
+
+
 
 	inline Float4x4 LookAtLH
 	(
@@ -121,6 +146,17 @@ namespace MMath {
 		return  LookToLH(EyePosition, forward, UpDirection);
 	}
 
+
+	inline Float4x4 InverseLookAtLH(
+		Float3 EyePosition,
+		Float3 TargetPosition,
+		Float3 UpDirection
+	)
+	{
+		// Calculate the forward vector (looking direction)
+		Float3 forward = Normalize(TargetPosition - EyePosition);
+		return InverseLookToLH(EyePosition, forward, UpDirection);
+	}
 
 	inline Float4x4 PerspectiveFovLH
 	(
@@ -139,9 +175,31 @@ namespace MMath {
 		perspectiveMatrix[2] = {0.0f,0.0f,farZ / (farZ - nearZ), 1.0 };
 		perspectiveMatrix[3] = {0.0f,0.0f, -(nearZ * farZ) / (farZ - nearZ),0.0f };
 
-		return perspectiveMatrix;
-
+		return perspectiveMatrix; 
 	}
+	 
+	inline Float4x4 InversePerspectiveFovLH(
+		float fovAngleY,
+		float aspectRatio,
+		float nearZ,
+		float farZ
+	)
+	{
+		Float4x4 inv = MatrixIdentity<float, 4>();
+		float yScale = 1.0f / tanf(fovAngleY * 0.5f);
+		float xScale = yScale / aspectRatio;
+		float A = farZ / (farZ - nearZ);
+		float B = -(nearZ * farZ) / (farZ - nearZ);
+		 
+		inv[0] = { 1.0f / xScale, 0.0f,     0.0f,      0.0f };
+		inv[1] = { 0.0f, 1.0f / yScale,     0.0f,      0.0f };
+		inv[2] = { 0.0f, 0.0f,              0.0f,      1.0f / B};
+		inv[3] = { 0.0f, 0.0f,              1.0f,      -A / B };
+		 
+
+		return inv;
+	}
+
 
 
 	inline Float4x4 OrthographicOffCenterLH(
@@ -214,6 +272,139 @@ namespace MMath {
 
 		return inv;
 	}
+	 
+	inline Float4x4 Inverse4x4(const Float4x4& m)
+	{
+		Float4x4 inv;
+		float* invOut = reinterpret_cast<float*>(&inv);
+		const float* mat = reinterpret_cast<const float*>(&m);
+
+		invOut[0] = mat[5] * mat[10] * mat[15] -
+			mat[5] * mat[11] * mat[14] -
+			mat[9] * mat[6] * mat[15] +
+			mat[9] * mat[7] * mat[14] +
+			mat[13] * mat[6] * mat[11] -
+			mat[13] * mat[7] * mat[10];
+
+		invOut[4] = -mat[4] * mat[10] * mat[15] +
+			mat[4] * mat[11] * mat[14] +
+			mat[8] * mat[6] * mat[15] -
+			mat[8] * mat[7] * mat[14] -
+			mat[12] * mat[6] * mat[11] +
+			mat[12] * mat[7] * mat[10];
+
+		invOut[8] = mat[4] * mat[9] * mat[15] -
+			mat[4] * mat[11] * mat[13] -
+			mat[8] * mat[5] * mat[15] +
+			mat[8] * mat[7] * mat[13] +
+			mat[12] * mat[5] * mat[11] -
+			mat[12] * mat[7] * mat[9];
+
+		invOut[12] = -mat[4] * mat[9] * mat[14] +
+			mat[4] * mat[10] * mat[13] +
+			mat[8] * mat[5] * mat[14] -
+			mat[8] * mat[6] * mat[13] -
+			mat[12] * mat[5] * mat[10] +
+			mat[12] * mat[6] * mat[9];
+
+		invOut[1] = -mat[1] * mat[10] * mat[15] +
+			mat[1] * mat[11] * mat[14] +
+			mat[9] * mat[2] * mat[15] -
+			mat[9] * mat[3] * mat[14] -
+			mat[13] * mat[2] * mat[11] +
+			mat[13] * mat[3] * mat[10];
+
+		invOut[5] = mat[0] * mat[10] * mat[15] -
+			mat[0] * mat[11] * mat[14] -
+			mat[8] * mat[2] * mat[15] +
+			mat[8] * mat[3] * mat[14] +
+			mat[12] * mat[2] * mat[11] -
+			mat[12] * mat[3] * mat[10];
+
+		invOut[9] = -mat[0] * mat[9] * mat[15] +
+			mat[0] * mat[11] * mat[13] +
+			mat[8] * mat[1] * mat[15] -
+			mat[8] * mat[3] * mat[13] -
+			mat[12] * mat[1] * mat[11] +
+			mat[12] * mat[3] * mat[9];
+
+		invOut[13] = mat[0] * mat[9] * mat[14] -
+			mat[0] * mat[10] * mat[13] -
+			mat[8] * mat[1] * mat[14] +
+			mat[8] * mat[2] * mat[13] +
+			mat[12] * mat[1] * mat[10] -
+			mat[12] * mat[2] * mat[9];
+
+		invOut[2] = mat[1] * mat[6] * mat[15] -
+			mat[1] * mat[7] * mat[14] -
+			mat[5] * mat[2] * mat[15] +
+			mat[5] * mat[3] * mat[14] +
+			mat[13] * mat[2] * mat[7] -
+			mat[13] * mat[3] * mat[6];
+
+		invOut[6] = -mat[0] * mat[6] * mat[15] +
+			mat[0] * mat[7] * mat[14] +
+			mat[4] * mat[2] * mat[15] -
+			mat[4] * mat[3] * mat[14] -
+			mat[12] * mat[2] * mat[7] +
+			mat[12] * mat[3] * mat[6];
+
+		invOut[10] = mat[0] * mat[5] * mat[15] -
+			mat[0] * mat[7] * mat[13] -
+			mat[4] * mat[1] * mat[15] +
+			mat[4] * mat[3] * mat[13] +
+			mat[12] * mat[1] * mat[7] -
+			mat[12] * mat[3] * mat[5];
+
+		invOut[14] = -mat[0] * mat[5] * mat[14] +
+			mat[0] * mat[6] * mat[13] +
+			mat[4] * mat[1] * mat[14] -
+			mat[4] * mat[2] * mat[13] -
+			mat[12] * mat[1] * mat[6] +
+			mat[12] * mat[2] * mat[5];
+
+		invOut[3] = -mat[1] * mat[6] * mat[11] +
+			mat[1] * mat[7] * mat[10] +
+			mat[5] * mat[2] * mat[11] -
+			mat[5] * mat[3] * mat[10] -
+			mat[9] * mat[2] * mat[7] +
+			mat[9] * mat[3] * mat[6];
+
+		invOut[7] = mat[0] * mat[6] * mat[11] -
+			mat[0] * mat[7] * mat[10] -
+			mat[4] * mat[2] * mat[11] +
+			mat[4] * mat[3] * mat[10] +
+			mat[8] * mat[2] * mat[7] -
+			mat[8] * mat[3] * mat[6];
+
+		invOut[11] = -mat[0] * mat[5] * mat[11] +
+			mat[0] * mat[7] * mat[9] +
+			mat[4] * mat[1] * mat[11] -
+			mat[4] * mat[3] * mat[9] -
+			mat[8] * mat[1] * mat[7] +
+			mat[8] * mat[3] * mat[5];
+
+		invOut[15] = mat[0] * mat[5] * mat[10] -
+			mat[0] * mat[6] * mat[9] -
+			mat[4] * mat[1] * mat[10] +
+			mat[4] * mat[2] * mat[9] +
+			mat[8] * mat[1] * mat[6] -
+			mat[8] * mat[2] * mat[5];
+
+		float det = mat[0] * invOut[0] + mat[1] * invOut[4] + mat[2] * invOut[8] + mat[3] * invOut[12];
+
+		if (det == 0.0f) {
+			std::cerr << "Matrix is singular, cannot invert!" << std::endl;
+			return Float4x4{}; 
+		}
+
+		det = 1.0f / det;
+		for (int i = 0; i < 16; ++i)
+			invOut[i] *= det;
+
+		return inv;
+	}
+
 
 
 	inline Float3x3 ToFloat3x3(const Float4x4& mat) {

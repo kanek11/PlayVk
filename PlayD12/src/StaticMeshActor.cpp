@@ -165,17 +165,17 @@ void FCameraProxy::Tick(float delta)
     constexpr float speedDivisor = 50.0f; // Increase this number to slow it down
     float angle = static_cast<float>((GetTickCount64() / static_cast<ULONGLONG>(speedDivisor)) % 360) * MMath::PI / 180.0f;
 
-    //float eyePosX = cos(angle) * viewRadius;
-    //float eyePosY = viewRadius * 0.3;
-    //float eyePosZ = sin(angle) * viewRadius;
+    float eyePosX = cos(angle) * viewRadius;
+    float eyePosY = viewRadius * 0.3;
+    float eyePosZ = sin(angle) * viewRadius;
 
     //float eyePosX = -viewRadius * 0.3;
     //float eyePosY = viewRadius * 0.2;
     //float eyePosZ = -viewRadius * 0.3;
 
-    float eyePosX = -1.0f;
-    float eyePosY = 5.0f;
-    float eyePosZ = -10.0;
+    //float eyePosX = -1.0f;
+    //float eyePosY = 5.0f;
+    //float eyePosZ = -10.0;
 
     //Create view and projection matrices
    //LH = left-handed coordinate system
@@ -199,21 +199,29 @@ void FCameraProxy::Tick(float delta)
         0.1f,
         1000.0f
     );
+      
+    auto invView_ = MMath::InverseLookAtLH
+    (
+        { eyePosX, eyePosY, eyePosZ }, // Eye
+        { 0.0f, 0.0f, 0.0f },          // At
+        { 0.0f, 1.0f, 0.0f }           // Up
+    );
+     
 
-    //XMMATRIX vp = XMMatrixMultiply(view, proj);
+    auto invProj_ = MMath::InversePerspectiveFovLH(
+        MMath::ToRadians(45.0f),
+        aspectRatio,
+        0.1f,
+        1000.0f
+    );
 
-    //std::cout << "expected view: " << MMath::XMMatrixToString(view) << std::endl;
-    //std::cout << "expected projection: " << MMath::XMMatrixToString(proj) << std::endl;
-    //std::cout << "expected vp: " << MMath::XMMatrixToString(vp) << std::endl;
-
-    //make sure transpose before present to hlsl;
-    //dummyCamera.pvMatrix = Transpose(MatrixMultiply(proj_, view_));
     this->pvMatrix = MatrixMultiply(proj_, view_);
-    //auto vp = MatrixMultiply(view, proj); 
+    this->invViewMatrix = invView_;
+    this->invProjMatrix = invProj_;
+	this->position = { eyePosX, eyePosY, eyePosZ };
 
-    //std::cout << "view matrix: " << ToString(view_) << std::endl;
-    //std::cout << "projection matrix: " << ToString(proj_) << std::endl; 
-    //std::cout << "pv matrix: " << ToString(dummyCamera.pvMatrix) << std::endl;
+    //std::cout << "view matrix:\n " << MMath::ToString(view_) << std::endl;
+    //std::cout << "inv view matrix:\n " << MMath::ToString(invView_) << std::endl;
 }
 
 void FollowCameraProxy::Tick(float delta)
@@ -232,6 +240,14 @@ void FollowCameraProxy::Tick(float delta)
         { 0.0f, 1.0f, 0.0f }           // Up
     );
 
+	auto invView_ = MMath::InverseLookAtLH
+	(
+		eyePos, // Eye
+		targetPos,          // At
+		{ 0.0f, 1.0f, 0.0f }           // Up
+	);
+
+
     float aspectRatio = GameApplication::GetInstance()->getAspectRatio();
 
     auto proj_ = MMath::PerspectiveFovLH(
@@ -241,6 +257,24 @@ void FollowCameraProxy::Tick(float delta)
         1000.0f
     );
 
-    this->pvMatrix = MatrixMultiply(proj_, view_);
+	auto invProj_ =   MMath::InversePerspectiveFovLH(
+        MMath::ToRadians(45.0f),
+        aspectRatio,
+        0.1f,
+        1000.0f
+    );
+
+    this->pvMatrix = MatrixMultiply(proj_, view_); 
+    this->invViewMatrix = invView_;
+	this->invProjMatrix = invProj_; 
     this->position = eyePos;
+
+	//std::cout << "view matrix:\n " << MMath::ToString(view_) << std::endl;
+	//std::cout << "inv view matrix:\n " << MMath::ToString(invView_) << std::endl;  
+ //   //std::cout << "inv view matrix ref:\n " << MMath::ToString(MMath::Inverse4x4(view_)) << std::endl;
+
+	//std::cout << "projection matrix:\n " << MMath::ToString(proj_) << std::endl;
+	//std::cout << "inv proj matrix:\n " << MMath::ToString(invProj_) << std::endl;
+	//std::cout << "inv proj ref:\n " << MMath::ToString(MMath::Inverse4x4(proj_)) << std::endl;
 }
+

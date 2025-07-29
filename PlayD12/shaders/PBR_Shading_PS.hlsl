@@ -7,6 +7,10 @@
 
 #include "PBR/Shadow.hlsli"
 
+
+TextureCube skybox : register(t1, space0);
+
+
 struct VSOutput
 {
     float4 position : SV_POSITION;
@@ -59,7 +63,7 @@ float4 PSMain(VSOutput input) : SV_Target0
         float3 L = normalize(light.direction);
         float3 H = normalize(V + L);
 
-        float NdotL = NdotLClamp(N, L);
+        float NdotL = saturate(dot(N, L));
         if (NdotL <= 0.0f)
             continue;
 
@@ -83,7 +87,20 @@ float4 PSMain(VSOutput input) : SV_Target0
     float3 color = ambient;
     if(!inShadow)
         color += Lo;
+    
+    //UVToViewDir(uv);
+    //float3 worldDir = normalize(-worldPos);
+    float viewDepth = ds_viewDepth.Sample(linearWrapSampler, uv).r;
+    if(viewDepth > 0.9999f)
+    { 
+        float3 worldDir = UVToViewDir(uv);
+        float4 skyboxColor = skybox.Sample(linearWrapSampler, worldDir);
+        color = skyboxColor.rgb;
+    }
 
+    //color = skyboxColor.xyz;
+    //color = worldDir;
+    //color = float3(uv.x, uv.y, 0.0f);
     //Simple ACES approx tonemap + gamma 
     //color = pow(color / (color + 1.0f), 1.0f / 2.2f);
 

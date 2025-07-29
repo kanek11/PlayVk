@@ -16,9 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="legacy\SamplerSample.hlsl" />
-    <FxCompile Include="shaders\PBR\Irradiance.hlsl" />
-    <FxCompile Include="shaders\PBR\Prefilter.hlsl" />
-    <FxCompile Include="shaders\PBR\BRDF_LUT.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Window.h">
@@ -147,6 +144,9 @@
     <ClInclude Include="src\Asset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\render\Probe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp">
@@ -230,6 +230,9 @@
     <ClCompile Include="src\Asset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\render\Probe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="legacy.txt" />
@@ -253,5 +256,6 @@
     <None Include="shaders\Common\Permutation.hlsli" />
     <None Include="shaders\PBR\PBR_Shading_Common.hlsli" />
     <None Include="shaders\PBR\Lighting.hlsli" />
+    <None Include="shaders\PBR\Skybox.hlsli" />
   </ItemGroup>
 </Project>

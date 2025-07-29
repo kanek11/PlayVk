@@ -53,7 +53,7 @@ struct FQuadDesc {
 
 };
 //Screen space;
-namespace SS { 
+namespace SS {
 
     struct Vertex {
         Float2 position;
@@ -108,11 +108,11 @@ namespace SS {
         ComPtr<ID3D12PipelineState> pso;
 
         std::optional<uint32_t> baseHeapOffset = 0;
-    }; 
+    };
 
 }
- 
-namespace UI { 
+
+namespace UI {
 
     using Vertex = SS::Vertex;
     using DrawCmd = SS::DrawCmd;
@@ -129,12 +129,12 @@ namespace UI {
     };
     static_assert(sizeof(UISettingsCB) % 256 == 0, "CB must be 256-byte aligned");
 
-     
+
     struct UIPassContext {
         BuildData data;
         GPUResources res;
-         
-        SharedPtr<FontAtlas> font;  
+
+        SharedPtr<FontAtlas> font;
         SharedPtr<FRingBufferAllocator<UISettingsCB>> cbAllocator;
     };
 

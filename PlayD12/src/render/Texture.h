@@ -6,6 +6,13 @@
 #include "Samplers.h"
 
 
+enum class ETextureType
+{
+    Texture2D,
+    TextureCube,
+    Texture2DArray,
+};
+
 
 enum class ETextureUsage : uint32_t {
     Undefined = 0,
@@ -18,7 +25,7 @@ enum class ETextureUsage : uint32_t {
     Present = 1 << 6,
     ResolveSrc = 1 << 7,
     ResolveDest = 1 << 8,
-    DepthRead = 1 << 9, 
+    DepthRead = 1 << 9,
 };
 
 inline ETextureUsage operator|(ETextureUsage a, ETextureUsage b) {
@@ -32,7 +39,7 @@ inline D3D12_RESOURCE_FLAGS GetResourceFlags(ETextureUsage usage) {
     if (usage & ETextureUsage::RenderTarget) flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     if (usage & ETextureUsage::DepthStencil) flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     if (usage & ETextureUsage::UnorderedAccess) flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	// SRV / Present doent require special flags, as they are just views on the resource.
+    // SRV / Present doent require special flags, as they are just views on the resource.
     return flags;
 }
 
@@ -48,7 +55,7 @@ inline D3D12_RESOURCE_STATES GetInitialResourceState(ETextureUsage usage) {
     if (usage & ETextureUsage::DepthRead)      return D3D12_RESOURCE_STATE_DEPTH_READ;
     if (usage & ETextureUsage::ShaderResource) return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     return D3D12_RESOURCE_STATE_COMMON;
-} 
+}
 
 struct FTextureDesc {
     UINT width, height;
@@ -57,8 +64,11 @@ struct FTextureDesc {
     std::optional<DXGI_FORMAT> srvFormat{};
 
     ETextureUsage usages; 
-    //ETextureUsage initUsage = ETextureUsage::ShaderResource; 
-    // mip, array size, etc.
+    // mip, array size, etc. 
+    UINT mipLevels = 1;
+
+    ETextureType type = ETextureType::Texture2D;
+    UINT arraySize = 1;
 };
 
 class FD3D12Texture {
@@ -66,9 +76,15 @@ public:
     FD3D12Texture(ID3D12Device* device, const FTextureDesc& desc);
 
     //new: for swapchain backbuffer
-	FD3D12Texture(ID3D12Device* device, ComPtr<ID3D12Resource>, const FTextureDesc& desc);
+   // FD3D12Texture(ID3D12Device* device, ComPtr<ID3D12Resource>, const FTextureDesc& desc);
 
-    void UploadFromCPU(ID3D12GraphicsCommandList* cmd, const void* data, size_t rowPitch, size_t slicePitch);
+    void UploadFromCPU(ID3D12GraphicsCommandList* cmd, 
+        const void* data, 
+        size_t rowPitch, 
+        size_t slicePitch,
+        UINT sliceIndex = 0,
+        UINT sliceNum = 1
+    );
 
     ID3D12Resource* GetRawResource() const
     {
@@ -88,7 +104,7 @@ public:
 private:
     ComPtr<ID3D12Resource> m_resource;
     FTextureDesc m_desc;
-	D3D12_RESOURCE_STATES m_initialState = D3D12_RESOURCE_STATE_COMMON;  
+    D3D12_RESOURCE_STATES m_initialState = D3D12_RESOURCE_STATE_COMMON;
 
     //device:
     ID3D12Device* m_device = nullptr;
@@ -101,3 +117,14 @@ private:
 //{
 //	return CreateShared<FD3D12Texture>(device, desc);
 //}
+
+namespace TexUtils {
+
+    inline FTextureDesc CreateCubeTextureDesc() {
+        FTextureDesc desc = {};
+        desc.type = ETextureType::TextureCube;
+        desc.arraySize = 6;  
+        return desc;
+    }
+
+}

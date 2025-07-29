@@ -67,8 +67,8 @@ private:
 	std::vector < SharedPtr<UIButton>> m_HUDs;
 
 public:
-	//CameraProxy* dummyCamera = new CameraProxy();
-	FollowCameraProxy* dummyCamera;
+	FCameraProxy* dummyCamera = new FCameraProxy();
+	//FollowCameraProxy* dummyCamera = new FollowCameraProxy();
 
 public:
 

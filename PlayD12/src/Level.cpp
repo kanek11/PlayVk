@@ -88,17 +88,17 @@ void GamePlayWorld::OnLoad()
 
     //------------------------- 
     auto& sphereMat = debugSphereProxy->material;
-    //sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png"; 
-    //sphereMat->textures["normalMap"]    = "rusty_metal_04_nor_dx_1k.png"; 
-    //sphereMat->textures["metallicMap"]  = "rusty_metal_04_metal_1k.png"; 
-    //sphereMat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png"; 
-    //sphereMat->textures["AOMap"]        = "rusty_metal_04_ao_1k.png"; 
+    sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png"; 
+    sphereMat->textures["normalMap"]    = "rusty_metal_04_nor_dx_1k.png"; 
+    sphereMat->textures["metallicMap"]  = "rusty_metal_04_metal_1k.png"; 
+    sphereMat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png"; 
+    sphereMat->textures["AOMap"]        = "rusty_metal_04_ao_1k.png"; 
 
-    //sphereMat->materialCB.useBaseColorMap = true;
-    //sphereMat->materialCB.useNormalMap = true;
-    //sphereMat->materialCB.useMetallicMap = true;
-    //sphereMat->materialCB.useRoughnessMap = true;
-    //sphereMat->materialCB.useAOMap = true;
+    sphereMat->materialCB.useBaseColorMap = true;
+    sphereMat->materialCB.useNormalMap = true;
+    sphereMat->materialCB.useMetallicMap = true;
+    sphereMat->materialCB.useRoughnessMap = true;
+    sphereMat->materialCB.useAOMap = true;
 
     //------------------------- 
     auto debugCubeProxy = CreateBoxActor({ 3.0f, 3.0f,-3.0f }, { 1.0f, 1.0f, 1.0f });
@@ -142,10 +142,8 @@ void GamePlayWorld::OnLoad()
     m_staticMeshActors.push_back(debugSphereProxy);
     m_staticMeshActors.push_back(planeProxy);
     m_staticMeshActors.push_back(debugCubeProxy);
-
-    //
-    dummyCamera = new FollowCameraProxy();
-    dummyCamera->target = debugPlayer;
+     
+    //dummyCamera->target = debugPlayer; 
 
     renderer->SubmitCamera(dummyCamera);
 

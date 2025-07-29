@@ -2,12 +2,12 @@
 #include "Shader.h"
 
 #include "Application.h"
- 
+
 
 void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 {
 	assert(m_shaderBlob != nullptr);
- 
+
 
 	ComPtr<ID3D12ShaderReflection> reflection;
 	DxcBuffer dxcBuffer = {};
@@ -26,30 +26,30 @@ void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 	D3D12_SHADER_DESC shaderDesc{};
 	reflection->GetDesc(&shaderDesc);
 
-	switch (shaderDesc.Version >> 16) 
-    {
+	switch (shaderDesc.Version >> 16)
+	{
 	case D3D12_SHVER_VERTEX_SHADER: {
 		this->shaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-		std::cout << "shader visibility : VERTEX" << std::endl; 
+		std::cout << "shader visibility : VERTEX" << std::endl;
 		break;
 	}
 	case D3D12_SHVER_PIXEL_SHADER: {
 		this->shaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-		std::cout << "shader visibility : PIXEL" << std::endl;  
+		std::cout << "shader visibility : PIXEL" << std::endl;
 		break;
 	}
 	case D3D12_SHVER_COMPUTE_SHADER: {
 		this->shaderVisibility = D3D12_SHADER_VISIBILITY_ALL; //CS does not define stages;
-		std::cout << "shader visibility : COMPUTE" << std::endl; 
+		std::cout << "shader visibility : COMPUTE" << std::endl;
 		break;
 	}
-		 
+
 	default: {
 		std::cerr << "Unknown shader type, version: " << shaderDesc.Version << std::endl;
 		return; // or throw an exception
 		break;
 	}
-								  
+
 	}
 
 
@@ -120,15 +120,15 @@ void FD3D12ShaderModule::Reflect(IDxcUtils* utils)
 		}
 
 	}
-	 
+
 	std::cout << " Shader Reflection Result:" << std::endl;
 	std::cout << " Input Parameters: " << inputParameterMap.size() << std::endl;
 	std::cout << " SRV number: " << this->parameterMap.srvMap.size() << std::endl;
 	std::cout << " CBV number: " << this->parameterMap.cbvMap.size() << std::endl;
 	std::cout << " UAV number: " << this->parameterMap.uavMap.size() << std::endl;
 	std::cout << " Sampler number: " << this->parameterMap.samplerMap.size() << std::endl;
-	 
-} 
+
+}
 
 
 void FD3D12ShaderPermutation::ReflectRootSignatureLayout(IDxcUtils* dxcUtils)
@@ -148,16 +148,29 @@ void FD3D12ShaderPermutation::ReflectRootSignatureLayout(IDxcUtils* dxcUtils)
 
 
 	auto& sceneRanges = this->resourceLayout.sceneRanges;
-	auto& objectRanges = this->resourceLayout.objectRanges; 
+	auto& objectRanges = this->resourceLayout.objectRanges;
 	auto& tableLayout = this->resourceLayout.tableLayout;
+	auto& samplers = this->resourceLayout.samplerBindings;
 
 	//populate the resource layout by the parameter map: 
 
 	UINT localOffset = 0;
 	using ResourceMap = std::unordered_map<std::string, D3D12_SHADER_INPUT_BIND_DESC>;
 	using ResourceBindings = std::unordered_map<std::string, ResourceBinding>;
-	auto reflectResType = [&](const ResourceMap& map, ResourceBindings& binding,  D3D12_DESCRIPTOR_RANGE_TYPE rangeType, EShaderStage stage) {
+	auto reflectResType = [&](const ResourceMap& map, ResourceBindings& binding, D3D12_DESCRIPTOR_RANGE_TYPE rangeType, EShaderStage stage) {
 		for (const auto& [name, bind] : map) {
+
+			if (rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER) {
+				ResourceBinding bindInfo{};
+				bindInfo.bindPoint = bind.BindPoint;
+				if (stage == EShaderStage::VERTEX) bindInfo.visibleVS = true;
+				if (stage == EShaderStage::PIXEL) bindInfo.visiblePS = true;
+				binding[name] = bindInfo;
+				//std::cout << "layout: add sampler: " << name << "\n";
+				continue;
+			}
+
+
 			auto scope = InferScope(name, bind.BindPoint);
 			switch (scope) {
 			case ResourceScope::Scene:
@@ -180,7 +193,7 @@ void FD3D12ShaderPermutation::ReflectRootSignatureLayout(IDxcUtils* dxcUtils)
 					continue;
 				}
 				else
-				{ 
+				{
 					objectRanges.push_back(CD3DX12_DESCRIPTOR_RANGE1(
 						rangeType, 1, bind.BindPoint, bind.Space,
 						D3D12_DESCRIPTOR_RANGE_FLAG_NONE,
@@ -190,11 +203,12 @@ void FD3D12ShaderPermutation::ReflectRootSignatureLayout(IDxcUtils* dxcUtils)
 
 					ResourceBinding bindInfo{};
 					bindInfo.localOffset = localOffset;
+					bindInfo.bindPoint = bind.BindPoint;
 					if (stage == EShaderStage::VERTEX) bindInfo.visibleVS = true;
-					if (stage == EShaderStage::PIXEL) bindInfo.visiblePS = true; 
+					if (stage == EShaderStage::PIXEL) bindInfo.visiblePS = true;
 					binding[name] = bindInfo;
 
-					localOffset += 1; 
+					localOffset += 1;
 				}
 
 				break;
@@ -220,25 +234,27 @@ void FD3D12ShaderPermutation::ReflectRootSignatureLayout(IDxcUtils* dxcUtils)
 
 	for (auto& [stage, shader] : stages) {
 		const auto& parms = shader->parameterMap;
+		reflectResType(parms.cbvMap, tableLayout.CBVBindings, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, stage); 
 		reflectResType(parms.srvMap, tableLayout.SRVBindings, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, stage);
-		reflectResType(parms.cbvMap, tableLayout.CBVBindings, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, stage);
 		reflectResType(parms.uavMap, tableLayout.UAVBindings, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, stage);
-	} 
+		reflectResType(parms.samplerMap, samplers, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, stage);
+	}
 
 
 	tableLayout.tableSize = localOffset;
 
 	std::cout << "Resource Layout Result:" << std::endl;
 	std::cout << "Scene Ranges: " << sceneRanges.size() << std::endl;
-	std::cout << "Object Ranges: " << objectRanges.size() << std::endl; 
+	std::cout << "Object Ranges: " << objectRanges.size() << std::endl;
 	std::cout << "table size: " << tableLayout.tableSize << std::endl;
 
 	std::cout << "CBV Bindings: " << tableLayout.CBVBindings.size() << std::endl;
 	std::cout << "SRV Bindings: " << tableLayout.SRVBindings.size() << std::endl;
 	std::cout << "UAV Bindings: " << tableLayout.UAVBindings.size() << std::endl;
-	 
+	std::cout << "Sampler Bindings: " << samplers.size() << std::endl;
+
 }
- 
+
 void FD3D12ShaderPermutation::CreateRootSignature()
 {
 	//convention: 
@@ -250,7 +266,13 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 	{
 		auto expectedSamplerCount = m_pixelShader->parameterMap.samplerMap.size();
 		assert(m_staticSamplers.size() == expectedSamplerCount);
-	}  
+	}
+
+	if (m_computeShader)
+	{
+		auto expectedSamplerCount = m_computeShader->parameterMap.samplerMap.size();
+		assert(m_staticSamplers.size() == expectedSamplerCount);
+	}
 
 
 	auto& objectRanges = this->resourceLayout.objectRanges;
@@ -267,7 +289,7 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 	}
 
 	// Create the root signature descriptor
-	std::vector<D3D12_ROOT_PARAMETER1> rootParameters_; 
+	std::vector<D3D12_ROOT_PARAMETER1> rootParameters_;
 
 	if (!sceneRanges.empty())
 	{
@@ -277,7 +299,7 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 		rootParameters_.push_back(sceneParam);
 		rootIndexMap[ResourceScope::Scene] = static_cast<UINT>(rootParameters_.size() - 1);
 	}
-	
+
 	if (!objectRanges.empty())
 	{
 		// Object ranges as root descriptor table
@@ -286,7 +308,7 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 		rootParameters_.push_back(objectParam);
 		rootIndexMap[ResourceScope::Object] = static_cast<UINT>(rootParameters_.size() - 1);
 	}
-	 
+
 
 	// Allow input layout and deny unnecessary access to certain pipeline stages.
 	D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
@@ -296,7 +318,7 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
 
-	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc; 
+	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 	rootSignatureDesc.Init_1_1(
 		static_cast<UINT>(rootParameters_.size()),
 		rootParameters_.data(),
@@ -308,42 +330,70 @@ void FD3D12ShaderPermutation::CreateRootSignature()
 	ComPtr<ID3DBlob> error;
 	ThrowIfFailed(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, featureData.HighestVersion, &signature, &error));
 	ThrowIfFailed(m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf())));
-	  
 
+
+}
+
+
+
+void FD3D12ShaderPermutation::AutoSetSamplers()
+{
+	auto& samplers = this->resourceLayout.samplerBindings;
+	for (auto& [name , binding] : samplers)
+	{
+		if (!Samplers::samplerPool.contains(name)) {
+			std::cerr << "sampler name is not registered : " << name << std::endl;
+			continue;
+		}
+
+		auto samplerDesc = Samplers::samplerPool[name];
+		samplerDesc.ShaderRegister = binding.bindPoint; 
+		m_staticSamplers.push_back(samplerDesc);
+
+		std::cout << "add sampler :" << name << '\n';
+	}
+  
 }
 
 
 
 void FD3D12ShaderPermutation::SetStaticSampler(const std::string& name, const D3D12_STATIC_SAMPLER_DESC& samplerDesc)
 {
-	if (auto bindPoint = m_pixelShader->GetSamplerBindPoint(name); bindPoint.has_value())
+	auto& samplers = this->resourceLayout.samplerBindings;
+	if (samplers.contains(name))
 	{
-		std::cout << "find static sampler: " << name << " at bind point: " << *bindPoint << std::endl;  
-
-		//check the bind point:
-		if (samplerDesc.ShaderRegister != bindPoint.value())
-		{
-			std::cerr << "Static sampler bind point mismatch: " << name << std::endl; // error output
-			return;
-		}
-		 
-		m_staticSamplers.push_back(samplerDesc); 
+		if(samplers.at(name).bindPoint == samplerDesc.ShaderRegister)
+		m_staticSamplers.push_back(samplerDesc);
 	} 
 	else
 	{
-		std::cerr << "didn't find static sampler: " << name << std::endl; // error output
-		return;
+		std::cerr << "shader: fail to bind static sampler: " << name << std::endl;  
 	}
-	 
 
+	//if (auto bindPoint = m_pixelShader->GetSamplerBindPoint(name); bindPoint.has_value())
+	//{
+	//	std::cout << "find static sampler: " << name << " at bind point: " << *bindPoint << std::endl;
 
-	
+	//	//check the bind point:
+	//	if (samplerDesc.ShaderRegister != bindPoint.value())
+	//	{
+	//		std::cerr << "Static sampler bind point mismatch: " << name << std::endl; // error output
+	//		return;
+	//	}
+
+	//	m_staticSamplers.push_back(samplerDesc);
+	//}
+	//else
+	//{
+	//	std::cerr << "didn't find static sampler: " << name << std::endl; // error output
+	//	return;
+	//} 
 
 }
 
 void FD3D12ShaderPermutation::SetSRV(const std::string& name, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& srvDesc, uint32_t baseOffset)
 {
-	assert(resource != nullptr && "SRV must not be null"); 
+	assert(resource != nullptr && "SRV must not be null");
 
 	auto& tableLayout = this->resourceLayout.tableLayout;
 	if (tableLayout.SRVBindings.contains(name))
@@ -355,14 +405,14 @@ void FD3D12ShaderPermutation::SetSRV(const std::string& name, ID3D12Resource* re
 	}
 	else
 	{
-		std::cerr << "Failed to bind texture: " << name << std::endl; 
+		std::cerr << "Failed to bind texture: " << name << std::endl;
 		return;
 	}
 
 }
 
 
-void FD3D12ShaderPermutation::SetCBV(const std::string& name,const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset)
+void FD3D12ShaderPermutation::SetCBV(const std::string& name, const D3D12_CONSTANT_BUFFER_VIEW_DESC& cbvDesc, uint32_t baseOffset)
 {
 	auto& tableLayout = this->resourceLayout.tableLayout;
 	if (tableLayout.CBVBindings.contains(name))
@@ -386,7 +436,7 @@ void FD3D12ShaderPermutation::SetUAV(const std::string& name, ID3D12Resource* re
 	if (tableLayout.UAVBindings.contains(name))
 	{
 		auto localOffset = tableLayout.UAVBindings[name].localOffset;
-		std::cout << "find UAV: " << name << " at offset: " << localOffset << std::endl;  
+		//std::cout << "find UAV: " << name << " at offset: " << localOffset << std::endl;
 		auto cpuHandle = m_rangeHeapAllocator.lock()->GetCPUHandle(localOffset + baseOffset);
 		m_device->CreateUnorderedAccessView(resource, nullptr, &uavDesc, cpuHandle);
 	}
@@ -406,18 +456,18 @@ void FD3D12ShaderPermutation::SetDescriptorHeap(ID3D12GraphicsCommandList* comma
 }
 
 void FD3D12ShaderPermutation::SetDescriptorTables(ID3D12GraphicsCommandList* commandList, uint32_t baseOffset) const
-{ 
+{
 	if (resourceLayout.rootIndexMap.contains(ResourceScope::Object))
 	{
-		auto objectTableIndex = resourceLayout.rootIndexMap.at(ResourceScope::Object); 
+		auto objectTableIndex = resourceLayout.rootIndexMap.at(ResourceScope::Object);
 		auto GPUHandle = m_rangeHeapAllocator.lock()->GetGPUHandle(baseOffset);
 		commandList->SetGraphicsRootDescriptorTable(objectTableIndex, GPUHandle);
 	}
 	else
 	{
 		//std::cerr << "Object descriptor table not found." << std::endl;
-	} 
-	
+	}
+
 }
 
 void FD3D12ShaderPermutation::SetDescriptorTablesCompute(ID3D12GraphicsCommandList* commandList, uint32_t baseOffset) const
@@ -434,7 +484,7 @@ void FD3D12ShaderPermutation::SetDescriptorTablesCompute(ID3D12GraphicsCommandLi
 	}
 }
 
-  
+
 
 SharedPtr<FD3D12ShaderPermutation> ShaderLibrary::GetOrLoad(const ShaderPermutationKey& key)
 {
@@ -457,7 +507,7 @@ SharedPtr<FD3D12ShaderPermutation> ShaderLibrary::GetOrLoad(const ShaderPermutat
 		std::cout << "Shader permutation found in cache: " << key.shaderTag << ", Pass: " << key.passTag << '\n';
 		return cache[key];
 	}
-		 
+
 	std::string VSBasePath = "shaders/bin/" + key.shaderTag + "_" + key.passTag + "_VS.cso";
 	std::string PSBasePath = "shaders/bin/" + key.shaderTag + "_" + key.passTag + "_PS.cso";
 
@@ -467,17 +517,21 @@ SharedPtr<FD3D12ShaderPermutation> ShaderLibrary::GetOrLoad(const ShaderPermutat
 
 	auto fullPathVS = GameApplication::GetInstance()->GetAssetFullPath(VSBasePath);
 	auto fullPathPS = GameApplication::GetInstance()->GetAssetFullPath(PSBasePath);
-	 
+
 	// Create shader modules
 	auto shaderPerm = CreateShared<FD3D12ShaderPermutation>(m_device, m_rangeHeapAllocator);
 	shaderPerm->LoadShaders(dxcUtils.Get(), fullPathVS, fullPathPS);
-	 
+
 	shaderPerm->ReflectRootSignatureLayout(dxcUtils.Get());
 
+	shaderPerm->AutoSetSamplers();
+	shaderPerm->CreateRootSignature();
+
+
 	//shaderPerm->PrepareRootSignature(dxcUtils.Get());
-	
+
 	cache[key] = shaderPerm; // Cache the shader permutation
-	return shaderPerm; 
+	return shaderPerm;
 }
 
 SharedPtr<FD3D12ShaderPermutation> ShaderLibrary::GetOrLoadCompute(const ShaderPermutationKey& key)
@@ -488,21 +542,24 @@ SharedPtr<FD3D12ShaderPermutation> ShaderLibrary::GetOrLoadCompute(const ShaderP
 		return cache[key];
 	}
 
-	std::string BasePath = "shaders/bin/" + key.shaderTag + "_" + key.passTag + "_CS.cso"; 
+	std::string BasePath = "shaders/bin/" + key.shaderTag + "_" + key.passTag + "_CS.cso";
 
 	std::cout << "shader not found in cache, " << std::endl;
-	std::cout << "try loading CS from: " << BasePath << std::endl; 
+	std::cout << "try loading CS from: " << BasePath << std::endl;
 
-	auto fullPath = GameApplication::GetInstance()->GetAssetFullPath(BasePath); 
+	auto fullPath = GameApplication::GetInstance()->GetAssetFullPath(BasePath);
 
 	// Create shader modules
 	auto shaderPerm = CreateShared<FD3D12ShaderPermutation>(m_device, m_rangeHeapAllocator);
 	shaderPerm->LoadShaderCompute(dxcUtils.Get(), fullPath);
 
-	shaderPerm->ReflectRootSignatureLayout(dxcUtils.Get()); 
+	shaderPerm->ReflectRootSignatureLayout(dxcUtils.Get());
 
-	cache[key] = shaderPerm;  
+	shaderPerm->AutoSetSamplers();
+
+	shaderPerm->CreateRootSignature();
+
+	cache[key] = shaderPerm;
 	return shaderPerm;
 }
 
- 

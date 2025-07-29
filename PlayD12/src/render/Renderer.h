@@ -23,15 +23,20 @@
 #include "DebugRay.h"
 #include "PostPass.h"
 
+#include "Probe.h"
+
 
 constexpr size_t MaxUIBatch = 128;
 constexpr size_t MaxStaticMesh = 128;
 constexpr size_t MaxLines = 1024;
-constexpr uint32_t descriptorPoolSize = 4096; 
+constexpr uint32_t descriptorPoolSize = 4096;
+
+using UploadTask = std::function<void(ID3D12GraphicsCommandList* cmdList)>;
+
 
 struct FResourcePool {
 
-   
+
 };
 
 
@@ -70,6 +75,9 @@ struct RenderGraphContext {
     SharedPtr<FD3D12Texture> shadowMap;
 
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> gbuffers;
+    SharedPtr<FD3D12Texture> sceneDepth;
+
+    SharedPtr<FD3D12Texture> skybox;
 
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadedTextures;
 };
@@ -169,9 +177,10 @@ private:
 
     D3D12_RENDER_TARGET_VIEW_DESC sc_RTV{};
     ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
-    SharedPtr<FD3D12Texture> m_depthStencil;
 
+    SharedPtr<FD3D12Texture> m_depthStencil; 
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsv;
+
     FRenderPassAttachments m_presentBindings;
 
     //---------
@@ -219,7 +228,7 @@ private:
     static const UINT TexturePixelSize = 4;  //bytes/channel (RGBA)
 
     std::vector<UINT8> GenerateCheckerboardData();
-
+    std::vector<UINT8> checkerBoardData;
 public:
 
     //std::vector<StaticMeshActorProxy*> m_staticMeshes;  
@@ -237,7 +246,7 @@ public:
     Lit::PassContext litPassCtx;
 
 public:
-    Shadow::PassContext shadowPassCtx;  
+    Shadow::PassContext shadowPassCtx;
 
 public:
     //SharedPtr<DebugRenderer> m_debugRenderer;
@@ -258,12 +267,11 @@ public:
     SharedPtr<FontAtlas> GetFontAtlas() const {
         return uiPassCtx.font;
     }
-     
+
 
 public:
     GBuffer::PassContext gbufferPassCtx;
-
-    std::unordered_map<std::string,  SharedPtr<FD3D12Texture>> gbuffers;
+     
     FRenderPassAttachments m_gbufferAttachments;
 
     void InitGBuffers();
@@ -272,11 +280,27 @@ public:
 
 
 public:
-    PBR::PassContext pbrShadingCtx;  
+    PBR::PassContext pbrShadingCtx;
 
+
+//public:
+//    Compute::ComputeContext computeCtx;
+// 
 
 public:
-	Compute::ComputeContext computeCtx;
+    void InitEnvMap();
+
+    FProbe probe; 
+
+public:
+
+    void UploadTexture(std::vector<UploadTask> tasks);
+
+public:
+
+
 
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;
+     
+    RenderGraphContext* m_graph = new RenderGraphContext();
 };

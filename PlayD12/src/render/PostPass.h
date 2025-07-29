@@ -44,20 +44,20 @@ namespace Materials {
     };
 }
 
- 
+
 
 namespace PBR {
 
     using BuildData = SS::BuildData;
-    using Vertex = SS::Vertex; 
-    using DrawCmd = SS::DrawCmd; 
+    using Vertex = SS::Vertex;
+    using DrawCmd = SS::DrawCmd;
     using GPUResources = SS::GPUResources;
 
     struct PassContext {
         BuildData data;
         GPUResources res;
-    }; 
-     
+    };
+
     void Init(const RendererContext* ctx, PassContext& passCtx);
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
 
@@ -70,7 +70,7 @@ namespace PBR {
 namespace Passes {
 
     inline RenderPassDesc ComputePassDesc = {
-        .passTag = "Test", 
+        .passTag = "Test",
     };
 
 }
@@ -78,38 +78,39 @@ namespace Passes {
 namespace Materials {
 
     inline MaterialDesc ComputeMaterialDesc = {
-    .shaderTag = "Test", 
+    .shaderTag = "Test",
     };
 }
-
-
+ 
 
 namespace Compute {
 
     struct DispatchCmd {
-		uint32_t groupX = 64;
-		uint32_t groupY = 1;
-		uint32_t groupZ = 1;
+        uint32_t groupX = 8;
+        uint32_t groupY = 8;
+        uint32_t groupZ = 1;
     };
 
-    struct GPUResources { 
+    struct GPUResources {
         SharedPtr<FD3D12ShaderPermutation> shader;
         ComPtr<ID3D12PipelineState> pso;
 
         std::optional<uint32_t> baseHeapOffset = 0;
     };
 
-    struct ComputeContext {  
-		DispatchCmd cmd;
-		GPUResources res;
-
-        SharedPtr<FD3D12Buffer> testBuffer;
+    struct ComputeContext {
+        DispatchCmd cmd;
+        GPUResources res;
     };
 
 
-	void Init(const RendererContext* ctx, ComputeContext& passCtx);
-	void DispatchCompute(ID3D12GraphicsCommandList* cmdList, const ComputeContext& ctx) noexcept;
-	
-    void BeginFrame(ComputeContext& passCtx) noexcept;
-	//void EndFrame(PassContext& passCtx) noexcept;
+    void Init(const RendererContext* ctx, 
+        ComputeContext& passCtx,
+        const std::string& shaderTag,
+        const std::string& passTag 
+    );
+    void DispatchCompute(ID3D12GraphicsCommandList* cmdList, const ComputeContext& ctx) noexcept;
+
+    //void BeginFrame(ComputeContext& passCtx) noexcept;
+    //void EndFrame(PassContext& passCtx) noexcept;
 }

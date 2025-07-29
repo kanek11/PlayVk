@@ -17,10 +17,10 @@ namespace UI {
         font = CreateShared<FontAtlas>();
         if (auto& tex = graphCtx->loadedTextures["ASCII_10x10.png"]; tex) {
             font->texture = tex;
-            auto& desc = tex->GetDesc(); 
+            auto& desc = tex->GetDesc();
             float cellWidth = (desc.width - 1) / 10.0f;
             float cellHeight = (desc.height - 1) / 10.0f;
-            font->LoadGridAtlas(cellWidth, cellHeight, 10, 10); 
+            font->LoadGridAtlas(cellWidth, cellHeight, 10, 10);
         }
         else
         {
@@ -56,9 +56,8 @@ namespace UI {
 
         auto& shader = passCtx.res.shader;
         shader = ctx->shaderManager->GetOrLoad(key);
-        shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap());
-        shader->CreateRootSignature();
-
+        //shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap());
+        //shader->CreateRootSignature(); 
 
         //input desc:
         auto inputDesc = InputLayoutBuilder::Build<Vertex>(0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
@@ -150,7 +149,7 @@ namespace UI {
         //reset the allocator:
         passCtx.cbAllocator->Reset();
 
-    } 
+    }
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const UIPassContext& passCtx) noexcept
     {

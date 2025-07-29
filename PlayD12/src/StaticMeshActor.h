@@ -15,13 +15,15 @@ struct StaticMeshActorProxy;
 
 struct FCameraProxy {
     Float4x4 pvMatrix;
+	Float4x4 invProjMatrix;
+	Float4x4 invViewMatrix;
     Float3 position;
 
     virtual void Tick(float delta);
 };
 
 struct FollowCameraProxy : public FCameraProxy {
-    Float3 offset = { 0.0f, +5.0f , -5.0f };
+    Float3 offset = { 0.0f, +2.0f , -5.0f };
     WeakPtr<StaticMeshActorProxy> target;
 
     virtual void Tick(float delta) override;

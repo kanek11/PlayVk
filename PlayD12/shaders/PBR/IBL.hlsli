@@ -7,37 +7,6 @@ Texture2D BRDFLUT : register(BINDING_BRDF_LUT, SPACE_IBL);
 SamplerState LinearClampS : register(s2, SPACE_IBL);
 
 
-// uv [0,1] face  [0,5]
-float3 CubeMapTexelToDirection(float2 uv, uint face)
-{ 
-    float u = 2.0f * uv.x - 1.0f;
-    float v = 2.0f * uv.y - 1.0f;
-
-    // OpenGL D3D faces +X, -X, +Y, -Y, +Z, -Z 
-    float3 dir = 0;
-    switch (face)
-    {
-        case 0:
-            dir = float3(1, -v, -u);
-            break; // +X
-        case 1:
-            dir = float3(-1, -v, u);
-            break; // -X
-        case 2:
-            dir = float3(u, 1, v);
-            break; // +Y
-        case 3:
-            dir = float3(u, -1, -v);
-            break; // -Y
-        case 4:
-            dir = float3(u, -v, 1);
-            break; // +Z
-        case 5:
-            dir = float3(-u, -v, -1);
-            break; // -Z
-    }
-    return normalize(dir);
-} 
 
 
 

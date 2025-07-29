@@ -18,6 +18,7 @@ struct RenderPassDesc {
     std::vector<DXGI_FORMAT> colorFormats;
     std::vector<std::string> rtvNames;
     DXGI_FORMAT depthFormat = DXGI_FORMAT_D32_FLOAT;
+	std::string dsvName;
     bool enableDepth = true;
     bool enableBlend = false;
     D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_NONE;

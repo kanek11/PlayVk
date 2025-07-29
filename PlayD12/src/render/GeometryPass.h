@@ -197,6 +197,7 @@ namespace Passes {
         "rt2_position_metallic",
        },
        .depthFormat = DXGI_FORMAT_D32_FLOAT,
+	   .dsvName = "ds_viewDepth",
        .enableDepth = true,
        .enableBlend = false,
        .cullMode = D3D12_CULL_MODE_NONE,

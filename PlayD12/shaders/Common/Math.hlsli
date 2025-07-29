@@ -32,17 +32,7 @@ inline float3 WorldToTangent(float3x3 TBN, float3 n_WS)
 {
     return normalize(mul(TBN, n_WS));
 }
-
-
-
-
-
-float NdotLClamp(float3 N, float3 L)
-{
-    return saturate(dot(N, L));
-}
-
-
+ 
 
 
 #endif

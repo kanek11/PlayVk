@@ -16,6 +16,8 @@ struct CBMember {
 struct alignas(256) SceneCB
 {
     Float4x4  pvMatrix;
+    Float4x4 invProj;
+    Float4x4 invView;
     alignas(16) Float3 cameraPos = Float3(0.0f, 0.0f, 0.0f);
 
     alignas(16) Float2 viewportSize = Float2(1280.0f, 720.0f);

@@ -36,9 +36,10 @@ namespace Loader {
 	struct D3D12ImageData {
 		D3D12ImageMetaInfo metaInfo{};
 		uint8_t* data{ nullptr };
-		SharedPtr<DirectX::ScratchImage> ownedImage;  //ensure the scope of owner;
+		std::shared_ptr<DirectX::ScratchImage> ownedImage;  //ensure the scope of owner;
 	};
 
 	std::optional<D3D12ImageData> LoadTextureDX(std::string_view path, TextureImportConfig config = TextureImportConfig{});
-
+	std::optional<D3D12ImageData> LoadWICTextureDX(std::string_view path, TextureImportConfig config = TextureImportConfig{});
+	std::optional<D3D12ImageData> LoadHDRTextureDX(std::string_view path, TextureImportConfig config = TextureImportConfig{});
 }

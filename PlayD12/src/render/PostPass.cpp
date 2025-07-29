@@ -1,4 +1,4 @@
-    #include "PCH.h"
+#include "PCH.h"
 
 #include "PostPass.h"
 
@@ -38,20 +38,21 @@ void PBR::Init(const RendererContext* ctx, PassContext& passCtx)
 
     auto& shader = passCtx.res.shader;
     shader = ctx->shaderManager->GetOrLoad(key);
-    shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap(0));
-    shader->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1));
-    shader->CreateRootSignature();
+    //shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap(0));
+    //shader->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1));
+    //shader->AutoSetSamplers();
+    //shader->CreateRootSignature();
 
 
     //input desc:
-    auto inputDesc = InputLayoutBuilder::Build<Vertex>(0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA); 
+    auto inputDesc = InputLayoutBuilder::Build<Vertex>(0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA);
 
     // Create PSO for debug rendering
     passCtx.res.pso = ctx->psoManager->GetOrCreate(
         Materials::PBRShadingMaterialDesc,
         Passes::PBRShadingPassDesc,
         inputDesc
-    ); 
+    );
 
     passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap(MaxUIBatch);
 }
@@ -64,7 +65,7 @@ void PBR::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& 
     passCtx.res.batchVB->UploadData(passCtx.data.vertices.data(), passCtx.data.vertices.size() * sizeof(Vertex));
     passCtx.res.batchIB->UploadData(passCtx.data.indices.data(), passCtx.data.indices.size() * sizeof(INDEX_FORMAT));
 
-     
+
     auto& frameData = Render::frameContext;
 
     auto& res = passCtx.res;
@@ -80,7 +81,7 @@ void PBR::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& 
         frameData->sceneCB->GetRawResource()
     );
 
-     
+
     // Set the descriptor heap for the command list
     shader->SetDescriptorHeap(cmdList);
 
@@ -97,7 +98,7 @@ void PBR::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& 
         auto indexOffset = cmd.indexOffset;
         cmdList->DrawIndexedInstanced((UINT)indexCount, 1, (UINT)indexOffset, 0, 0);
     }
-     
+
 }
 
 void PBR::BeginFrame(PassContext& passCtx) noexcept
@@ -116,20 +117,20 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
         .rect = screenRect,
         .uvTL = {0,0},
         .uvBR = {1,1},
-    };  
+    };
 
 
     passCtx.data.pendings = { screenQuad };
 
-     
-    auto& shader = passCtx.res.shader; 
+
+    auto& shader = passCtx.res.shader;
 
     assert(passCtx.res.baseHeapOffset.has_value());
     auto baseHeapOffset = passCtx.res.baseHeapOffset;
 
     auto& graphCtx = Render::graphContext;
-    auto& gbuffers = graphCtx->gbuffers;
-     
+    auto& gbuffers = graphCtx->gbuffers; 
+
     auto& batchData = passCtx.data;
 
     for (auto& proxy : passCtx.data.pendings) {
@@ -158,15 +159,22 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
 
         auto currIndex = batchData.cmds.size();
         auto objectHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
-          
+
         for (const auto& [name, gbufferTex] : gbuffers)
         {
             shader->SetSRV(name, gbufferTex->GetRawResource(), gbufferTex->GetSRVDesc(), objectHeapOffset);
         }
-         
+
+		if (graphCtx->sceneDepth)
+		{
+			shader->SetSRV("ds_viewDepth", graphCtx->sceneDepth->GetRawResource(), graphCtx->sceneDepth->GetSRVDesc(), objectHeapOffset);
+		}
+
         if (graphCtx->shadowMap)
             shader->SetSRV("shadowMap", graphCtx->shadowMap->GetRawResource(), graphCtx->shadowMap->GetSRVDesc(), objectHeapOffset);
 
+        if (graphCtx->skybox)
+            shader->SetSRV("skybox", graphCtx->skybox->GetRawResource(), graphCtx->skybox->GetSRVDesc(), objectHeapOffset);
          
         DrawCmd cmd = {
             .indexOffset = baseIndex,
@@ -183,79 +191,43 @@ void PBR::EndFrame(PassContext& passCtx) noexcept
     passCtx.data.Clear();
 }
 
-void Compute::Init(const RendererContext* ctx, ComputeContext& passCtx)
+void Compute::Init(const RendererContext* ctx, 
+    ComputeContext& passCtx,
+    const std::string& shaderTag,
+    const std::string& passTag
+)
 {
     // Create shader permutation for compute shader
-	ShaderPermutationKey key = {
-		.shaderTag = "Test",
-		.passTag = "Test",
-	};
-	
+    ShaderPermutationKey key = {
+        .shaderTag = shaderTag,
+        .passTag = passTag,
+    };
+
     passCtx.res.shader = ctx->shaderManager->GetOrLoadCompute(key);
-	passCtx.res.shader->CreateRootSignature();
+    //passCtx.res.shader->CreateRootSignature();
 
-	//// Create PSO for compute shader
-	passCtx.res.pso = ctx->psoManager->GetOrCreateCompute(
-		Materials::ComputeMaterialDesc,
-		Passes::ComputePassDesc
-	);  
+    //// Create PSO for compute shader
+    passCtx.res.pso = ctx->psoManager->GetOrCreateCompute(
+        MaterialDesc{.shaderTag = shaderTag},
+        RenderPassDesc {.passTag = passTag}
+    );
 
-	passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap();
+    passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap();
 
-
-    {
-        auto& buffer = passCtx.testBuffer;
-
-        size_t bufferSize = 1024;
-
-		FBufferDesc bufferDesc = { 
-            .SizeInBytes = bufferSize * sizeof(UINT), 
-            .Format = DXGI_FORMAT_UNKNOWN,
-            .StrideInBytes = sizeof(UINT),
-			.Usage = EBufferUsage::UAV,
-		};  
-		buffer = CreateShared<FD3D12Buffer>(ctx->device, bufferDesc);
-
-    }
 }
 
 void Compute::DispatchCompute(ID3D12GraphicsCommandList* cmdList, const ComputeContext& ctx) noexcept
 {
-	//if (!passCtx.res.pso) return;
-	cmdList->SetPipelineState(ctx.res.pso.Get());
-	cmdList->SetComputeRootSignature(ctx.res.shader->GetRootSignature().Get());
-	ctx.res.shader->SetDescriptorHeap(cmdList);
-	ctx.res.shader->SetDescriptorTablesCompute(cmdList, ctx.res.baseHeapOffset.value());
+    //if (!passCtx.res.pso) return;
+    cmdList->SetPipelineState(ctx.res.pso.Get());
+    cmdList->SetComputeRootSignature(ctx.res.shader->GetRootSignature().Get());
+    ctx.res.shader->SetDescriptorHeap(cmdList);
+    ctx.res.shader->SetDescriptorTablesCompute(cmdList, ctx.res.baseHeapOffset.value());
     //todo: set table;
-	// Set the UAV for the compute shader
+    // Set the UAV for the compute shader
 
 
-	cmdList->Dispatch(ctx.cmd.groupX, ctx.cmd.groupY, ctx.cmd.groupZ);
-     
-   
+    cmdList->Dispatch(ctx.cmd.groupX, ctx.cmd.groupY, ctx.cmd.groupZ); 
 }
 
-void Compute::BeginFrame(ComputeContext& passCtx) noexcept
-{
-    auto& frameCtx = Render::frameContext;
-    auto& graphCtx = Render::graphContext;
-
-    if (frameCtx == nullptr || graphCtx == nullptr) {
-        std::cerr << "render context is not inited" << std::endl;
-        return;
-    }
-
-    auto& shader = passCtx.res.shader; 
-
-    assert(passCtx.res.baseHeapOffset.has_value());
-    auto baseHeapOffset = passCtx.res.baseHeapOffset; 
-
-	auto& buffer = passCtx.testBuffer;
-	shader->SetUAV("OutputBuffer",
-        buffer->GetRawResource(),
-		buffer->GetUAVDesc(),
-		baseHeapOffset.value()
-	);
-  
  
-}

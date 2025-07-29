@@ -29,9 +29,9 @@ namespace Samplers {
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-		desc.ShaderRegister = shaderRegister;
+        desc.ShaderRegister = shaderRegister;
         desc.RegisterSpace = 0;
 
         return desc;
@@ -46,9 +46,9 @@ namespace Samplers {
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
         desc.MaxLOD = D3D12_FLOAT32_MAX;
-        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-		desc.ShaderRegister = shaderRegister;
+        desc.ShaderRegister = shaderRegister;
         desc.RegisterSpace = 0;
         return desc;
     }
@@ -63,9 +63,9 @@ namespace Samplers {
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
         desc.MaxLOD = D3D12_FLOAT32_MAX;
-        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-		desc.ShaderRegister = shaderRegister;
+        desc.ShaderRegister = shaderRegister;
         desc.RegisterSpace = 0;
 
         return desc;
@@ -79,31 +79,38 @@ namespace Samplers {
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
         desc.MaxLOD = D3D12_FLOAT32_MAX;
-        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-		desc.ShaderRegister = shaderRegister;
+        desc.ShaderRegister = shaderRegister;
         desc.RegisterSpace = 0;
 
         return desc;
     }
-     
+
 
     static D3D12_STATIC_SAMPLER_DESC ShadowMap(UINT shaderRegister = 0) {
         D3D12_STATIC_SAMPLER_DESC desc = {};
         desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-        desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER; 
-        desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER; 
-        desc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;   
-        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+        desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+        desc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
 
-		desc.ShaderRegister = shaderRegister;
+        desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+        desc.ShaderRegister = shaderRegister;
         desc.RegisterSpace = 0;
         return desc;
     }
 
 
+    static std::unordered_map<std::string, D3D12_STATIC_SAMPLER_DESC> samplerPool =
+    {
+        { "linearWrapSampler", LinearWrap()},
+        { "linearClampSampler", LinearClamp()},
+        { "shadowMapSampler", ShadowMap()},
+    };
+     
 }
-
 
