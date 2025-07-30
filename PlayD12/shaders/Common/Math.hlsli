@@ -1,7 +1,7 @@
 #ifndef COMMON_MATH_HLSLI
 #define COMMON_MATH_HLSLI
 
-static const float PI = 3.1415926535f;
+static const float PI = 3.1415926535897932f;
 
  
 /// [0,1] to [-1,1] 

@@ -1,5 +1,7 @@
  
-float2 Hammersley(uint i, uint N);
+#ifndef COMMON_RANDOM_HLSLI
+#define COMMON_RANDOM_HLSLI
+
 
 
 uint Hash13(float3 p)
@@ -8,3 +10,5 @@ uint Hash13(float3 p)
     p += dot(p, p.yzx + 19.19f);
     return frac((p.x + p.y) * p.z) * 65536;
 }
+
+#endif

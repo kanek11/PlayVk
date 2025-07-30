@@ -1041,10 +1041,21 @@ void D3D12HelloRenderer::InitEnvMap()
     ThrowIfFailed(m_commandAllocator->Reset()); 
     ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr)); 
 
+
+
     auto& hdri = this->loadTextures["rogland_clear_night_1k.hdr"];  
     this->probe.CreateFromHDRI(hdri);
      
     m_graph->skybox = probe.envMap;
+
+
+    probe.GenerateBRDFLUT();
+
+
+
+
+
+
 
     // Close the command list and execute it to begin the initial GPU setup.
     ThrowIfFailed(m_commandList->Close());
