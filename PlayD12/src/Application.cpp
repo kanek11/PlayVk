@@ -41,7 +41,9 @@ void GameApplication::onInit()
 	//----------------------------
 	m_inputSystem = new InputSystem();
 
-	//m_mainWindow->InitInputSource(m_inputSystem); 
+	//m_mainWindow->InitInputSource(m_inputSystem);
+
+
 
 
 	//-----------------------------
@@ -63,21 +65,52 @@ void GameApplication::onDestroy()
 
 void GameApplication::run()
 {
+	gTime.RegisterFixedFrame([=](float delta) {
+		m_physicsScene->Tick(delta);
+		});
+	 
 	//todo:  exit condition could be more complex.
-	while (!m_mainWindow->shouldClose()) {
+	while (!m_mainWindow->shouldClose()) { 
+		//std::cout << "tick main loop" << '\n';
 
-		//std::cout << "tick app" << '\n';
+		gTime.BeginFrame(); 
+
+		gTime.PumpFixedSteps();
+
+		auto& timeInfo = gTime.GetTimeInfo();
+		float delta = (float)timeInfo.engineDelta;
+		float FPS = 1.0f / delta;
+		std::string text =
+		std::format(" rDelta: {:.4f}", timeInfo.realDelta)
+		+ std::format(" eDelta: {:.4f}", timeInfo.engineDelta)
+		+ std::format(" eTime: {:.4f}", timeInfo.engineTime) 
+		+ std::format(" FPS: {:.2f}", FPS)
+		+ std::format(" simTime: {:.4f}", timeInfo.simTime);
+		m_mainWindow->SetCustomWindowText(text);
+
+		//
 		m_mainWindow->onUpdate(); 
-
-		m_physicsScene->Tick(0.016f);
-
-		m_renderer->OnUpdate(0.016f);
-		m_renderer->OnRender();
-
 
 		m_inputSystem->OnUpdate();
 
-		m_uiManager->ProcessEvents();
+		m_uiManager->ProcessEvents(); 
+
+		//m_physicsScene->Tick(0.016f);
+
+		//m_renderer->OnUpdate(delta);
+		//m_renderer->OnRender();
+
+		 
+		if (m_inputSystem->IsKeyJustPressed(KeyCode::Space)) {
+ 		//std::cout << "app: A is pressed" << '\n';
+		 gTime.TogglePaused();
+		}
+		else if (m_inputSystem->IsKeyJustReleased(KeyCode::L)) {
+ 		//std::cout << "app: A is released" << '\n';
+			gTime.AdvanceFixedSteps();
+			gTime.AdvanceFrames();
+		}
+ 
 		//if (m_inputSystem->IsKeyJustPressed(KeyCode::A)) {
 		//	std::cout << "app: A is pressed" << '\n';
 		//}
@@ -91,7 +124,7 @@ void GameApplication::run()
 		//	//std::cout << "app: A is up" << '\n';
 		//}
 
-		if (m_inputSystem->IsKeyJustPressed(KeyCode::Num1)) {
+	/*	if (m_inputSystem->IsKeyJustPressed(KeyCode::Num1)) {
 			std::cout << "app: 1 is pressed" << '\n';
 			m_gameManager->TransitState(GameStateId::Playing);
 		}
@@ -99,12 +132,37 @@ void GameApplication::run()
 			if (m_inputSystem->IsKeyJustPressed(KeyCode::Num2)) {
 				std::cout << "app: 2 is pressed" << '\n';
 				m_gameManager->TransitState(GameStateId::MainMenu);
-			}
+			}*/
 
-		m_gameManager->Update(0.016f);
+		m_gameManager->Update(delta); 
+
+		//tick the level>actor> component
+		m_worldManager->Update(delta);
 
 
-		m_worldManager->Update(0.016f);
+		m_taskSystem.AddTask(
+			"render", 
+			[=]() {
+				//std::cout << "dummy task\n" ;   
+			m_renderer->OnUpdate(delta);
+		    m_renderer->OnRender();
+			},
+			System::ETaskDomain::RenderThread,
+			{}
+		);
+
+		//m_taskSystem.AddTask(
+		//	"physics",
+		//	[=]() {
+		//		//std::cout << "dummy task\n" ;   
+		//		gTime.PumpFixedSteps();
+		//	},
+		//	System::ETaskDomain::PhysicsThread,
+		//	{}
+		//);
+
+
+		m_taskSystem.ExecuteAll();
 
 	}
 

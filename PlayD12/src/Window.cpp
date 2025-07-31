@@ -216,7 +216,7 @@ void Win32Window::onUpdate()
 	this->pollEvents();
 }
 
-void Win32Window::SetCustomWindowText(const std::string& text) const
+void Win32Window::SetCustomWindowText(const std::string& text) 
 {
 	std::wstring wideText = std::wstring(text.begin(), text.end());
 	SetWindowText(m_hwnd, wideText.c_str());

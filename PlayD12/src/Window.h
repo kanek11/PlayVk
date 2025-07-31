@@ -29,7 +29,7 @@ public:
 	virtual int GetWidth() const = 0;
 	virtual int GetHeight() const = 0; 
 	 
-
+	virtual void SetCustomWindowText(const std::string& text) = 0;
 	//void InitInputSource(InputSystem* inputsystem) {
 	//	inputSource = new WindowsInputSource(inputsystem);
 	//}
@@ -57,7 +57,7 @@ public:
 	virtual int GetHeight() const override { return m_height; } 
 
 public:
-	void SetCustomWindowText(const std::string& text) const;
+	void SetCustomWindowText(const std::string& text) override;
 
 private:
 	void pollEvents(); 

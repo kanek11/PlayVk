@@ -4,6 +4,9 @@
 
 #include "Base.h"
 #include "Window.h"
+
+#include "Core/Time.h"
+
 #include "Render/Renderer.h"
 #include "Physics/PhysicsScene.h"
 
@@ -12,6 +15,8 @@
 #include "Level.h"
 
 #include "UI.h"
+
+#include "Core/Task.h"
 
 //the frontend of an application is composed of interactive elements.
 //window is usually considered as the top level UI element.  as a container.
@@ -126,5 +131,9 @@ private:
 
 	UIManager* m_uiManager{ nullptr }; 
 
-	WorldManager* m_worldManager{ nullptr };
+	WorldManager* m_worldManager{ nullptr }; 
+
+private:
+	System::TimeSystem gTime;
+	System::FTaskSystem m_taskSystem{};
 };

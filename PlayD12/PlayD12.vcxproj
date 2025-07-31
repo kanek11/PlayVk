@@ -167,6 +167,8 @@
     <ClInclude Include="src\Asset.h" />
     <ClInclude Include="src\Base.h" />
     <ClInclude Include="src\Controller.h" />
+    <ClInclude Include="src\Core\Task.h" />
+    <ClInclude Include="src\Core\Time.h" />
     <ClInclude Include="src\Delegate.h" />
     <ClInclude Include="src\Event.h" />
     <ClInclude Include="src\FSM.h" />
@@ -203,6 +205,7 @@
     <ClInclude Include="src\render\Texture.h" />
     <ClInclude Include="src\render\UIPass.h" />
     <ClInclude Include="src\StaticMeshActor.h" />
+    <ClInclude Include="src\Time.h" />
     <ClInclude Include="src\UI.h" />
     <ClInclude Include="src\Window.h" />
     <ClInclude Include="src\render\Text.h" />
@@ -211,6 +214,7 @@
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Asset.cpp" />
     <ClCompile Include="src\Controller.cpp" />
+    <ClCompile Include="src\Core\Time.cpp" />
     <ClCompile Include="src\Entry.cpp" />
     <ClCompile Include="src\Gameplay\Actor.cpp" />
     <ClCompile Include="src\Gameplay\ActorComponent.cpp" />
