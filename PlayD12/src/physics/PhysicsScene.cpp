@@ -434,18 +434,14 @@ void PhysicsScene::PostSimulation()
 {
 	for (auto& rb : m_bodies) {
 		 
-		rb->owner->SetWorldPosition(rb->position);
-
-		//std::cout << "Position vs PredPos: " << rb->position.y() << " vs " << rb->predPos.y() << std::endl;
-
-
 		//::cout << "draw for rb:" << rb->debugName << '\n'; 
-		if (!rb->simulatePhysics) continue; 
-		DebugDraw::Get().AddRay(rb->position, rb->linearVelocity, Color::Purple);
+		if (!rb->simulatePhysics) continue;
+		rb->owner->SetWorldPosition(rb->position); 
+
+		DebugDraw::Get().AddRay(rb->position, rb->linearVelocity, Color::Purple); 
 
 		if (!rb->simulateRotation) continue;
-		rb->owner->SetWorldRotation(rb->rotation);
-		//update world inertia: 
+		rb->owner->SetWorldRotation(rb->rotation);  
 
 		DebugDraw::Get().AddRay(rb->position, rb->angularVelocity, Color::Yellow);
 

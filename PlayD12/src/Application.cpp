@@ -75,18 +75,18 @@ void GameApplication::run()
 
 		gTime.BeginFrame(); 
 
-		gTime.PumpFixedSteps();
+		//gTime.PumpFixedSteps();
 
 		auto& timeInfo = gTime.GetTimeInfo();
 		float delta = (float)timeInfo.engineDelta;
 		float FPS = 1.0f / delta;
-		std::string text =
-		std::format(" rDelta: {:.4f}", timeInfo.realDelta)
-		+ std::format(" eDelta: {:.4f}", timeInfo.engineDelta)
-		+ std::format(" eTime: {:.4f}", timeInfo.engineTime) 
-		+ std::format(" FPS: {:.2f}", FPS)
-		+ std::format(" simTime: {:.4f}", timeInfo.simTime);
-		m_mainWindow->SetCustomWindowText(text);
+		//std::string text =
+		//std::format(" rDelta: {:.4f}", timeInfo.realDelta)
+		//+ std::format(" eDelta: {:.4f}", timeInfo.engineDelta)
+		//+ std::format(" eTime: {:.4f}", timeInfo.engineTime) 
+		//+ std::format(" FPS: {:.2f}", FPS)
+		//+ std::format(" simTime: {:.4f}", timeInfo.simTime);
+		//m_mainWindow->SetCustomWindowText(text);
 
 		//
 		m_mainWindow->onUpdate(); 
@@ -99,6 +99,27 @@ void GameApplication::run()
 
 		//m_renderer->OnUpdate(delta);
 		//m_renderer->OnRender();
+
+		m_taskSystem.AddTask(
+			"render", 
+			[=]() {
+				//std::cout << "dummy task\n" ;   
+			m_renderer->OnUpdate(delta);
+			m_renderer->OnRender();
+			},
+			System::ETaskDomain::RenderThread,
+			{}
+		);
+
+		m_taskSystem.AddTask(
+			"physics",
+			[=]() {
+				//std::cout << "dummy task\n" ;   
+				gTime.PumpFixedSteps();
+			},
+			System::ETaskDomain::PhysicsThread,
+			{}
+		);
 
 		 
 		if (m_inputSystem->IsKeyJustPressed(KeyCode::Space)) {
@@ -140,26 +161,7 @@ void GameApplication::run()
 		m_worldManager->Update(delta);
 
 
-		m_taskSystem.AddTask(
-			"render", 
-			[=]() {
-				//std::cout << "dummy task\n" ;   
-			m_renderer->OnUpdate(delta);
-		    m_renderer->OnRender();
-			},
-			System::ETaskDomain::RenderThread,
-			{}
-		);
 
-		//m_taskSystem.AddTask(
-		//	"physics",
-		//	[=]() {
-		//		//std::cout << "dummy task\n" ;   
-		//		gTime.PumpFixedSteps();
-		//	},
-		//	System::ETaskDomain::PhysicsThread,
-		//	{}
-		//);
 
 
 		m_taskSystem.ExecuteAll();
