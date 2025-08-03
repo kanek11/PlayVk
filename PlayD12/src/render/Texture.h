@@ -99,7 +99,7 @@ public:
     D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc() const;
     D3D12_RENDER_TARGET_VIEW_DESC GetRTVDesc() const;
     D3D12_DEPTH_STENCIL_VIEW_DESC GetDSVDesc() const;
-    D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc() const;
+    D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc(UINT mipLevel = 0) const;
 
 private:
     ComPtr<ID3D12Resource> m_resource;

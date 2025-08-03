@@ -5,9 +5,10 @@
 
 #include "StaticMeshActor.h"
 
+ 
 namespace Global {
 	static float lastUsedTime = std::numeric_limits<float>::max();
-} 
+}
 
 class ILevel {
 public:
@@ -15,6 +16,9 @@ public:
 	virtual void OnLoad() = 0;
 	virtual void OnUnload() = 0;
 	virtual void OnUpdate(float delta) = 0;
+
+	virtual void SyncGameToPhysics() {};
+	virtual void SyncPhysicsToGame() {};
 };
 
 
@@ -49,9 +53,22 @@ public:
 			currentWorld->OnUpdate(delta);
 		}
 	}
+
+	void SyncGameToPhysics() {
+		if (currentWorld) {
+			currentWorld->SyncGameToPhysics();
+		}
+	}
+
+	void SyncPhysicsToGame() {
+		if (currentWorld) {
+			currentWorld->SyncPhysicsToGame();
+		}
+	}
 private:
 	SharedPtr<ILevel> currentWorld;
 	std::unordered_map<std::string, SharedPtr<ILevel>>  levels;
+ 
 };
 
 
@@ -63,20 +80,29 @@ public:
 	virtual void OnUpdate(float delta)override;
 
 private:
-	std::vector<SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
+	//std::vector<SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
+	std::unordered_map<ActorHandle , SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
 	std::vector < SharedPtr<UIButton>> m_HUDs;
 
 public:
-	FCameraProxy* dummyCamera = new FCameraProxy();
-	//FollowCameraProxy* dummyCamera = new FollowCameraProxy();
+	//FCameraProxy* dummyCamera = new FCameraProxy();
+	FollowCameraProxy* dummyCamera = new FollowCameraProxy();
 
 public:
 
-	void GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount);
+	//void GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount);
 	float roadWidth = 10;
 	float goalLength = 500;
 
 	float timeCount{};
+
+private:
+	PhysicsScene* m_physicsScene{ nullptr };
+
+
+public:
+void SyncGameToPhysics() override ;
+void SyncPhysicsToGame() override ;
 };
 
 
@@ -85,7 +111,7 @@ public:
 	virtual ~MainMenuWorld() = default;
 	virtual void OnLoad()override;
 	virtual void OnUnload()override;
-	virtual void OnUpdate(float delta)override;
+	virtual void OnUpdate(float delta)override; 
 
 	std::vector < SharedPtr<UIButton>> m_Buttons;
 };

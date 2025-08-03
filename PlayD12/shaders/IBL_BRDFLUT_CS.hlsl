@@ -1,5 +1,4 @@
-
-
+ 
 #include "PBR/BRDF.hlsli"
 #include "PBR/IBL_Common.hlsli"
    
@@ -18,15 +17,17 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
     uint2 coord = DTid.xy;
     
-    uint Resolution = 1024;
-    uint NumSamples = 1024;  
+    uint Resolution = BRDF_LUT_SIZE;
+    uint NumSamples = BRDF_LUT_NUMSAMPLES;
     
     if (coord.x >= Resolution || coord.y >= Resolution)
         return;
 
     float2 uv = (coord + 0.5) / float(Resolution);
-    float NdotV = uv.x;
-    float roughness = uv.y;
+    //float NdotV = uv.x;
+    //float roughness = uv.y;
+    float NdotV = max(uv.x, 0.001f);
+    float roughness = max(uv.y, 0.001f);
 
     float3 V = float3(sqrt(1.0 - NdotV * NdotV), 0.0, NdotV);
 

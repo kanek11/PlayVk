@@ -6,18 +6,16 @@ struct VSInput
     float4 color : COLOR;
 };
 
-struct PSInput
+struct VSOutput
 {
     float4 position : SV_POSITION;
     float2 texCoord : TEXCOORD;
     float4 color : COLOR;
-};
- 
-    
+}; 
 
-PSInput VSMain(VSInput input)
+VSOutput VSMain(VSInput input)
 {
-    PSInput result;
+    VSOutput result;
     //float4 worldPosition = mul(modelMatrix, float4(input.position.xy, 0.0f, 1.0f));
     float4 worldPosition = float4(input.position.xy, 0.0f, 1.0f);
     result.position = worldPosition;

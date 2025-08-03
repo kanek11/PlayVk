@@ -14,11 +14,11 @@
 
 #include "Text.h"  
 
-#include "Mesh.h"
-#include "StaticMeshActor.h"
+#include "Mesh.h" 
 
 #include "ShaderParameters.h"
 
+#include "StaticMeshProxy.h"
 
 struct RendererContext;
 
@@ -45,20 +45,7 @@ namespace Materials {
     };
 }
 
-
-//strip out the minimum to render a static mesh:
-struct FStaticMeshProxy {
-    Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
-
-    UStaticMesh* mesh;
-
-    FMaterialProxy* material;
-
-
-    InstanceData* instanceData;
-    size_t instanceCount;
-};
-
+ 
 
 namespace Mesh {
 
@@ -197,7 +184,6 @@ namespace Passes {
         "rt2_position_metallic",
        },
        .depthFormat = DXGI_FORMAT_D32_FLOAT,
-	   .dsvName = "ds_viewDepth",
        .enableDepth = true,
        .enableBlend = false,
        .cullMode = D3D12_CULL_MODE_NONE,

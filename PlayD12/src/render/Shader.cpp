@@ -341,10 +341,7 @@ void FD3D12ShaderPermutation::AutoSetSamplers()
 	auto& samplers = this->resourceLayout.samplerBindings;
 	for (auto& [name , binding] : samplers)
 	{
-		if (!Samplers::samplerPool.contains(name)) {
-			std::cerr << "sampler name is not registered : " << name << std::endl;
-			continue;
-		}
+		if (!Samplers::samplerPool.contains(name)) std::cerr << "sampler name is not registered" << std::endl;
 
 		auto samplerDesc = Samplers::samplerPool[name];
 		samplerDesc.ShaderRegister = binding.bindPoint; 

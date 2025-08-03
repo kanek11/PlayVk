@@ -2,7 +2,7 @@
 #include "PCH.h"   
 #include "Base.h"
 
-namespace MyGame
+namespace Gameplay
 {
     // UObject is the base class of all objects
     class UObject

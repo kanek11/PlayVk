@@ -3,15 +3,15 @@
 #include "PBR/IBL_Common.hlsli"
 
 TextureCube<float4> envMap : register(t0);
-RWTexture2DArray<float4> prefilter : register(u0); 
+RWTexture2DArray<float4> prefilterMap : register(u0);
 
-SamplerState linearSampler : register(s0);
+SamplerState linearWrapSampler : register(s0);
 
-cbuffer Params : register(b0)
+cbuffer prefilterCB : register(b1)
 {
-    uint Resolution; // 128/256/512
+    uint Resolution;  
     uint NumSamples; // 1024-2048
-    float Roughness; 
+    float Roughness;
 }
 
 [numthreads(8, 8, 1)]
@@ -37,10 +37,13 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
         float NoL = saturate(dot(N, L));
         if (NoL > 0)
         {
-            prefiltered += envMap.SampleLevel(linearSampler, L, 0).rgb * NoL;
+            float3 sample = envMap.SampleLevel(linearWrapSampler, L, 0).rgb;
+            sample = min(sample, float3(10.0, 10.0, 10.0)); // tweak value depending on HDR range
+            prefiltered += sample * NoL;
+            //prefiltered += envMap.SampleLevel(linearWrapSampler, L, 0).rgb * NoL;
             totalWeight += NoL;
         }
     }
     prefiltered = prefiltered / max(totalWeight, 0.0001);
-    prefilter[uint3(coord, face)] = float4(prefiltered, 1.0f);
+    prefilterMap[uint3(coord, face)] = float4(prefiltered, 1.0f);
 }

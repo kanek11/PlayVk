@@ -21,14 +21,14 @@ struct alignas(256) SceneCB
     alignas(16) Float3 cameraPos = Float3(0.0f, 0.0f, 0.0f);
 
     alignas(16) Float2 viewportSize = Float2(1280.0f, 720.0f);
-	float time = 0.0f;
-	float deltaTime = 0.0f;
-	//uint32_t frameIndex = 0;
+    float time = 0.0f;
+    float deltaTime = 0.0f;
+    //uint32_t frameIndex = 0;
 
     Float4x4  light_pvMatrix;
     alignas(16) Float3 lightDir = Normalize(Float3(0.577f, 0.277f, 0.377f));
-    alignas(16) Float3 lightColor = Float3(1.0f, 1.0f, 1.0f); 
-	float lightIntensity = 1.0f;
+    alignas(16) Float3 lightColor = Float3(1.0f, 1.0f, 1.0f);
+    float lightIntensity = 1.0f;
 
     SceneCB() {
         Float3 lightPos = lightDir * 10.0f;
@@ -52,7 +52,7 @@ struct alignas(256) SceneCB
         // 7. Combine into light-space matrix
         this->light_pvMatrix = MMath::MatrixMultiply(lightProj, lightView);
     }
-}; 
+};
 
 //static_assert((sizeof(SceneCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
 
@@ -60,13 +60,13 @@ namespace Mesh {
 
 
 
-struct alignas(256) ObjectCB
-{
-    Float4x4 modelMatrix;
-	Float4x4 normalMatrix;  
-};
- 
-//static_assert((sizeof(ObjectCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
+    struct alignas(256) ObjectCB
+    {
+        Float4x4 modelMatrix;
+        Float4x4 normalMatrix;
+    };
+
+    //static_assert((sizeof(ObjectCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
 
 
 

@@ -7,7 +7,7 @@ static inline D3D12_HEAP_TYPE GetHeapType(const EBufferUsage& usage) {
 	if ((usage & EBufferUsage::Readback) != EBufferUsage{}) return D3D12_HEAP_TYPE_READBACK;
 	return D3D12_HEAP_TYPE_DEFAULT;
 }
- 
+
 //in case bitmask matters for priorities, we may care about the order,
 static inline D3D12_RESOURCE_STATES GetInitialState(const EBufferUsage& usage) {
 	// usually most short-lived buffers are upload/readback 
@@ -22,7 +22,7 @@ static inline D3D12_RESOURCE_STATES GetInitialState(const EBufferUsage& usage) {
 
 	//  
 	if ((usage & EBufferUsage::UAV) != EBufferUsage{})
-		return D3D12_RESOURCE_STATE_UNORDERED_ACCESS; 
+		return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 	if ((usage & EBufferUsage::SRV) != EBufferUsage{})
 		return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
@@ -50,9 +50,9 @@ static inline D3D12_RESOURCE_FLAGS GetResourceFlags(const EBufferUsage& usage) {
 
 
 
-FD3D12Buffer::FD3D12Buffer(ID3D12Device* m_device, const FBufferDesc& desc):
-	m_device(m_device), m_bufferDesc(desc) 
-{  
+FD3D12Buffer::FD3D12Buffer(ID3D12Device* m_device, const FBufferDesc& desc) :
+	m_device(m_device), m_bufferDesc(desc)
+{
 	CreateResource();
 }
 
@@ -66,7 +66,7 @@ D3D12_VERTEX_BUFFER_VIEW FD3D12Buffer::GetVertexBufferView() const
 }
 
 D3D12_INDEX_BUFFER_VIEW FD3D12Buffer::GetIndexBufferView() const
-{ 
+{
 	return D3D12_INDEX_BUFFER_VIEW{
 		m_resource->GetGPUVirtualAddress(),
 		static_cast<UINT>(m_bufferDesc.SizeInBytes),
@@ -96,7 +96,7 @@ D3D12_SHADER_RESOURCE_VIEW_DESC FD3D12Buffer::GetSRVDesc() const
 		}
 	};
 	return desc;
-	 
+
 }
 
 D3D12_UNORDERED_ACCESS_VIEW_DESC FD3D12Buffer::GetUAVDesc() const
@@ -123,7 +123,7 @@ void FD3D12Buffer::CreateResource()
 	auto initialState = GetInitialState(m_bufferDesc.Usage);
 
 	auto bufferSize = static_cast<UINT64>(m_bufferDesc.SizeInBytes);
-	 
+
 	ThrowIfFailed(m_device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(heapType),
 		D3D12_HEAP_FLAG_NONE,
@@ -137,7 +137,7 @@ void FD3D12Buffer::CreateResource()
 void* FD3D12Buffer::Map()
 {
 	void* mappedDataBegin = nullptr;
-	 
+
 	CD3DX12_RANGE D3D12_GPU_VIRTUAL_ADDRESS_RANGE(0, 0);
 	ThrowIfFailed(m_resource->Map(0, &D3D12_GPU_VIRTUAL_ADDRESS_RANGE, &mappedDataBegin));
 
@@ -145,7 +145,7 @@ void* FD3D12Buffer::Map()
 }
 
 void FD3D12Buffer::Unmap()
-{ 
+{
 	m_resource->Unmap(0, nullptr);
 }
 
@@ -157,4 +157,3 @@ void FD3D12Buffer::UploadData(const void* data, size_t size)
 	this->Unmap();
 }
 
- 

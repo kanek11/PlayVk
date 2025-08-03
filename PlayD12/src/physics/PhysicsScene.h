@@ -3,6 +3,9 @@
 #include "Math/MMath.h"
 #include "Shape.h"
 
+#include "Gameplay/Actor.h"
+
+#include "PhysicsSync.h"
 //design decision: use PBD solver ;
 
 //using namespace DirectX;
@@ -53,32 +56,44 @@ struct RigidBody {
 	DirectX::XMVECTOR prevRot{ DirectX::XMQuaternionIdentity() };
 	DirectX::XMVECTOR predRot{ DirectX::XMQuaternionIdentity() };
 
-	ShapeType type;
 
 	//bool isKenematic;  
-	void ApplyForce(Float3 force) {
-		this->force += force;
+	void ApplyForceRate(Float3 forceRate) {
+		this->force += forceRate * 60.0f;
 	}
 
 	void ApplyTorque(const Float3& torque) {
 		this->torque += torque;
+	} 
+ 
+	void SetPosition(const Float3& position) {
+		this->position = position;
+		this->predPos = position;
+		this->prevPos = position;
 	}
-	 
-	StaticMeshActorProxy* owner;
-	RigidBody(StaticMeshActorProxy* owner, ShapeType type);
 
-	//debug
-	bool showDebug{ false };
+	void SetRotation(const DirectX::XMVECTOR& rotation) {
+		this->rotation = rotation;
+		this->predRot = rotation;
+		this->prevRot = rotation;
+	}
+
+	ShapeType type;
+	void SetShape(ShapeType shape) {
+		this->type = shape;
+		localInertia = MakeInertiaTensor(shape, mass); 
+	}
+
+	RigidBody();
 };
 
 
 struct Collider {
 	ShapeType type;
 
-	RigidBody* body{ nullptr };
-	StaticMeshActorProxy* owner;
-	Collider(StaticMeshActorProxy* owner, ShapeType type, RigidBody* body)
-		: owner(owner), type(type), body(body)
+	RigidBody* body{ nullptr }; 
+	Collider(ShapeType type, RigidBody* body)
+		:type(type), body(body)
 	{
 	};
 };
@@ -127,7 +142,11 @@ public:
 
 
 public:
-	void AddRigidBody(RigidBody* rb);
+	void AddRigidBody(RigidBody* rb, 
+		ActorHandle owener,
+		const Float3& position = Float3{ 0.0f, 0.0f, 0.0f },
+		const DirectX::XMVECTOR& rotation = DirectX::XMQuaternionIdentity()
+	);
 	void AddCollider(Collider* collider) {
 		m_colliders.push_back(collider);
 	}
@@ -166,7 +185,7 @@ private:
 	void PostSimulation();
 
 private:
-	std::vector<RigidBody*> m_bodies;
+	std::unordered_map<ActorHandle, RigidBody*> m_bodies;
 	std::vector<Collider* > m_colliders;
 	std::vector<Contact>  m_contacts;
 	//std::vector<Constraints* > m_constraints;
@@ -178,6 +197,19 @@ private:
 public:
 	Float3 gravity{ 0.0f, -9.8f, 0.0f };
 	//Float3 gravity{ 0.0f, 0.0f, 0.0f }; 
+
+
+public:
+	PhysicsTransformBuffer& GetTransformBuffer() {
+		return m_transformBuffer.GetReadBuffer();
+	}
+
+	void SetPosition(ActorHandle handle, const Float3& position);
+	void SetRotation(ActorHandle handle, const DirectX::XMVECTOR& rotation);
+
+private:
+	PhysicsTransformSyncBuffer m_transformBuffer; 
+	PhysicsCommandBuffer m_commandBuffer;
 };
 
 

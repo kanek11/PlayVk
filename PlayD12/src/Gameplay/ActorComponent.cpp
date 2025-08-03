@@ -2,7 +2,7 @@
 
 #include "ActorComponent.h"
 
-namespace MyGame
+namespace Gameplay
 {
     UActorComponent::UActorComponent() :
         UObject()

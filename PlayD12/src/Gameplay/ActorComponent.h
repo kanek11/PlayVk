@@ -3,7 +3,7 @@
 
 #include "Object.h"
 
-namespace MyGame
+namespace Gameplay
 {
 
     // forward declaration

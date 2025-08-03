@@ -427,7 +427,7 @@ namespace MMath {
 
 
 
-	inline std::string XMMatrixToString(const DirectX::XMMATRIX& mat) {
+	inline std::string XMToString(const DirectX::XMMATRIX& mat) {
 		std::ostringstream oss;
 		for (int i = 0; i < 4; ++i) {
 			oss << std::format("{: .3f}, {: .3f}, {: .3f}, {: .3f}\n",
@@ -436,6 +436,13 @@ namespace MMath {
 		}
 		return oss.str();
 	}
+
+	inline std::string XMToString(const DirectX::XMVECTOR& vec) {
+		return std::format("[{:.3f}, {:.3f}, {:.3f}, {:.3f}]",
+			vec.m128_f32[0], vec.m128_f32[1], vec.m128_f32[2], vec.m128_f32[3]);
+	}
+
+
 
 
 }

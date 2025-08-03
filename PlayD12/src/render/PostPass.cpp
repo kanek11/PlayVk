@@ -39,7 +39,7 @@ void PBR::Init(const RendererContext* ctx, PassContext& passCtx)
     auto& shader = passCtx.res.shader;
     shader = ctx->shaderManager->GetOrLoad(key);
     //shader->SetStaticSampler("linearWrapSampler", Samplers::LinearWrap(0));
-    //shader->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1));
+    //shader->SetStaticSampler("depthSampler", Samplers::LinearClamp(1));
     //shader->AutoSetSamplers();
     //shader->CreateRootSignature();
 
@@ -129,7 +129,7 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
     auto baseHeapOffset = passCtx.res.baseHeapOffset;
 
     auto& graphCtx = Render::graphContext;
-    auto& gbuffers = graphCtx->gbuffers; 
+    auto& gbuffers = graphCtx->gbuffers;
 
     auto& batchData = passCtx.data;
 
@@ -165,17 +165,25 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
             shader->SetSRV(name, gbufferTex->GetRawResource(), gbufferTex->GetSRVDesc(), objectHeapOffset);
         }
 
-		if (graphCtx->sceneDepth)
-		{
-			shader->SetSRV("ds_viewDepth", graphCtx->sceneDepth->GetRawResource(), graphCtx->sceneDepth->GetSRVDesc(), objectHeapOffset);
-		}
+        if (graphCtx->sceneDepth)
+        {
+            shader->SetSRV("ds_viewDepth", graphCtx->sceneDepth->GetRawResource(), graphCtx->sceneDepth->GetSRVDesc(), objectHeapOffset);
+        }
 
         if (graphCtx->shadowMap)
             shader->SetSRV("shadowMap", graphCtx->shadowMap->GetRawResource(), graphCtx->shadowMap->GetSRVDesc(), objectHeapOffset);
 
-        if (graphCtx->skybox)
-            shader->SetSRV("skybox", graphCtx->skybox->GetRawResource(), graphCtx->skybox->GetSRVDesc(), objectHeapOffset);
-         
+        if (auto& probe = graphCtx->probe; probe!=nullptr) {
+            shader->SetSRV("skybox", probe->envMap->GetRawResource(), probe->envMap->GetSRVDesc(), objectHeapOffset);
+            shader->SetSRV("irradianceMap", probe->diffuseIrradiance->GetRawResource(), probe->diffuseIrradiance->GetSRVDesc(), objectHeapOffset);
+            shader->SetSRV("prefilterMap", probe->specularPrefilter->GetRawResource(), probe->specularPrefilter->GetSRVDesc(), objectHeapOffset);
+ 
+            //auto srvDesc = probe->specularPrefilter->GetDesc();
+            //std::cout << "srv miplevels:" << srvDesc.mipLevels << '\n';
+            shader->SetSRV("brdfLUT", probe->brdfLUT->GetRawResource(), probe->brdfLUT->GetSRVDesc(), objectHeapOffset);
+
+        }
+
         DrawCmd cmd = {
             .indexOffset = baseIndex,
             .indexCount = 6,
@@ -191,7 +199,7 @@ void PBR::EndFrame(PassContext& passCtx) noexcept
     passCtx.data.Clear();
 }
 
-void Compute::Init(const RendererContext* ctx, 
+void Compute::Init(const RendererContext* ctx,
     ComputeContext& passCtx,
     const std::string& shaderTag,
     const std::string& passTag
@@ -208,8 +216,8 @@ void Compute::Init(const RendererContext* ctx,
 
     //// Create PSO for compute shader
     passCtx.res.pso = ctx->psoManager->GetOrCreateCompute(
-        MaterialDesc{.shaderTag = shaderTag},
-        RenderPassDesc {.passTag = passTag}
+        MaterialDesc{ .shaderTag = shaderTag },
+        RenderPassDesc{ .passTag = passTag }
     );
 
     passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap();
@@ -222,12 +230,11 @@ void Compute::DispatchCompute(ID3D12GraphicsCommandList* cmdList, const ComputeC
     cmdList->SetPipelineState(ctx.res.pso.Get());
     cmdList->SetComputeRootSignature(ctx.res.shader->GetRootSignature().Get());
     ctx.res.shader->SetDescriptorHeap(cmdList);
-    ctx.res.shader->SetDescriptorTablesCompute(cmdList, ctx.res.baseHeapOffset.value());
+    //ctx.res.shader->SetDescriptorTablesCompute(cmdList, ctx.res.baseHeapOffset.value());
+    ctx.res.shader->SetDescriptorTablesCompute(cmdList, ctx.cmd.heapOffset);
     //todo: set table;
-    // Set the UAV for the compute shader
+    // Set the UAV for the compute shader 
 
-
-    cmdList->Dispatch(ctx.cmd.groupX, ctx.cmd.groupY, ctx.cmd.groupZ); 
+    cmdList->Dispatch(ctx.cmd.groupX, ctx.cmd.groupY, ctx.cmd.groupZ);
 }
 
- 

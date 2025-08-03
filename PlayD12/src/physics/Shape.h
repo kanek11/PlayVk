@@ -7,6 +7,8 @@
 //design decision:  the position/center should be part of physical body, not collider;
 
 
+struct EmptyShape {}; //for empty collider, no shape
+
 struct Plane {
 	float width = 1.0f;
 	float height = 1.0f;
@@ -27,7 +29,7 @@ struct Capsule {
 };
 
 
-using ShapeType = std::variant<Plane, Sphere, Box>;
+using ShapeType = std::variant<EmptyShape, Plane, Sphere, Box>;
 
 
 //generic fallback:

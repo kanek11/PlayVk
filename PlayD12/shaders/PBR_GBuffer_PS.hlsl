@@ -20,8 +20,8 @@ GBufferOutput PSMain(VSOutput input)
     
         //normal_TS = float3(0.0f, 0.0f, 1.0f);
         float3x3 TBN = BuildTBN(worldNormal, worldTangent, input.TangentSign);
-        worldNormal = TangentToWorld(TBN, normal_TS); 
-    } 
+        worldNormal = TangentToWorld(TBN, normal_TS);
+    }
     
     // 
     float3 albedo = GetBaseColor(input.UV);

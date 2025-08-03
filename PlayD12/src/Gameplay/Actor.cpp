@@ -3,7 +3,7 @@
 
 #include "Actor.h"
 
-namespace MyGame
+namespace Gameplay
 {
 
     void AActor::AddComponent(const SharedPtr<UActorComponent>& component)

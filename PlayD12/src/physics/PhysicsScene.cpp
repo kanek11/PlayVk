@@ -45,32 +45,40 @@ void PhysicsScene::OnDestroy()
 {
 }
 
-void PhysicsScene::AddRigidBody(RigidBody* rb)
+void PhysicsScene::AddRigidBody(RigidBody* rb, ActorHandle owener,
+	const Float3& position,
+	const DirectX::XMVECTOR& rotation
+)
 {
-	this->m_bodies.push_back(rb);
+	//this->m_bodies.push_back(rb);
+	m_bodies[owener] = rb;
 }
 
 void PhysicsScene::PreSimulation()
 {
-	for (auto& rb : m_bodies) {
-		rb->position = rb->owner->position; 
-	}
+	//for (auto& [actor, rb] : m_bodies) {
+	//	rb->position = rb->owner->position; 
+	//}
+
+	//new: consume the cmd buffer: 
+	m_commandBuffer.SwapBuffers();
+	m_commandBuffer.Execute();
 }
 
 void PhysicsScene::ApplyExternalForce(float delta)
 {
-	for (auto& rb : m_bodies) {
+	for (auto& [actor, rb] : m_bodies) {
 		if (!rb->simulatePhysics) continue;
-		rb->ApplyForce(this->gravity);
-
+		rb->ApplyForceRate(this->gravity * delta); 
 	}
 }
 
 void PhysicsScene::Integrate(float delta)
 {
-	for (auto& rb : m_bodies) {
+	for (auto& [actor, rb] : m_bodies) {
 		if (!rb->simulatePhysics) continue;
 
+		//std::cout << "integrate for rb: " << ToString(rb->force ) << '\n';
 		rb->linearVelocity = rb->linearVelocity + rb->force / rb->mass * delta;
 		rb->force = Float3{};
 
@@ -83,10 +91,12 @@ void PhysicsScene::Integrate(float delta)
 		if (!rb->simulateRotation) {
 			continue;
 		}
-		//new: consider torque:
-		rb->angularVelocity = rb->angularVelocity + Inverse3x3(rb->worldInertia) * rb->torque * delta;
-		rb->torque = Float3{}; //reset torque 
+		//new: consider torque: 
 
+		//rb->angularVelocity = rb->angularVelocity + Inverse3x3(rb->worldInertia) * rb->torque * delta;
+		//rb->torque = Float3{}; //reset torque 
+
+		//
 		rb->prevRot = rb->rotation;
 
 		XMVECTOR omegaW = XMVectorSet(rb->angularVelocity.x(), rb->angularVelocity.y(), rb->angularVelocity.z(), 0.0f);
@@ -94,6 +104,9 @@ void PhysicsScene::Integrate(float delta)
 		dq = XMVectorScale(dq, 0.5f * delta);
 		rb->predRot = XMQuaternionNormalize(XMVectorAdd(dq, rb->predRot));
 
+	/*	std::cout << "integrate for rb : " << rb->debugName << '\n';
+		std::cout << "dq: " << MMath::XMToString(dq) << '\n';*/
+		
 		//update pose;
 		//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
 		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
@@ -106,6 +119,7 @@ void PhysicsScene::Integrate(float delta)
 
 		rb->RotationMatrix = R;
 
+		 
 		auto worldInertia = MatrixMultiply(MatrixMultiply(R, rb->localInertia), Transpose(R));
 		rb->worldInertia = worldInertia;
 		rb->invWorldInertia = Inverse3x3(worldInertia);
@@ -251,7 +265,7 @@ void PhysicsScene::PostPBD(float delta)
 {
 	//pbd step after solving constraints:
 	//v = (x - x0) / dt
-	for (auto& rb : m_bodies) {
+	for (auto& [actor, rb] : m_bodies) {
 		if (!rb->simulatePhysics) continue;
 
 		rb->position = rb->predPos; //update position to predicted position 
@@ -272,6 +286,9 @@ void PhysicsScene::PostPBD(float delta)
 		float  w = dq.m128_f32[3];
 		if (w < 0.f) v = -v;
 		rb->angularVelocity = (2.f / delta) * v;
+
+		//std::cout << "post pbd for rb: " << rb->debugName << '\n';
+		//std::cout <<  " ang vel: " << ToString(rb->angularVelocity) << '\n';
 
 		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->rotation);
 		Float3x3 R;
@@ -432,31 +449,68 @@ void PhysicsScene::VelocityPass(float delta)
 
 void PhysicsScene::PostSimulation()
 {
-	for (auto& rb : m_bodies) {
-		 
-		//::cout << "draw for rb:" << rb->debugName << '\n'; 
-		if (!rb->simulatePhysics) continue;
-		rb->owner->SetWorldPosition(rb->position); 
+	//for (auto& [actor, rb] : m_bodies) {
+	//	 
+	//	//::cout << "draw for rb:" << rb->debugName << '\n'; 
+	//	if (!rb->simulatePhysics) continue;
+	//	rb->owner->SetWorldPosition(rb->position); 
 
-		DebugDraw::Get().AddRay(rb->position, rb->linearVelocity, Color::Purple); 
+	//	DebugDraw::Get().AddRay(rb->position, rb->linearVelocity, Color::Purple); 
 
-		if (!rb->simulateRotation) continue;
-		rb->owner->SetWorldRotation(rb->rotation);  
+	//	if (!rb->simulateRotation) continue;
+	//	rb->owner->SetWorldRotation(rb->rotation);  
 
-		DebugDraw::Get().AddRay(rb->position, rb->angularVelocity, Color::Yellow);
+	//	DebugDraw::Get().AddRay(rb->position, rb->angularVelocity, Color::Yellow);
 
-		//XMVECTOR axis;
-		//float angle;
-		//XMQuaternionToAxisAngle(&axis, &angle, rb->rotation);
-		//XMFLOAT3 axisVec;
-		//XMStoreFloat3(&axisVec, axis); 
+	//	//XMVECTOR axis;
+	//	//float angle;
+	//	//XMQuaternionToAxisAngle(&axis, &angle, rb->rotation);
+	//	//XMFLOAT3 axisVec;
+	//	//XMStoreFloat3(&axisVec, axis); 
 
-		//DebugDraw::Get().AddRay(rb->position, { axisVec.x,axisVec.y,axisVec.z }, Color::Cyan);
+	//	//DebugDraw::Get().AddRay(rb->position, { axisVec.x,axisVec.y,axisVec.z }, Color::Cyan);
 
+	//}
+	
+	//write to transform buffer:
+	auto& writeBuffer = m_transformBuffer.GetWriteBuffer();
+	for (auto& [actor, rb] : m_bodies) {  
+		auto& transform = writeBuffer[actor];
+		transform.position = rb->position;
+		transform.rotation = rb->rotation; 
 	}
+
+	m_transformBuffer.SwapBuffers();
+}
+
+void PhysicsScene::SetPosition(ActorHandle handle, const Float3& position)
+{
+	m_commandBuffer.Enqueue([=]() {
+		auto it = m_bodies.find(handle);
+		if (it != m_bodies.end()) {
+			it->second->SetPosition(position);
+		}
+		else {
+			std::cerr << "RigidBody with handle " << handle << " not found!" << std::endl;
+		}
+		});
+	
+}
+
+void PhysicsScene::SetRotation(ActorHandle handle, const DirectX::XMVECTOR& rotation)
+{
+	m_commandBuffer.Enqueue([=]() {
+		auto it = m_bodies.find(handle);
+		if (it != m_bodies.end()) {
+			it->second->SetRotation(rotation);
+		}
+		else {
+			std::cerr << "RigidBody with handle " << handle << " not found!" << std::endl;
+		}
+		}); 
 }
  
-
+/*
 RigidBody::RigidBody(StaticMeshActorProxy* owner, ShapeType type)
 	: owner(owner), type(type)
 {
@@ -482,3 +536,11 @@ RigidBody::RigidBody(StaticMeshActorProxy* owner, ShapeType type)
 	invWorldInertia = Inverse3x3(worldInertia);
 	 
 }
+*/
+
+RigidBody::RigidBody() 
+{
+	//localInertia = MakeInertiaTensor(type, mass);
+}
+
+ 

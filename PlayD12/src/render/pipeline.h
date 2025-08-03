@@ -9,7 +9,7 @@
 #include "RenderPass.h"
 
 struct PSOKey {
-    ShaderPermutationKey permutationKey; 
+    ShaderPermutationKey permutationKey;
 
     bool operator==(const PSOKey& other) const {
         return permutationKey == other.permutationKey; //&& pass.passTag == other.pass.passTag;

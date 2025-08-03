@@ -4,9 +4,14 @@
 #include "Application.h"
 #include "Render/Renderer.h"
 
+#include "Render/StaticMeshProxy.h"
+
 using namespace DirectX;
 
 #include <random>
+
+
+/*
 void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount)
 {
 
@@ -37,7 +42,7 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
             sphereProxy->rigidBody->material.friction = 5.0f;
 
             m_staticMeshActors.push_back(sphereProxy);
-            renderer->SubmitMesh(sphereProxy.get());
+            //renderer->SubmitMesh(sphereProxy.get());
 
         }
         else
@@ -55,20 +60,27 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
 
 
             m_staticMeshActors.push_back(boxProxy);
-            renderer->SubmitMesh(boxProxy.get());
+            //renderer->SubmitMesh(boxProxy.get());
         }
     }
 }
-
+*/
 
 void GamePlayWorld::OnLoad()
 {
+    auto& gTime = GameApplication::GetInstance()->GetTimeSystem();
+    m_physicsScene = new PhysicsScene();
+    m_physicsScene->OnInit();
+
+    gTime.RegisterFixedFrame([=](float delta) {
+	m_physicsScene->Tick(delta);
+	});
+
     //hardcode state; todo;
     timeCount = 0.0f;
 
     std::cout << "load game world" << '\n';
-
-    auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
+     
     auto renderer = GameApplication::GetInstance()->GetRenderer();
     auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
     auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
@@ -88,17 +100,26 @@ void GamePlayWorld::OnLoad()
 
     //------------------------- 
     auto& sphereMat = debugSphereProxy->material;
-    sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png"; 
-    sphereMat->textures["normalMap"]    = "rusty_metal_04_nor_dx_1k.png"; 
-    sphereMat->textures["metallicMap"]  = "rusty_metal_04_metal_1k.png"; 
-    sphereMat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png"; 
-    sphereMat->textures["AOMap"]        = "rusty_metal_04_ao_1k.png"; 
+    sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png";
+    sphereMat->textures["normalMap"] = "rusty_metal_04_nor_dx_1k.png";
+    sphereMat->textures["metallicMap"] = "rusty_metal_04_metal_1k.png";
+    sphereMat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png";
+    sphereMat->textures["AOMap"] = "rusty_metal_04_ao_1k.png";
 
     sphereMat->materialCB.useBaseColorMap = true;
     sphereMat->materialCB.useNormalMap = true;
     sphereMat->materialCB.useMetallicMap = true;
     sphereMat->materialCB.useRoughnessMap = true;
-    sphereMat->materialCB.useAOMap = true;
+    sphereMat->materialCB.useAOMap = true; 
+
+    //sphereMat->materialCB.useBaseColorMap = false;
+    //sphereMat->materialCB.baseColor =  Color::Gold.xyz(); //Color::White.xyz(); 
+    //sphereMat->materialCB.useNormalMap = false;
+    //sphereMat->materialCB.useMetallicMap = false;
+    //sphereMat->materialCB.metallic = 0.8f;
+    //sphereMat->materialCB.useRoughnessMap = false;
+    //sphereMat->materialCB.roughness = 0.1f;
+    //sphereMat->materialCB.useAOMap = false;
 
     //------------------------- 
     auto debugCubeProxy = CreateBoxActor({ 3.0f, 3.0f,-3.0f }, { 1.0f, 1.0f, 1.0f });
@@ -106,12 +127,23 @@ void GamePlayWorld::OnLoad()
     debugCubeProxy->rigidBody->simulateRotation = false;
     debugCubeProxy->rigidBody->material.friction = 0.1f;
 
+
+    auto& cubeMat = debugCubeProxy->material;
+    cubeMat->materialCB.useBaseColorMap = false;
+    cubeMat->materialCB.baseColor =  Color::White.xyz(); 
+    cubeMat->materialCB.useNormalMap = false;
+    cubeMat->materialCB.useMetallicMap = false;
+    cubeMat->materialCB.metallic = 0.8f;
+    cubeMat->materialCB.useRoughnessMap = false;
+    cubeMat->materialCB.roughness = 0.1f;
+    cubeMat->materialCB.useAOMap = false;
+
     //--------------- 
     auto planeProxy = CreatePlaneActor({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, static_cast<uint32_t>(roadWidth), static_cast<uint32_t>(goalLength));
 
-     
+
     auto& planeMat = planeProxy->material;
-    ////planeMat->textures["baseColorMap"] = "stone_wall_05_diff_1k.png";
+    //planeMat->textures["baseColorMap"] = "stone_wall_05_diff_1k.png";
     //planeMat->textures["normalMap"]    = "stone_wall_05_nor_dx_1k.png";
     ////planeMat->textures["metallicMap"]  "floor_tiles_metal.png"];
     //planeMat->textures["RoughnessMap"] = "stone_wall_05_rough_1k.png";
@@ -139,21 +171,34 @@ void GamePlayWorld::OnLoad()
     //renderer->SubmitMesh(debugCubeProxy.get());
 
 
-    m_staticMeshActors.push_back(debugSphereProxy);
-    m_staticMeshActors.push_back(planeProxy);
-    m_staticMeshActors.push_back(debugCubeProxy);
-     
-    //dummyCamera->target = debugPlayer; 
+    //m_staticMeshActors.push_back(debugSphereProxy);
+    //m_staticMeshActors.push_back(planeProxy);
+    //m_staticMeshActors.push_back(debugCubeProxy);
+    ActorHandle id = 0;
+    m_staticMeshActors[id++] = (debugSphereProxy);
+    m_staticMeshActors[id++] = (planeProxy);
+    m_staticMeshActors[id++] = (debugCubeProxy);
 
+    
+    //
+    dummyCamera->target = debugPlayer;  
     renderer->SubmitCamera(dummyCamera);
 
+    //new: centralize the physics reegistery 
+    for (auto& [ handle, actor] : m_staticMeshActors) {
+
+        m_physicsScene->AddRigidBody(actor->rigidBody, handle);
+		actor->rigidBody->SetPosition(actor->position);
+		actor->rigidBody->SetRotation(actor->rotation);
+        m_physicsScene->AddCollider(actor->collider); 
+    } 
 
     // 
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
     //FRect buttonRect = { 0, 0, 300, 150 };
     FRect buttonRect = { 10, 20, 300, 50 };
-    auto debugHUD = CreateShared<UIButton>(buttonRect); 
+    auto debugHUD = CreateShared<UIButton>(buttonRect);
 
     FRect buttonRect1 = { 10, 100, 300, 50 };
     auto debugHUD1 = CreateShared<UIButton>(buttonRect1);
@@ -170,7 +215,7 @@ void GamePlayWorld::OnLoad()
     uiManager->RegisterRootElement(debugHUD.get());
     uiManager->RegisterRootElement(debugHUD1.get());
     uiManager->RegisterRootElement(debugHUD2.get());
-     
+
 
     //--------------------------
 
@@ -205,10 +250,10 @@ void GamePlayWorld::OnLoad()
         //    debugPlayer->rigidBody->ApplyForce(Float3(-5.0f, 0.0f, 0.0f));
         //}
         float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-        debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, axisZ * 5.0f));
+        debugPlayer->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f) * delta);
 
         float axisX = inputSystem->GetAxis(EAxis::MoveX);
-        debugPlayer->rigidBody->ApplyForce(Float3(axisX * 5.0f, 0.0f, 0.0f));
+        debugPlayer->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta);
 
 
         //if (inputSystem->IsKeyDown(KeyCode::D)) {
@@ -244,14 +289,15 @@ void GamePlayWorld::OnLoad()
 
 void GamePlayWorld::OnUnload()
 {
-    std::cout << "unload game world" << '\n';
+    std::cout << "unload game world" << '\n'; 
 
-
-    auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
+    //auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
     auto renderer = GameApplication::GetInstance()->GetRenderer();
     renderer->ClearMesh();
-    physicsScene->ClearCollider();
-    physicsScene->ClearRigidBody();
+
+
+    m_physicsScene->ClearCollider();
+    m_physicsScene->ClearRigidBody();
 
     //
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
@@ -262,7 +308,7 @@ void GamePlayWorld::OnUnload()
     //
     m_staticMeshActors.clear();
     m_HUDs.clear();
-    dummyCamera = nullptr;
+    //dummyCamera = nullptr;
 }
 
 void GamePlayWorld::OnUpdate(float delta)
@@ -302,8 +348,15 @@ void GamePlayWorld::OnUpdate(float delta)
     }
 
 
+
+
+
+    //m_physicsScene->SyncPhysics();
+    //this->SyncPhysicsToGame();
+
+
     //--------------
-    for (auto& proxy : m_staticMeshActors)
+    for (auto& [ actorId , proxy] : m_staticMeshActors)
     {
         proxy->onUpdate.BlockingBroadCast(delta);
 
@@ -407,16 +460,73 @@ void GamePlayWorld::OnUpdate(float delta)
     }
 
 
+    //new:--------
+    //this->SyncPhysicsToGame();
+
+
     //--------------
     auto renderer = GameApplication::GetInstance()->GetRenderer();
-    for (auto& proxy : m_staticMeshActors) {
+    for (auto& [handle, actorProxy] : m_staticMeshActors) {
 
-        renderer->SubmitMesh(proxy.get());
+        Mesh::FStaticMeshProxy proxy = {
+       .modelMatrix = actorProxy->modelMatrix,
+       .mesh = actorProxy->mesh.get(),
+       .material = actorProxy->material.get(),
+       .instanceData = actorProxy->instanceData.data(),
+       .instanceCount = actorProxy->instanceData.size(),
+        };
+        renderer->SubmitMesh(proxy);
+    }
+     
+}
+
+void GamePlayWorld::SyncGameToPhysics()
+{
+    for (auto& [actorH, actor] : m_staticMeshActors) { 
+		m_physicsScene->SetPosition(actorH, actor->position);
+		//m_physicsScene->SetRotation(actorH, actor->rotation); 
     }
 
 
+  //  for (auto& [actorH, rb] : m_physicsScene->m_bodies) {
+
+  //      auto& owner = this->m_staticMeshActors[actorH];
+  //      //::cout << "draw for rb:" << rb->debugName << '\n'; 
+  //      if (!rb->simulatePhysics) continue;
+		////std::cout << "sync game to physics for rb: " << ToString(owner->position) << '\n';
+  //      rb->position = owner->position;
+  //      
+  //      if (!rb->simulateRotation) continue;
+  //      rb->rotation = owner->rotation;
+  //  }
 }
 
+void GamePlayWorld::SyncPhysicsToGame()
+{
+auto& transformBuffer = m_physicsScene->GetTransformBuffer();
+for (auto& [actorH, trans] : transformBuffer) {
+
+    auto& owner = this->m_staticMeshActors[actorH];
+    
+	owner->position = trans.position;
+	owner->rotation = trans.rotation;
+} 
+
+//for (auto& [actorH, rb] : m_physicsScene->m_bodies) {
+//	 
+//	auto& owner = this->m_staticMeshActors[actorH];
+//	//::cout << "draw for rb:" << rb->debugName << '\n'; 
+//	if (!rb->simulatePhysics) continue;
+//	owner->SetWorldPosition(rb->position); 
+// 
+//	if (!rb->simulateRotation) continue;
+//	owner->SetWorldRotation(rb->rotation);  
+//
+// 
+//}
+
+
+}
 
 
 
@@ -443,8 +553,7 @@ void MainMenuWorld::OnLoad()
         };
 
     entryButton->OnClick.Add(click_cb);
-    //debugButton->OnHover.Add(hover_cb);
-
+    //debugButton->OnHover.Add(hover_cb); 
 
     FRect timeHUDRect = { centeredRect.x, centeredRect.y + 100, 500, 20 };
     auto timeHUD = CreateShared<UIButton>(timeHUDRect);
@@ -468,8 +577,7 @@ void MainMenuWorld::OnUnload()
 
     renderer->ClearUI();
 
-    uiManager->ClearRoot();
-
+    uiManager->ClearRoot(); 
 
     m_Buttons.clear();
 }
@@ -480,3 +588,24 @@ void MainMenuWorld::OnUpdate(float delta)
         button->Tick(delta);
     }
 }
+
+
+//void GamePlayWorld::SyncGameToPhysics()
+//{
+//    for (auto& [handle, proxy] : m_staticMeshActors) {
+//        m_physicsScene->MoveRigidBody(handle, proxy->position);
+//        m_physicsScene->RotateRigidBody(handle, proxy->rotation);
+//    }
+//}
+//
+//void GamePlayWorld::SyncPhysicsToGame()
+//{
+//    auto& readBuffer = m_physicsScene->syncBuffer.GetReadBuffer();
+//	for (auto& [owner ,trans] : readBuffer) {
+//		//auto& owner = trans.owner;
+//        auto& actor = m_staticMeshActors[owner];
+//		actor->SetWorldPosition(trans.position);
+//		actor->SetWorldRotation(trans.rotation);
+//	}
+//}
+

@@ -156,6 +156,18 @@
     <ClInclude Include="src\Core\Task.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\render\RenderCommand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\physics\PhysicsSync.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\StaticMeshProxy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\Components\SceneComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp">
@@ -263,12 +275,13 @@
     <None Include="shaders\PBR\Shadow.hlsli" />
     <None Include="shaders\PBR\BRDF.hlsli" />
     <None Include="shaders\Common\Math.hlsli" />
-    <None Include="shaders\PBR\IBL_Shading_hlsli" />
+    <None Include="shaders\PBR\IBL_Shading.hlsli" />
     <None Include="shaders\Common\Random.hlsli" />
     <None Include="shaders\Common\Permutation.hlsli" />
     <None Include="shaders\PBR\PBR_Shading_Common.hlsli" />
     <None Include="shaders\PBR\Lighting.hlsli" />
     <None Include="shaders\PBR\Skybox.hlsli" />
     <None Include="shaders\PBR\IBL_Common.hlsli" />
+    <None Include="shaders\Common\Samplers.hlsli" />
   </ItemGroup>
 </Project>

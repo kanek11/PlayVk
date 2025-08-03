@@ -21,16 +21,25 @@ D3D12HelloRenderer::D3D12HelloRenderer(UINT width, UINT height, std::wstring nam
     m_mainWindow = mainWindow;
 }
 
+void D3D12HelloRenderer::ConsumeCmdBuffer()
+{
+    //new: execute read buffer
+    cmdBuffer.SwapBuffers();
+    cmdBuffer.Execute();
+}
+
+
 // Update frame-based values.  make sure comes before OnRender;
 void D3D12HelloRenderer::OnUpdate(float delta)
 {
+    this->ConsumeCmdBuffer();
 
     SceneCB sceneCBData = {};
     if (this->mainCamera) {
 
         sceneCBData.pvMatrix = mainCamera->pvMatrix;
-		sceneCBData.invProj = mainCamera->invProjMatrix;
-		sceneCBData.invView = mainCamera->invViewMatrix;
+        sceneCBData.invProj = mainCamera->invProjMatrix;
+        sceneCBData.invView = mainCamera->invViewMatrix;
         sceneCBData.cameraPos = mainCamera->position;
     }
 
@@ -38,11 +47,11 @@ void D3D12HelloRenderer::OnUpdate(float delta)
     sceneCBData.viewportSize = { (float)m_width, (float)m_height };
     this->sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
 
-     
+
     auto frameData = Render::frameContext;
 
     frameData->mainCamera = mainCamera;
-    frameData->staticMeshes = staticMeshes;
+    //frameData->staticMeshes = staticMeshes;
 
     frameData->currentRTV = m_presentBindings.rtvs[m_frameIndex];
 
@@ -102,18 +111,19 @@ void D3D12HelloRenderer::OnInit()
 
     //DebugDraw::Get().Init(Render::rendererContext);   
 
-    Render::frameContext = new FrameDataContext{};
+    Render::frameContext = m_frame;
+
+
+    Render::graphContext = m_graph; 
 
     m_graph->shadowMapWidth = m_shadowMapWidth;
-	m_graph->shadowMapHeight = m_shadowMapHeight;
-	m_graph->shadowMap = m_shadowMap;
-	m_graph->loadedTextures = this->loadTextures;  
-
-    Render::graphContext = m_graph;
+    m_graph->shadowMapHeight = m_shadowMapHeight;
+    m_graph->shadowMap = m_shadowMap;
+    m_graph->loadedTextures = this->loadTextures;
 
 
     //for valid atlas
-    UI::Init(Render::rendererContext, uiPassCtx); 
+    UI::Init(Render::rendererContext, uiPassCtx);
 
     InitEnvMap();
 
@@ -124,17 +134,18 @@ void D3D12HelloRenderer::OnRender()
 {
     // Record all the commands we need to render the scene into the command list.
     //PopulateCommandList();  
-    //Lit::BeginFrame(litPassCtx);
+    //Lit::BeginFrame(litPassCtx); 
+     
+    //GPU-side cmdList ; 
+    //comes before the building of drawcmd;
+    BeginFrame();
 
     //CPU-side
     UI::BeginFrame(uiPassCtx);
     Shadow::BeginFrame(shadowPassCtx);
     GBuffer::BeginFrame(gbufferPassCtx);
-    PBR::BeginFrame(pbrShadingCtx); 
+    PBR::BeginFrame(pbrShadingCtx);
 
-
-    //GPU-side cmdList 
-    BeginFrame();
 
     //rg->Execute(m_commandList.Get());
 
@@ -147,16 +158,15 @@ void D3D12HelloRenderer::OnRender()
     BeginGBufferPass(m_commandList.Get());
     GBuffer::FlushAndRender(m_commandList.Get(), gbufferPassCtx);
 
-    EndGBufferPass(m_commandList.Get()); 
+    EndGBufferPass(m_commandList.Get());
 
     BeginPresentPass(m_commandList.Get());
 
     //Lit::FlushAndRender(m_commandList.Get(), litPassCtx);
 
     PBR::FlushAndRender(m_commandList.Get(), pbrShadingCtx);
-
-    //uiRenderer->FlushAndRender(m_commandList.Get());
-    //UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
+     
+    UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
 
     //DebugDraw::Get().FlushAndRender(m_commandList.Get());  
 
@@ -323,7 +333,7 @@ void D3D12HelloRenderer::LoadPipelineCommon()
 
     {
         ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf())));
-     
+
         m_fenceValue = 1;
 
         // Create an event handle to use for frame synchronization.
@@ -383,7 +393,7 @@ void D3D12HelloRenderer::LoadSystemResources()
             );
             };
 
-        this->UploadTexture({task}); 
+        this->UploadTexture({ task });
     }
 
 
@@ -405,7 +415,7 @@ void D3D12HelloRenderer::LoadSystemResources()
         };
 
         auto& tex = CreateShared<FD3D12Texture>(m_device.Get(), desc);
-        this->loadTextures[name] = tex;  
+        this->loadTextures[name] = tex;
 
         UploadTask task = [=](ID3D12GraphicsCommandList* cmdList) {
             tex->UploadFromCPU(
@@ -418,9 +428,9 @@ void D3D12HelloRenderer::LoadSystemResources()
 
         tasks.push_back(task);
 
-    } 
+    }
 
-    this->UploadTexture(tasks); 
+    this->UploadTexture(tasks);
 
 }
 
@@ -455,7 +465,7 @@ void D3D12HelloRenderer::InitPresentPass()
     .srvFormat = DXGI_FORMAT_R32_FLOAT,
     .usages = ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
         };
-         
+
 
         m_depthStencil = CreateShared<FD3D12Texture>(m_device.Get(), depthDesc);
 
@@ -468,11 +478,11 @@ void D3D12HelloRenderer::InitPresentPass()
         m_device->CreateDepthStencilView(m_depthStencil->GetRawResource(), &dsvDesc, dsvHandle);
 
         m_presentBindings.dsv = dsvHandle;
-        m_dsv = dsvHandle; 
+        m_dsv = dsvHandle;
     }
 
 }
- 
+
 
 void D3D12HelloRenderer::InitShadowPass()
 {
@@ -483,7 +493,7 @@ void D3D12HelloRenderer::InitShadowPass()
         auto shadowMapDesc = FTextureDesc{
             .width = m_shadowMapWidth,
             .height = m_shadowMapHeight,
-			.format = DXGI_FORMAT_R32_TYPELESS, //D32_FLOAT can't be used directly as a shader resource 
+            .format = DXGI_FORMAT_R32_TYPELESS, //D32_FLOAT can't be used directly as a shader resource 
             .dsvFormat = DXGI_FORMAT_D32_FLOAT,
             .srvFormat = DXGI_FORMAT_R32_FLOAT,
             .usages = ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
@@ -519,7 +529,7 @@ void D3D12HelloRenderer::BeginShadowPass(ID3D12GraphicsCommandList* commandList)
 
     auto dsvHandle = m_shadowBindings.dsv.value();
     commandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
-    commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr); 
+    commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 
     auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_shadowMapWidth), static_cast<float>(m_shadowMapHeight));
@@ -542,7 +552,7 @@ void D3D12HelloRenderer::EndShadowPass(ID3D12GraphicsCommandList* commandList)
     commandList->ResourceBarrier(1, &dsvToSrvBarrier);
 }
 
- 
+
 void D3D12HelloRenderer::OnDestroy()
 {
     // Ensure that the GPU is no longer referencing resources that are about to be
@@ -551,7 +561,7 @@ void D3D12HelloRenderer::OnDestroy()
 
     CloseHandle(m_fenceEvent);
 }
- 
+
 
 void D3D12HelloRenderer::BeginFrame()
 {
@@ -565,6 +575,9 @@ void D3D12HelloRenderer::BeginFrame()
 
     ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
 
+
+
+
 }
 
 void D3D12HelloRenderer::EndFrame()
@@ -576,14 +589,16 @@ void D3D12HelloRenderer::EndFrame()
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     // Present the frame.
-    //ThrowIfFailed(m_swapChain->Present(1, 0));
-    ThrowIfFailed(m_swapChain->Present(0, 0));
+    ThrowIfFailed(m_swapChain->Present(1, 0));
+    
+    //unlock vsync
+    //ThrowIfFailed(m_swapChain->Present(0, 0));
 
     WaitForPreviousFrame();
 
 
     //new:
-    staticMeshes.clear();
+    m_frame->staticMeshes.clear();
 }
 
 void D3D12HelloRenderer::BeginPresentPass(ID3D12GraphicsCommandList* commandList)
@@ -595,7 +610,7 @@ void D3D12HelloRenderer::BeginPresentPass(ID3D12GraphicsCommandList* commandList
         D3D12_RESOURCE_STATE_PRESENT,
         D3D12_RESOURCE_STATE_RENDER_TARGET
     );
-    m_commandList->ResourceBarrier(1, &ps_rtv_Barrier); 
+    m_commandList->ResourceBarrier(1, &ps_rtv_Barrier);
 
     //CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
     //D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_SC_RTVHeapAllocator->GetCPUHandle(m_frameIndex);
@@ -610,7 +625,7 @@ void D3D12HelloRenderer::BeginPresentPass(ID3D12GraphicsCommandList* commandList
     //if (m_presentBindings.dsv.has_value()) {
     //    auto dsvHandle = m_presentBindings.dsv.value();
     //    m_commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr); 
-  
+
     //    m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
     //}
 
@@ -626,7 +641,7 @@ void D3D12HelloRenderer::BeginPresentPass(ID3D12GraphicsCommandList* commandList
 
     auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_width), static_cast<float>(m_height));
     auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height));
-     
+
     m_commandList->RSSetViewports(1, &viewport);
     m_commandList->RSSetScissorRects(1, &scissorRect);
 
@@ -780,25 +795,31 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateCheckerboardData()
 
 
 
-void D3D12HelloRenderer::SubmitMesh(StaticMeshActorProxy* meshProxy)
-{
+//void D3D12HelloRenderer::SubmitMesh(StaticMeshActorProxy* meshProxy)
+//{ 
+//    Mesh::FStaticMeshProxy proxy = {
+//    .modelMatrix = meshProxy->modelMatrix,
+//    .mesh = meshProxy->mesh.get(),
+//    .material = meshProxy->material.get(),
+//    .instanceData = meshProxy->instanceData.data(),
+//    .instanceCount = meshProxy->instanceData.size(),
+//    };
 
-    FStaticMeshProxy proxy = {
-    .modelMatrix = meshProxy->modelMatrix,
-    .mesh = meshProxy->mesh.get(),
-    .material = meshProxy->material.get(),
-    .instanceData = meshProxy->instanceData.data(),
-    .instanceCount = meshProxy->instanceData.size(),
-    };
-
-    staticMeshes.push_back(proxy);
+    //staticMeshes.push_back(proxy);
 
     //litPassCtx.data.mainCamera = camera;
+//}
+
+void D3D12HelloRenderer::SubmitMesh(Mesh::FStaticMeshProxy proxy)
+{  
+    cmdBuffer.Enqueue([=] {
+        m_frame->staticMeshes.push_back(proxy);
+        });
 }
 
 void D3D12HelloRenderer::ClearMesh()
 {
-    staticMeshes.clear();
+    //staticMeshes.clear();
 }
 
 void D3D12HelloRenderer::SubmitCamera(FCameraProxy* camera)
@@ -810,7 +831,10 @@ void D3D12HelloRenderer::SubmitCamera(FCameraProxy* camera)
 
 void D3D12HelloRenderer::AddQuad(const FQuadDesc& desc)
 {
-    uiPassCtx.data.pendings.push_back(desc);
+    //uiPassCtx.data.pendings.push_back(desc);    
+    cmdBuffer.Enqueue([=] {
+        uiPassCtx.data.pendings.push_back(desc);
+        });
 }
 
 void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float4& color)
@@ -876,17 +900,17 @@ void D3D12HelloRenderer::InitGBuffers()
 .srvFormat = DXGI_FORMAT_R32_FLOAT,
 .usages = ETextureUsage::DepthStencil | ETextureUsage::ShaderResource,
     };
-     
+
     auto depthMap = CreateShared<FD3D12Texture>(m_device.Get(), depthDesc);
-	//as dsv:
-	auto dsvDesc = depthMap->GetDSVDesc(); 
+    //as dsv:
+    auto dsvDesc = depthMap->GetDSVDesc();
     auto currIndex = m_dsvHeapAllocator->Allocate(1);
     auto dsvHandle = m_dsvHeapAllocator->GetCPUHandle(currIndex);
     m_device->CreateDepthStencilView(depthMap->GetRawResource(), &dsvDesc, dsvHandle);
-     
-	m_graph->sceneDepth = depthMap; 
-        //depth reusing the system:
-    m_gbufferAttachments.dsv = dsvHandle; 
+
+    m_graph->sceneDepth = depthMap;
+    //depth reusing the system:
+    m_gbufferAttachments.dsv = dsvHandle;
 
 }
 
@@ -906,18 +930,18 @@ void D3D12HelloRenderer::BeginGBufferPass(ID3D12GraphicsCommandList* commandList
 
 
     //transit the depth:
-	if (m_gbufferAttachments.dsv.has_value())
-	{
-		auto dsvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			m_graph->sceneDepth->GetRawResource(),
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE
-		);
-		commandList->ResourceBarrier(1, &dsvBarrier);
-	}
-	else {
-		std::cerr << "GBuffer pass: DSV is not set!" << std::endl;
-	}
+    if (m_gbufferAttachments.dsv.has_value())
+    {
+        auto dsvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            m_graph->sceneDepth->GetRawResource(),
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+            D3D12_RESOURCE_STATE_DEPTH_WRITE
+        );
+        commandList->ResourceBarrier(1, &dsvBarrier);
+    }
+    else {
+        std::cerr << "GBuffer pass: DSV is not set!" << std::endl;
+    }
 
 
     //
@@ -929,7 +953,7 @@ void D3D12HelloRenderer::BeginGBufferPass(ID3D12GraphicsCommandList* commandList
     // Clear the depth stencil view.
     if (m_gbufferAttachments.dsv.has_value())
     {
-        commandList->ClearDepthStencilView(m_gbufferAttachments.dsv.value(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr); 
+        commandList->ClearDepthStencilView(m_gbufferAttachments.dsv.value(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
         commandList->OMSetRenderTargets(static_cast<UINT>(m_gbufferAttachments.rtvs.size()), m_gbufferAttachments.rtvs.data(), FALSE, &m_gbufferAttachments.dsv.value());
     }
     else {
@@ -958,22 +982,22 @@ void D3D12HelloRenderer::EndGBufferPass(ID3D12GraphicsCommandList* commandList)
         commandList->ResourceBarrier(1, &gbufferBarrier);
     }
 
-	// Transition the depth texture back to shader resource state:
+    // Transition the depth texture back to shader resource state:
     if (m_gbufferAttachments.dsv.has_value())
-	{
-		auto dsvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-			m_graph->sceneDepth->GetRawResource(),
-			D3D12_RESOURCE_STATE_DEPTH_WRITE, 
+    {
+        auto dsvBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            m_graph->sceneDepth->GetRawResource(),
+            D3D12_RESOURCE_STATE_DEPTH_WRITE,
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
-		);
-		commandList->ResourceBarrier(1, &dsvBarrier);
-	}
-	else {
-		std::cerr << "GBuffer pass: DSV is not set!" << std::endl;
-	}
+        );
+        commandList->ResourceBarrier(1, &dsvBarrier);
+    }
+    else {
+        std::cerr << "GBuffer pass: DSV is not set!" << std::endl;
+    }
 
 
-     
+
 
 }
 
@@ -996,10 +1020,10 @@ void D3D12HelloRenderer::UploadTexture(std::vector<UploadTask> tasks)
     ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
 
     {
-        for(auto& task: tasks)
-        task(m_commandList.Get());
+        for (auto& task : tasks)
+            task(m_commandList.Get());
     }
-     
+
     // Close the command list and execute it to begin the initial GPU setup.
     ThrowIfFailed(m_commandList->Close());
     ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
@@ -1014,6 +1038,8 @@ void D3D12HelloRenderer::UploadTexture(std::vector<UploadTask> tasks)
         WaitForPreviousFrame();
     }
 }
+
+
 
 void D3D12HelloRenderer::InitEnvMap()
 {
@@ -1039,30 +1065,29 @@ void D3D12HelloRenderer::InitEnvMap()
     //    };
 
     //this->UploadTexture({ task }); 
-    ThrowIfFailed(m_commandAllocator->Reset()); 
-    ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr)); 
+    ThrowIfFailed(m_commandAllocator->Reset());
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
 
 
+    auto& probe = m_graph->probe;
+    probe = CreateShared<FProbe>();
 
-    auto& hdri = this->loadTextures["rogland_clear_night_1k.hdr"];  
-    this->probe.CreateFromHDRI(hdri);
+    auto& hdri = this->loadTextures["rogland_clear_night_1k.hdr"];
+    //auto& hdri = this->loadTextures["autumn_field_puresky_1k.hdr"];
+    //auto& hdri = this->loadTextures["citrus_orchard_road_puresky_1k.hdr"]; 
+
+    probe->Init();
+    probe->CreateFromHDRI(hdri);
+    probe->GenerateBRDFLUT(); 
+    probe->GenerateIrradiance(); 
+    probe->GeneratePrefilter(); 
+    probe->Finalize();
      
-    m_graph->skybox = probe.envMap;
-
-
-    probe.GenerateBRDFLUT();
-
-
-
-
-
-
-
     // Close the command list and execute it to begin the initial GPU setup.
     ThrowIfFailed(m_commandList->Close());
     ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-    m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists); 
-    
+    m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
     WaitForPreviousFrame();
-  
+
 }

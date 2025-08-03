@@ -22,8 +22,8 @@ enum class EBufferUsage : uint32_t {
     CopyDst = 1 << 6,
     Structured = 1 << 7,
     UAV = 1 << 8,
-	SRV = 1 << 9,
-	Indirect = 1 << 10, // for indirect draw/dispatch 
+    SRV = 1 << 9,
+    Indirect = 1 << 10, // for indirect draw/dispatch 
 };
 
 //enable bit operations for EBufferUsage
@@ -75,7 +75,7 @@ public:
     D3D12_INDEX_BUFFER_VIEW GetIndexBufferView() const;
     D3D12_CONSTANT_BUFFER_VIEW_DESC GetCBVDesc() const;
     D3D12_SHADER_RESOURCE_VIEW_DESC GetSRVDesc() const;
-    D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc() const; 
+    D3D12_UNORDERED_ACCESS_VIEW_DESC GetUAVDesc() const;
 
 private:
 
@@ -140,11 +140,11 @@ public:
         m_writeIndex = 0;
     }
 
-    FBufferView Upload(const T* data,  size_t size = 1) {
+    FBufferView Upload(const T* data, size_t size = 1) {
         assert(m_writeIndex < m_poolSize);
 
         uint8_t* dest = m_mappedPtr + m_writeIndex * stride;
-        memcpy(dest, data, sizeof(T) * size); 
+        memcpy(dest, data, sizeof(T) * size);
 
         FBufferView view = {
             .buffer = m_buffer.get(),

@@ -89,12 +89,12 @@ public:
 	uint32_t GetHeight() const { return m_height; }
 	float getAspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 
-	PhysicsScene* GetPhysicalScene() { return m_physicsScene; }
+	//PhysicsScene* GetPhysicalScene() { return m_physicsScene; }
 	D3D12HelloRenderer* GetRenderer() { return  m_renderer; }
 	InputSystem* GetInputSystem() { return  m_inputSystem; }
 	GameStateManager* GetGameStateManager() { return m_gameManager; }
 	UIManager* GetUIManager() { return m_uiManager; }
-
+	System::TimeSystem& GetTimeSystem() { return gTime; }
 private:
 	[[nodiscard]] bool initWorkingDirectory();
 	[[nodiscard]] bool initWindow();
@@ -125,13 +125,13 @@ public:
 
 private:
 	D3D12HelloRenderer* m_renderer{ nullptr };
-	PhysicsScene* m_physicsScene{ nullptr };
+	//PhysicsScene* m_physicsScene{ nullptr };
 	InputSystem* m_inputSystem{ nullptr };
 	GameStateManager* m_gameManager{ nullptr };
 
-	UIManager* m_uiManager{ nullptr }; 
+	UIManager* m_uiManager{ nullptr };
 
-	WorldManager* m_worldManager{ nullptr }; 
+	WorldManager* m_worldManager{ nullptr };
 
 private:
 	System::TimeSystem gTime;

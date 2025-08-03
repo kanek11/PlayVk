@@ -11,19 +11,22 @@
 
 #include "physics/PhysicsScene.h"
 
+#include "Gameplay/Actor.h"
+//#include "Gameplay/Components/SceneComponent.h"
+
 struct StaticMeshActorProxy;
 
 struct FCameraProxy {
     Float4x4 pvMatrix;
-	Float4x4 invProjMatrix;
-	Float4x4 invViewMatrix;
+    Float4x4 invProjMatrix;
+    Float4x4 invViewMatrix;
     Float3 position;
 
     virtual void Tick(float delta);
 };
 
 struct FollowCameraProxy : public FCameraProxy {
-    Float3 offset = { 0.0f, +2.0f , -5.0f };
+    Float3 offset = { 0.0f, +5.0f , -5.0f };
     WeakPtr<StaticMeshActorProxy> target;
 
     virtual void Tick(float delta) override;
@@ -59,10 +62,6 @@ struct StaticMeshActorProxy {
     SharedPtr<UStaticMesh> mesh;
 
     SharedPtr<FMaterialProxy> material;
-
-
-    //uint32_t shadowPassHeapOffset = 0; // for shadow pass
-    //SharedPtr<FD3D12Buffer> shadowMVPConstantBuffer; // for shadow pass 
 
     std::vector<InstanceData> instanceData;
 

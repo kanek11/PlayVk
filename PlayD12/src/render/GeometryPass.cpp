@@ -81,7 +81,7 @@ void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
         shader = ctx->shaderManager->GetOrLoad(key);
 
         //shader->SetStaticSampler("baseMapSampler", Samplers::LinearWrap(0));
-        //shader->SetStaticSampler("shadowMapSampler", Samplers::LinearClamp(1));
+        //shader->SetStaticSampler("depthSampler", Samplers::LinearClamp(1));
         //shader->AutoSetSamplers();
         //shader->CreateRootSignature();
 

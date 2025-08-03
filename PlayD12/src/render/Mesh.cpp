@@ -127,7 +127,7 @@ void UStaticMesh::CreateGPUResource(ID3D12Device* device)
     m_GPUResource = CreateShared<FD3D12MeshResource>(device, m_meshData);
 }
 
-PlaneMesh::PlaneMesh(uint32_t subdivisionX, uint32_t subdivisionZ):
+PlaneMesh::PlaneMesh(uint32_t subdivisionX, uint32_t subdivisionZ) :
     subdivisionX(subdivisionX), subdivisionZ(subdivisionZ)
 {
     CreateMeshData();
@@ -139,13 +139,13 @@ PlaneMesh::PlaneMesh(uint32_t subdivisionX, uint32_t subdivisionZ):
 void PlaneMesh::CreateMeshData()
 {
     // Customizable inputs
-    uint32_t subdivisionX = this->subdivisionX; 
-    uint32_t subdivisionZ = this->subdivisionZ;  
+    uint32_t subdivisionX = this->subdivisionX;
+    uint32_t subdivisionZ = this->subdivisionZ;
 
     float tileSizeX = 4.0f; // Size of each checker tile in world units (along X)
-    float tileSizeZ = 4.0f;  
+    float tileSizeZ = 4.0f;
 
-    float quadSizeX = 1.0f ; // Each quad is 1x1 unit in world space
+    float quadSizeX = 1.0f; // Each quad is 1x1 unit in world space
     float quadSizeZ = 1.0f;
 
     float physicalSizeX = quadSizeX * subdivisionX;

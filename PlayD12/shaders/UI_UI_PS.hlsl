@@ -1,11 +1,13 @@
 
+#include "Common/Samplers.hlsli"
+
 cbuffer UISettingsCB : register(b0)
 {
     int useTexture;
     float padding[63];
 }
  
-struct PSInput
+struct VSOutput
 {
     float4 position : SV_POSITION;
     float2 texCoord : TEXCOORD;
@@ -13,18 +15,13 @@ struct PSInput
 };
 
  
-Texture2D baseColorMap : register(t0);
-SamplerState linearWrapSampler : register(s0);
+Texture2D baseColorMap : register(t0); 
 
-float4 PSMain(PSInput input) : SV_TARGET
+float4 PSMain(VSOutput input) : SV_TARGET
 {  
-    //return float4(useTexture,0.0f,0.0f,1.0f);
-    
-    
-    if(useTexture)
+    if(useTexture > 0)
     {
-        float4 texColor = baseColorMap.Sample(linearWrapSampler, input.texCoord).rgba;
-    //float texColor = fontAtlas.Sample(fontAtlasSampler, input.texCoord).r;
+        float4 texColor = baseColorMap.Sample(pointClampSampler, input.texCoord).rgba;
      
         if (texColor.r <= 0.0f)
         {

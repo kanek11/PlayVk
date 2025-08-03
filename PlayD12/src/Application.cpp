@@ -30,8 +30,8 @@ void GameApplication::onInit()
 
 
 	//----------------------------
-	m_physicsScene = new PhysicsScene();
-	m_physicsScene->OnInit();
+	//m_physicsScene = new PhysicsScene();
+	//m_physicsScene->OnInit();
 
 	//----------------------------
 	m_renderer = new D3D12HelloRenderer(m_width, m_height, wideTitle.c_str(), m_mainWindow);
@@ -47,7 +47,7 @@ void GameApplication::onInit()
 
 
 	//-----------------------------
-	m_uiManager = new UIManager(); 
+	m_uiManager = new UIManager();
 
 
 	//----------------------------
@@ -55,7 +55,7 @@ void GameApplication::onInit()
 
 	//---------------------- 
 	m_worldManager = new WorldManager();
-	 
+
 }
 
 void GameApplication::onDestroy()
@@ -65,73 +65,47 @@ void GameApplication::onDestroy()
 
 void GameApplication::run()
 {
-	gTime.RegisterFixedFrame([=](float delta) {
-		m_physicsScene->Tick(delta);
-		});
-	 
+	//gTime.RegisterFixedFrame([=](float delta) {
+	//	m_physicsScene->Tick(delta);
+	//	});
+
 	//todo:  exit condition could be more complex.
-	while (!m_mainWindow->shouldClose()) { 
+	while (!m_mainWindow->shouldClose()) {
 		//std::cout << "tick main loop" << '\n';
 
-		gTime.BeginFrame(); 
-
-		//gTime.PumpFixedSteps();
+		gTime.BeginFrame();
 
 		auto& timeInfo = gTime.GetTimeInfo();
 		float delta = (float)timeInfo.engineDelta;
 		float FPS = 1.0f / delta;
-		//std::string text =
-		//std::format(" rDelta: {:.4f}", timeInfo.realDelta)
-		//+ std::format(" eDelta: {:.4f}", timeInfo.engineDelta)
-		//+ std::format(" eTime: {:.4f}", timeInfo.engineTime) 
-		//+ std::format(" FPS: {:.2f}", FPS)
-		//+ std::format(" simTime: {:.4f}", timeInfo.simTime);
-		//m_mainWindow->SetCustomWindowText(text);
+		std::string text =
+		std::format(" rDelta: {:.4f}", timeInfo.realDelta)
+		+ std::format(" eDelta: {:.4f}", timeInfo.engineDelta)
+        + std::format(" eFPS: {:.2f}", FPS)
+		+ std::format(" eTime: {:.4f}", timeInfo.engineTime) 
+		+ std::format(" simTime: {:.4f}", timeInfo.simTime);
+		m_mainWindow->SetCustomWindowText(text);
 
 		//
-		m_mainWindow->onUpdate(); 
+		m_mainWindow->onUpdate();
 
 		m_inputSystem->OnUpdate();
 
-		m_uiManager->ProcessEvents(); 
+		m_uiManager->ProcessEvents();
 
 		//m_physicsScene->Tick(0.016f);
-
-		//m_renderer->OnUpdate(delta);
-		//m_renderer->OnRender();
-
-		m_taskSystem.AddTask(
-			"render", 
-			[=]() {
-				//std::cout << "dummy task\n" ;   
-			m_renderer->OnUpdate(delta);
-			m_renderer->OnRender();
-			},
-			System::ETaskDomain::RenderThread,
-			{}
-		);
-
-		m_taskSystem.AddTask(
-			"physics",
-			[=]() {
-				//std::cout << "dummy task\n" ;   
-				gTime.PumpFixedSteps();
-			},
-			System::ETaskDomain::PhysicsThread,
-			{}
-		);
-
 		 
+
 		if (m_inputSystem->IsKeyJustPressed(KeyCode::Space)) {
- 		//std::cout << "app: A is pressed" << '\n';
-		 gTime.TogglePaused();
+			//std::cout << "app: A is pressed" << '\n';
+			gTime.TogglePaused();
 		}
 		else if (m_inputSystem->IsKeyJustReleased(KeyCode::L)) {
- 		//std::cout << "app: A is released" << '\n';
+			//std::cout << "app: A is released" << '\n';
 			gTime.AdvanceFixedSteps();
 			gTime.AdvanceFrames();
 		}
- 
+
 		//if (m_inputSystem->IsKeyJustPressed(KeyCode::A)) {
 		//	std::cout << "app: A is pressed" << '\n';
 		//}
@@ -155,17 +129,51 @@ void GameApplication::run()
 				m_gameManager->TransitState(GameStateId::MainMenu);
 			}*/
 
-		m_gameManager->Update(delta); 
-
-		//tick the level>actor> component
-		m_worldManager->Update(delta);
+		//tick level transition;
+		m_gameManager->Update(delta);
 
 
+		m_worldManager->SyncPhysicsToGame();  
+
+		//todo: physics interpolation; 
+		//tick level>actor> component
+		m_worldManager->Update(delta); 
+
+		m_worldManager->SyncGameToPhysics();
+
+		gTime.PumpFixedSteps(); 
+		 
+		m_renderer->OnUpdate(delta);
+		m_renderer->OnRender();
 
 
+	//m_taskSystem.AddTask(
+	//	"physics",
+	//	[=]() {
+	//		//std::cout << "dummy task\n" ;   
+	//		gTime.PumpFixedSteps();
+	//	},
+	//	System::ETaskDomain::PhysicsThread,
+	//	{}
+	//);
 
-		m_taskSystem.ExecuteAll();
+	//m_taskSystem.AddTask(
+	//"renderThread",
+	//[=]() {
+	//	//std::cout << "dummy task\n" ;   
+	//	m_renderer->OnUpdate(delta);
+	//	m_renderer->OnRender();
+	//},
+	//System::ETaskDomain::RenderThread,
+	//{}
+	//);
+		 
+		//m_taskSystem.ExecuteAll(); 
 
+		//new: manual sync point
+		//m_physicsScene->SyncPhysics(); 
+
+		
 	}
 
 
@@ -175,7 +183,7 @@ void GameApplication::onBeginGame()
 {
 
 	m_worldManager->RegisterWorld("gameplay", CreateShared<GamePlayWorld>());
-	m_worldManager->RegisterWorld("mainMenu", CreateShared<MainMenuWorld>()); 
+	m_worldManager->RegisterWorld("mainMenu", CreateShared<MainMenuWorld>());
 
 
 	if (auto mainMenuState = m_gameManager->Register<MainMenuState>()) {
@@ -203,7 +211,7 @@ void GameApplication::onBeginGame()
 
 
 	if (auto playingState = m_gameManager->Register<PlayingState>()) {
-		 
+
 		playingState->OnEnter.Add(
 			[&]() {
 				std::cout << " enter playing state" << "\n";
@@ -211,7 +219,7 @@ void GameApplication::onBeginGame()
 
 				m_worldManager->TransitWorld("gameplay");
 			});
-		
+
 		playingState->OnUpdate.Add(
 			[&](float dt) {
 				//gameWorld->OnUpdate(dt);
@@ -229,7 +237,7 @@ void GameApplication::onBeginGame()
 
 	//----------------------------
 
-	m_gameManager->Initialize(); 
+	m_gameManager->Initialize();
 
 }
 
@@ -237,7 +245,7 @@ void GameApplication::onBeginGame()
 
 
 bool GameApplication::initWorkingDirectory()
-{ 
+{
 
 	auto src_path = std::source_location::current();
 	std::filesystem::path this_file = src_path.file_name(); //required conversion
@@ -247,7 +255,7 @@ bool GameApplication::initWorkingDirectory()
 	this->m_workingDirectory = std::filesystem::current_path().string();
 
 	std::cout << "Current working directory: " << this->m_workingDirectory << "\n";
-	 
+
 
 	return true;
 }

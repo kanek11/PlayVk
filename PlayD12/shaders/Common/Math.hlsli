@@ -1,7 +1,7 @@
 #ifndef COMMON_MATH_HLSLI
 #define COMMON_MATH_HLSLI
 
-static const float PI = 3.1415926535897932f;
+static const float PI = 3.1415926535f;
 
  
 /// [0,1] to [-1,1] 
@@ -32,7 +32,17 @@ inline float3 WorldToTangent(float3x3 TBN, float3 n_WS)
 {
     return normalize(mul(TBN, n_WS));
 }
- 
+
+
+
+
+
+float NdotLClamp(float3 N, float3 L)
+{
+    return saturate(dot(N, L));
+}
+
+
 
 
 #endif

@@ -14,6 +14,8 @@
 */
 
 
+struct EmptyWS {}; //for empty collider, no shape
+
 struct AABB { Float3 min, max; };
 
 struct OBB {
@@ -37,7 +39,7 @@ struct PlaneWS {
     Float3 forward = { 0, 0, 1 };
 };
 
-using WorldShape = std::variant<SphereWS, AABB, PlaneWS, OBB>;
+using WorldShape = std::variant<EmptyWS, SphereWS, AABB, PlaneWS, OBB>;
 
 struct WorldShapeProxy
 {
@@ -94,7 +96,11 @@ WorldShape MakeWorldShape(const Collider& c)
 
             return PlaneWS{ n, d , s.width, s.height, center };
         }
-        else
+		else if constexpr (std::is_same_v<Shape, EmptyShape>)
+        {
+			return EmptyWS{}; //no shape, empty collider
+		}
+		else
         {
             static_assert(always_false<Shape>, "Shape not supported");
         }

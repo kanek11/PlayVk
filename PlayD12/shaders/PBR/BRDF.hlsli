@@ -11,9 +11,10 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
 
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 {
-    return F0 + (max(float3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
-} 
-
+    float3 F90 = saturate(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness)); // or clamp to avoid issues
+    return F0 + (max(F90, F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
+ 
 //NDF ~ GGX / Trowbridge Reitz
 float DistributionGGX(float3 N, float3 H, float roughness)
 {
@@ -52,7 +53,7 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
 }
 
 
-float GeometrySmith2(float NoV, float NoL, float roughness) 
+float GeometrySmith2(float NoV, float NoL, float roughness)
 {
     float a = roughness * roughness;
     float k = (a * a) / 2.0f;

@@ -9,7 +9,9 @@
 
 // std::enable_shared_from_this is safer ;
 
-namespace MyGame
+using ActorHandle = uint32_t;
+
+namespace Gameplay
 {
     // Actor can be placed in the game world;
     //<<abstract>>

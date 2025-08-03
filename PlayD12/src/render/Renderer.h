@@ -26,6 +26,44 @@
 #include "Probe.h"
 
 
+//todo: is there any cases the renderer might access a dangling ptr?
+ 
+//todo: generic untyped std::function is not opt for perf.; but trivial to implement;
+using RenderCommand = std::function<void()>;
+
+//double buffering
+class RenderCommandBuffer {
+public:
+    RenderCommandBuffer() : m_writeIndex(0), m_readIndex(1) {}
+
+    void Enqueue(RenderCommand cmd) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_commandBuffers[m_writeIndex].push_back(std::move(cmd));
+    }
+
+    void Execute() {
+        auto& cmds = m_commandBuffers[m_readIndex];
+        for (auto& cmd : cmds) {
+            cmd();
+        }
+        cmds.clear();
+    }
+
+    void SwapBuffers() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::swap(m_writeIndex, m_readIndex);
+    }
+
+private:
+    std::vector<RenderCommand> m_commandBuffers[2]; 
+    int m_writeIndex;
+    int m_readIndex;
+    std::mutex m_mutex;
+};
+
+
+
+
 constexpr size_t MaxUIBatch = 128;
 constexpr size_t MaxStaticMesh = 128;
 constexpr size_t MaxLines = 1024;
@@ -58,7 +96,7 @@ struct RendererContext {
 
 struct FrameDataContext {
     //std::vector<StaticMeshActorProxy*> staticMeshes;  
-    std::vector<FStaticMeshProxy> staticMeshes;
+    std::vector < Mesh::FStaticMeshProxy> staticMeshes;
     FCameraProxy* mainCamera;
 
     FD3D12Buffer* sceneCB;
@@ -76,8 +114,8 @@ struct RenderGraphContext {
 
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> gbuffers;
     SharedPtr<FD3D12Texture> sceneDepth;
-
-    SharedPtr<FD3D12Texture> skybox;
+     
+    SharedPtr<FProbe> probe;
 
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadedTextures;
 };
@@ -178,7 +216,7 @@ private:
     D3D12_RENDER_TARGET_VIEW_DESC sc_RTV{};
     ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
 
-    SharedPtr<FD3D12Texture> m_depthStencil; 
+    SharedPtr<FD3D12Texture> m_depthStencil;
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsv;
 
     FRenderPassAttachments m_presentBindings;
@@ -232,11 +270,12 @@ private:
 public:
 
     //std::vector<StaticMeshActorProxy*> m_staticMeshes;  
-    std::vector<FStaticMeshProxy> staticMeshes;
+    //std::vector<Mesh::FStaticMeshProxy> staticMeshes;
     FCameraProxy* mainCamera;
 
     //todo:
-    void SubmitMesh(StaticMeshActorProxy* mesh);
+    //void SubmitMesh(StaticMeshActorProxy* mesh);
+    void SubmitMesh(Mesh::FStaticMeshProxy mesh);
     void ClearMesh();
 
     void SubmitCamera(FCameraProxy* camera);
@@ -271,7 +310,7 @@ public:
 
 public:
     GBuffer::PassContext gbufferPassCtx;
-     
+
     FRenderPassAttachments m_gbufferAttachments;
 
     void InitGBuffers();
@@ -283,14 +322,12 @@ public:
     PBR::PassContext pbrShadingCtx;
 
 
-//public:
-//    Compute::ComputeContext computeCtx;
-// 
+    //public:
+    //    Compute::ComputeContext computeCtx;
+    // 
 
 public:
-    void InitEnvMap();
-
-    FProbe probe; 
+    void InitEnvMap(); 
 
 public:
 
@@ -300,7 +337,13 @@ public:
 
 
 
-    std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;
-     
+    std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;\
+    
+    FrameDataContext* m_frame = new FrameDataContext{};
     RenderGraphContext* m_graph = new RenderGraphContext();
+
+    //new:
+    RenderCommandBuffer cmdBuffer;
+
+    void ConsumeCmdBuffer();
 };

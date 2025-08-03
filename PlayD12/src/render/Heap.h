@@ -22,7 +22,7 @@ public:
 
 
 	[[nodiscard]] UINT Allocate(UINT numDescriptors) {
-		assert(m_currentIndex + numDescriptors <= m_numDescriptors );
+		assert(m_currentIndex + numDescriptors <= m_numDescriptors);
 
 		UINT startIndex = m_currentIndex;
 		m_currentIndex += numDescriptors;
@@ -62,4 +62,3 @@ private:
 	UINT m_numDescriptors;
 	UINT m_currentIndex = 0;
 };
-

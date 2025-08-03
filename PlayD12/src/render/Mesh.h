@@ -16,8 +16,8 @@
 
 using INDEX_FORMAT = uint16_t;
 
- 
- 
+
+
 
 //the desc of a vertex attribute 
 struct VertexAttribute {
@@ -32,7 +32,7 @@ template<typename T>
 struct VertexLayoutTraits {
 	static constexpr bool is_specialized = false;
 	static constexpr std::array<VertexAttribute, 0> attributes = {};
-}; 
+};
 
 class InputLayoutBuilder {
 public:
@@ -45,7 +45,7 @@ public:
 		std::vector<D3D12_INPUT_ELEMENT_DESC> descs;
 		const auto& attrs = VertexLayoutTraits<Vertex>::attributes;
 		static_assert(VertexLayoutTraits<Vertex>::is_specialized, "VertexLayoutTraits must be specialized");
-	 
+
 
 		for (const auto& attr : attrs) {
 			D3D12_INPUT_ELEMENT_DESC d = {};
@@ -83,7 +83,7 @@ struct VertexLayoutTraits<StaticMeshVertex> {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, position) },
 		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, normal)   },
 		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(StaticMeshVertex, tangent)  },
-		{ "TANGENT_SIGN", 0, DXGI_FORMAT_R32_FLOAT,       offsetof(StaticMeshVertex, tan_sign) }, 
+		{ "TANGENT_SIGN", 0, DXGI_FORMAT_R32_FLOAT,       offsetof(StaticMeshVertex, tan_sign) },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    offsetof(StaticMeshVertex, texCoord0)},
 		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(StaticMeshVertex, color) },
 		});
@@ -219,7 +219,7 @@ public:
 	virtual ~PlaneMesh() = default;
 	PlaneMesh(uint32_t subdivisionX, uint32_t subdivisionZ);
 	void CreateMeshData() override;
-	 
+
 	uint32_t subdivisionX, subdivisionZ;
 };
 

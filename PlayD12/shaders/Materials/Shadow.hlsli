@@ -2,8 +2,8 @@
 #define PBR_MATERIAL_HLSLI
 
 #include "../Common/Samplers.hlsli"
+Texture2D shadowMap : register(t0, space0);
 
-Texture2D shadowMap : register(t0, space0); 
 
 bool isInShadow(float4 lightSpacePos)
 {

@@ -89,10 +89,10 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(
 }
 
 ComPtr<ID3D12PipelineState> PSOManager::GetOrCreateCompute(const MaterialDesc& mat, const RenderPassDesc& pass)
-{ 
+{
     ShaderPermutationKey shaderKey;
     shaderKey.shaderTag = mat.shaderTag;
-    shaderKey.passTag = pass.passTag; 
+    shaderKey.passTag = pass.passTag;
 
     PSOKey psoKey{ shaderKey };
     if (cache.contains(psoKey))
@@ -102,19 +102,18 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreateCompute(const MaterialDesc& m
     }
 
     std::cout << "Creating new PSO for shader: " << psoKey.permutationKey.shaderTag << ", Pass: " << psoKey.permutationKey.passTag << '\n';
-     
+
     auto shaderPerm = library.lock()->GetOrLoadCompute(shaderKey);
-    if (!shaderPerm) return nullptr; 
-    
+    if (!shaderPerm) return nullptr;
+
     D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
-    psoDesc.pRootSignature = shaderPerm->GetRootSignature().Get(); 
-  
+    psoDesc.pRootSignature = shaderPerm->GetRootSignature().Get();
+
     psoDesc.CS = CD3DX12_SHADER_BYTECODE(shaderPerm->GetCSBlob().Get());
     ComPtr<ID3D12PipelineState> computePSO;
     ThrowIfFailed(m_device->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(computePSO.GetAddressOf())));
 
-	cache[psoKey] = computePSO;
-	return computePSO; 
+    cache[psoKey] = computePSO;
+    return computePSO;
 }
 
- 

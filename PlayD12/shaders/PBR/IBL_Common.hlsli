@@ -1,5 +1,17 @@
-#ifndef IBL_Common_HLSLI
-#define IBL_Common_HLSLI
+#ifndef IBL_COMMON_HLSLI
+#define IBL_COMMON_HLSLI
+
+
+cbuffer IBL_CB : register(b0)
+{
+    uint CUBE_FACE_SIZE  ;
+    uint IRRADIANCE_SIZE  ;
+    uint IRRADIANCE_NUMSAMPLES ;
+    uint PREFILTER_SIZE  ;
+    uint PREFILTER_NUMSAMPLES ;
+    uint BRDF_LUT_SIZE  ;
+    uint BRDF_LUT_NUMSAMPLES ;
+}; 
 
 float RadicalInverse_VdC(uint bits)
 {

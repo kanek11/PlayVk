@@ -81,7 +81,7 @@ namespace Materials {
     .shaderTag = "Test",
     };
 }
- 
+
 
 namespace Compute {
 
@@ -89,6 +89,8 @@ namespace Compute {
         uint32_t groupX = 8;
         uint32_t groupY = 8;
         uint32_t groupZ = 1;
+
+        uint32_t heapOffset = 0;
     };
 
     struct GPUResources {
@@ -104,10 +106,10 @@ namespace Compute {
     };
 
 
-    void Init(const RendererContext* ctx, 
+    void Init(const RendererContext* ctx,
         ComputeContext& passCtx,
         const std::string& shaderTag,
-        const std::string& passTag 
+        const std::string& passTag
     );
     void DispatchCompute(ID3D12GraphicsCommandList* cmdList, const ComputeContext& ctx) noexcept;
 

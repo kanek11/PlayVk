@@ -5,13 +5,7 @@
 TextureCube<float4> envMap : register(t0);
 RWTexture2DArray<float4> irradianceMap : register(u0);
 
-SamplerState linearSampler : register(s0); 
-
-//cbuffer Params : register(b0)
-//{
-//    uint Resolution; // 32
-//    uint NumSamples; // 1024
-//}
+SamplerState linearWrapSampler : register(s0);
  
 float3 ImportanceSampleCosHemisphere(float2 Xi, float3 N)
 {
@@ -37,25 +31,29 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
 {
     uint2 coord = DTid.xy;
     
-    uint Resolution = 32;  
-    uint NumSamples = 1024; 
+    uint Resolution = IRRADIANCE_SIZE;
+    uint NumSamples = IRRADIANCE_NUMSAMPLES;
     
     uint face = DTid.z;
     if (coord.x >= Resolution || coord.y >= Resolution)
         return;
 
     float2 uv = (coord + 0.5f) / float(Resolution);
-    float3 N = CubeMapTexelToDirection(uv, face); 
+    float3 N = CubeMapTexelToDirection(uv, face);
 
     float3 irradiance = 0;
     for (uint i = 0; i < NumSamples; ++i)
     {
         float2 Xi = Hammersley(i, NumSamples);
-        float3 L = ImportanceSampleCosHemisphere(Xi, N); 
+        float3 L = ImportanceSampleCosHemisphere(Xi, N);
         float NoL = max(dot(N, L), 0.0f);
-        irradiance += envMap.SampleLevel(linearSampler, L, 0).rgb * NoL;
+        
+        //irradiance += envMap.SampleLevel(linearWrapSampler, L, 0).rgb * NoL;
+        
+        float3 sample = envMap.SampleLevel(linearWrapSampler, L, 0).rgb;
+        sample = min(sample, float3(10.0, 10.0, 10.0)); // tweak value depending on HDR range
+        irradiance += sample * NoL;
     }
     irradiance = 3.1415926 * irradiance / NumSamples;
     irradianceMap[uint3(coord, face)] = float4(irradiance, 1.0f);
 }
-

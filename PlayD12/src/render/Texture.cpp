@@ -150,17 +150,17 @@ D3D12_DEPTH_STENCIL_VIEW_DESC FD3D12Texture::GetDSVDesc() const {
 
 
 
-D3D12_UNORDERED_ACCESS_VIEW_DESC FD3D12Texture::GetUAVDesc() const {
+D3D12_UNORDERED_ACCESS_VIEW_DESC FD3D12Texture::GetUAVDesc(UINT mipLevel) const {
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
     uavDesc.Format = m_desc.format;
 
     if (m_desc.type == ETextureType::Texture2D) {
         uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-        uavDesc.Texture2D.MipSlice = 0;
+        uavDesc.Texture2D.MipSlice = mipLevel;
     }
     else {
         uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-        uavDesc.Texture2DArray.MipSlice = 0;
+        uavDesc.Texture2DArray.MipSlice = mipLevel;
         uavDesc.Texture2DArray.ArraySize = m_desc.arraySize;
         uavDesc.Texture2DArray.FirstArraySlice = 0;
     }
