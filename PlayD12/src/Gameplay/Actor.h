@@ -2,6 +2,7 @@
 #include "PCH.h"
 #include "Object.h"
 #include "ActorComponent.h"
+#include "SceneComponent.h"
  
 
 // todo: actor can be placed in "level, world",
@@ -61,7 +62,7 @@ namespace Gameplay
         std::vector<SharedPtr<UActorComponent>> m_components; 
 
     public:
-        //SharedPtr<USceneComponent> RootComponent = nullptr; 
+        SharedPtr<USceneComponent> RootComponent = nullptr; 
     };
 
     // factory function for derived classes
