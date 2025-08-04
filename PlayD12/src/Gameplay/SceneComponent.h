@@ -55,16 +55,5 @@ namespace Gameplay {
 	};
 
 
-	class UPrimitiveComponent : public USceneComponent {
-	};
-	 
-	class UMeshComponent : public UPrimitiveComponent {
-	};
-
-	class UStaticMeshComponent : public UMeshComponent {
-	};
-
-	class UShapeComponent : public UPrimitiveComponent {
-	};
 
 }  
