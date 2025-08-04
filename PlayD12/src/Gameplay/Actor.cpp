@@ -3,6 +3,8 @@
 
 #include "Actor.h"
 
+#include "Level.h"
+
 namespace Gameplay
 {
 
@@ -42,5 +44,12 @@ namespace Gameplay
         	component->EndPlay();
         }
     }
+
+    UWorld* AActor::GetWorld() const
+    {
+        return level ? level->owningWorld : nullptr;
+    }
+
+
 
 } 

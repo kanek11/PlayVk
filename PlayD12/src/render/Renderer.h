@@ -86,8 +86,7 @@ struct RendererContext {
     ID3D12CommandQueue* cmdQueue;
 
     SharedPtr<ShaderLibrary> shaderManager;
-    SharedPtr<PSOManager> psoManager;
-
+    SharedPtr<PSOManager> psoManager; 
 
     SharedPtr<FDescriptorHeapAllocator> dsvHeapAllocator;
     SharedPtr<FDescriptorHeapAllocator> rtvHeapAllocator;
@@ -96,8 +95,8 @@ struct RendererContext {
 
 struct FrameDataContext {
     //std::vector<StaticMeshActorProxy*> staticMeshes;  
-    std::vector < Mesh::FStaticMeshProxy> staticMeshes;
-    FCameraProxy* mainCamera;
+    std::vector < FStaticMeshProxy> staticMeshes;
+    //FCameraProxy* mainCamera;
 
     FD3D12Buffer* sceneCB;
     //current present rtv:
@@ -201,10 +200,10 @@ private:
         m_device->CreateDepthStencilView(tex->GetRawResource(), nullptr, dsvHandle);
         return dsvHandle;
     }
-
-
+     
     //-------- 
     SharedPtr<FD3D12Buffer> sceneCB;
+    SceneCB sceneCBData{};
 
 
     //---------
@@ -271,14 +270,15 @@ public:
 
     //std::vector<StaticMeshActorProxy*> m_staticMeshes;  
     //std::vector<Mesh::FStaticMeshProxy> staticMeshes;
-    FCameraProxy* mainCamera;
+    //FCameraProxy* mainCamera;
 
     //todo:
     //void SubmitMesh(StaticMeshActorProxy* mesh);
-    void SubmitMesh(Mesh::FStaticMeshProxy mesh);
+    void SubmitMesh(FStaticMeshProxy mesh);
+    void SubmitMeshProxies(const std::vector<FStaticMeshProxy>& mesh);
     void ClearMesh();
 
-    void SubmitCamera(FCameraProxy* camera);
+    void SubmitCamera(const FCameraProxy& camera);
 
 
 public:
@@ -319,8 +319,7 @@ public:
 
 
 public:
-    PBR::PassContext pbrShadingCtx;
-
+    PBR::PassContext pbrShadingCtx; 
 
     //public:
     //    Compute::ComputeContext computeCtx;

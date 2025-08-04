@@ -29,19 +29,31 @@ void D3D12HelloRenderer::ConsumeCmdBuffer()
 }
 
 
+void D3D12HelloRenderer::SubmitCamera(const FCameraProxy& camera)
+{ 
+    sceneCBData.pvMatrix  = camera.pvMatrix;
+    sceneCBData.invProj   = camera.invProjMatrix;
+    sceneCBData.invView   = camera.invViewMatrix;
+    sceneCBData.cameraPos = camera.position; 
+}
+
+
 // Update frame-based values.  make sure comes before OnRender;
 void D3D12HelloRenderer::OnUpdate(float delta)
 {
     this->ConsumeCmdBuffer();
 
-    SceneCB sceneCBData = {};
-    if (this->mainCamera) {
+    //SceneCB sceneCBData = {};
+    //if (this->mainCamera) {
 
-        sceneCBData.pvMatrix = mainCamera->pvMatrix;
-        sceneCBData.invProj = mainCamera->invProjMatrix;
-        sceneCBData.invView = mainCamera->invViewMatrix;
-        sceneCBData.cameraPos = mainCamera->position;
-    }
+    //    sceneCBData.pvMatrix = mainCamera->pvMatrix;
+    //    sceneCBData.invProj = mainCamera->invProjMatrix;
+    //    sceneCBData.invView = mainCamera->invViewMatrix;
+    //    sceneCBData.cameraPos = mainCamera->position;
+    //}
+    //else {
+    //    std::cerr << "no valid camera" << std::endl;
+    //}
 
     sceneCBData.deltaTime = delta;
     sceneCBData.viewportSize = { (float)m_width, (float)m_height };
@@ -50,7 +62,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
 
     auto frameData = Render::frameContext;
 
-    frameData->mainCamera = mainCamera;
+    //frameData->mainCamera = mainCamera;
     //frameData->staticMeshes = staticMeshes;
 
     frameData->currentRTV = m_presentBindings.rtvs[m_frameIndex];
@@ -590,8 +602,8 @@ void D3D12HelloRenderer::EndFrame()
 
     // Present the frame.
     ThrowIfFailed(m_swapChain->Present(1, 0));
-    
-    //unlock vsync
+
+    //donot use vsync
     //ThrowIfFailed(m_swapChain->Present(0, 0));
 
     WaitForPreviousFrame();
@@ -810,10 +822,21 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateCheckerboardData()
     //litPassCtx.data.mainCamera = camera;
 //}
 
-void D3D12HelloRenderer::SubmitMesh(Mesh::FStaticMeshProxy proxy)
+void D3D12HelloRenderer::SubmitMesh(FStaticMeshProxy proxy)
 {  
     cmdBuffer.Enqueue([=] {
         m_frame->staticMeshes.push_back(proxy);
+        });
+}
+
+void D3D12HelloRenderer::SubmitMeshProxies(const std::vector<FStaticMeshProxy>& mesh)
+{
+    cmdBuffer.Enqueue([=] {
+		m_frame->staticMeshes.insert(
+			m_frame->staticMeshes.end(),
+			mesh.begin(),
+			mesh.end()
+		);
         });
 }
 
@@ -822,10 +845,6 @@ void D3D12HelloRenderer::ClearMesh()
     //staticMeshes.clear();
 }
 
-void D3D12HelloRenderer::SubmitCamera(FCameraProxy* camera)
-{
-    mainCamera = camera;
-}
 
 
 

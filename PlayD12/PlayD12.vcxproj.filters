@@ -84,9 +84,6 @@
     <ClInclude Include="src\UI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Level.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\render\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -168,6 +165,30 @@
     <ClInclude Include="src\Gameplay\SceneComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Gameplay\Components\MeshComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\Components\ShapeComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\Components\CameraComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\Components\PrimitiveComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\World.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\Scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Gameplay\Level.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Game\DemoLevels.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp">
@@ -201,9 +222,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\UI.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Level.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\render\RenderPass.cpp">
@@ -258,6 +276,27 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Gameplay\SceneComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\Components\MeshComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\Components\PrimitiveComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\Components\ShapeComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\World.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\Scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\Level.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\DemoLevels.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

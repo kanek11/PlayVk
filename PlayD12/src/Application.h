@@ -12,11 +12,16 @@
 
 #include "InputSystem.h"
 #include "FSM.h"
-#include "Level.h"
 
 #include "UI.h"
 
-#include "Core/Task.h"
+#include "Core/Task.h" 
+
+#include "Gameplay/Level.h"
+#include "Gameplay/World.h"
+
+#include "Game/DemoLevels.h"
+
 
 //the frontend of an application is composed of interactive elements.
 //window is usually considered as the top level UI element.  as a container.
@@ -89,7 +94,7 @@ public:
 	uint32_t GetHeight() const { return m_height; }
 	float getAspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 
-	//PhysicsScene* GetPhysicalScene() { return m_physicsScene; }
+	//PhysicsScene* GetPhysicalScene() { return owningWorld->physicsScene; }
 	D3D12HelloRenderer* GetRenderer() { return  m_renderer; }
 	InputSystem* GetInputSystem() { return  m_inputSystem; }
 	GameStateManager* GetGameStateManager() { return m_gameManager; }
@@ -125,13 +130,13 @@ public:
 
 private:
 	D3D12HelloRenderer* m_renderer{ nullptr };
-	//PhysicsScene* m_physicsScene{ nullptr };
+	//PhysicsScene* owningWorld->physicsScene{ nullptr };
 	InputSystem* m_inputSystem{ nullptr };
 	GameStateManager* m_gameManager{ nullptr };
 
 	UIManager* m_uiManager{ nullptr };
 
-	WorldManager* m_worldManager{ nullptr };
+	UWorld* m_world{ nullptr };
 
 private:
 	System::TimeSystem gTime;

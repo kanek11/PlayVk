@@ -64,8 +64,8 @@ struct RigidBody {
 
 	void ApplyTorque(const Float3& torque) {
 		this->torque += torque;
-	} 
- 
+	}
+
 	void SetPosition(const Float3& position) {
 		this->position = position;
 		this->predPos = position;
@@ -81,7 +81,7 @@ struct RigidBody {
 	ShapeType type;
 	void SetShape(ShapeType shape) {
 		this->type = shape;
-		localInertia = MakeInertiaTensor(shape, mass); 
+		localInertia = MakeInertiaTensor(shape, mass);
 	}
 
 	RigidBody();
@@ -91,7 +91,7 @@ struct RigidBody {
 struct Collider {
 	ShapeType type;
 
-	RigidBody* body{ nullptr }; 
+	RigidBody* body{ nullptr };
 	Collider(ShapeType type, RigidBody* body)
 		:type(type), body(body)
 	{
@@ -131,7 +131,7 @@ class Integrator {
 public:
 	void Integrate();
 };
- 
+
 
 class PhysicsScene {
 public:
@@ -142,7 +142,7 @@ public:
 
 
 public:
-	void AddRigidBody(RigidBody* rb, 
+	void AddRigidBody(RigidBody* rb,
 		ActorHandle owener,
 		const Float3& position = Float3{ 0.0f, 0.0f, 0.0f },
 		const DirectX::XMVECTOR& rotation = DirectX::XMQuaternionIdentity()
@@ -180,7 +180,7 @@ private:
 	void PostPBD(float delta);
 
 	void VelocityPass(float delta);
-	  
+
 	//update again, signal events,  etc.
 	void PostSimulation();
 
@@ -193,7 +193,7 @@ private:
 	ContactSolver m_contactSolver;
 	Integrator m_integrator;
 
-	 
+
 public:
 	Float3 gravity{ 0.0f, -9.8f, 0.0f };
 	//Float3 gravity{ 0.0f, 0.0f, 0.0f }; 
@@ -207,9 +207,13 @@ public:
 	void SetPosition(ActorHandle handle, const Float3& position);
 	void SetRotation(ActorHandle handle, const DirectX::XMVECTOR& rotation);
 
+	void ClearBuffer() {
+		m_commandBuffer.Clear();
+		m_transformBuffer.Clear();
+	}
+
 private:
-	PhysicsTransformSyncBuffer m_transformBuffer; 
+	PhysicsTransformSyncBuffer m_transformBuffer;
 	PhysicsCommandBuffer m_commandBuffer;
 };
-
 

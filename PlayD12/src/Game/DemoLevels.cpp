@@ -1,86 +1,61 @@
 #include "PCH.h"
-#include "Level.h"
+#include "DemoLevels.h"
 
 #include "Application.h"
-#include "Render/Renderer.h"
 
-#include "Render/StaticMeshProxy.h"
+#include "Gameplay/World.h"
 
 using namespace DirectX;
 
-#include <random>
-
-
-/*
-void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount)
-{
-
-    auto renderer = GameApplication::GetInstance()->GetRenderer();
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
-    // Position ranges: X around center , Y height fixed, Z along the road from 0 to roadLength
-    std::uniform_real_distribution<float> distX(-roadWidth, roadWidth);
-    std::uniform_real_distribution<float> distZ(0.0f, roadLength);
-
-    // Random choice between sphere or box
-    std::uniform_int_distribution<int> shapeChoice(0, 1);
-
-    for (uint32_t i = 0; i < obstacleCount; i++)
-    {
-        float x = distX(gen);
-        float y = 1.0f; // height so above ground (adjust as needed)
-        float z = distZ(gen);
-
-        if (shapeChoice(gen) == 0)
-        {
-            // Create Sphere obstacle
-            auto sphereProxy = CreateSphereActor({ x, y, z });
-            sphereProxy->rigidBody->simulatePhysics = false;
-            sphereProxy->rigidBody->simulateRotation = false;
-            sphereProxy->rigidBody->material.friction = 5.0f;
-
-            m_staticMeshActors.push_back(sphereProxy);
-            //renderer->SubmitMesh(sphereProxy.get());
-
-        }
-        else
-        {
-            // Create Box obstacle with random size
-            std::uniform_real_distribution<float> sizeDist(0.5f, 2.0f);
-            float sizeX = sizeDist(gen);
-            float sizeY = sizeDist(gen);
-            float sizeZ = sizeDist(gen);
-
-            auto boxProxy = CreateBoxActor({ x, y, z }, { sizeX, sizeY, sizeZ });
-            boxProxy->rigidBody->simulatePhysics = false;
-            boxProxy->rigidBody->simulateRotation = false;
-            boxProxy->rigidBody->material.friction = 0.3f;
-
-
-            m_staticMeshActors.push_back(boxProxy);
-            //renderer->SubmitMesh(boxProxy.get());
-        }
-    }
-}
-*/
-
 void GamePlayWorld::OnLoad()
 {
-    auto& gTime = GameApplication::GetInstance()->GetTimeSystem();
-    m_physicsScene = new PhysicsScene();
-    m_physicsScene->OnInit();
+    ULevel::OnLoad();
 
-    gTime.RegisterFixedFrame([=](float delta) {
-	m_physicsScene->Tick(delta);
-	});
+    assert(owningWorld->physicsScene != nullptr); 
+
+    //this->Load1();
+    this->Load2();
+}
+
+
+void GamePlayWorld::Load2()
+{
+    auto sphereActor = Mesh::CreateSphere({ 0.0f, 2.0f, 0.0f }); 
+
+	auto& sphereRB = sphereActor->shapeComponent->rigidBody;
+	sphereRB->simulatePhysics = true;
+	sphereRB->simulateRotation = true;
+
+
+    auto& sphereMat = sphereActor->staticMeshComponent->GetMaterial();
+    sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png";
+    sphereMat->textures["normalMap"] = "rusty_metal_04_nor_dx_1k.png";
+    sphereMat->textures["metallicMap"] = "rusty_metal_04_metal_1k.png";
+    sphereMat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png";
+    sphereMat->textures["AOMap"] = "rusty_metal_04_ao_1k.png";
+
+    sphereMat->materialCB.useBaseColorMap = true;
+    sphereMat->materialCB.useNormalMap = true;
+    sphereMat->materialCB.useMetallicMap = true;
+    sphereMat->materialCB.useRoughnessMap = true;
+    sphereMat->materialCB.useAOMap = true;
+
+
+    //plane:
+	auto planeActor = Mesh::CreatePlane({ 0.0f, -2.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, static_cast<uint32_t>(roadWidth), static_cast<uint32_t>(goalLength));
+  
+    this->AddActor(sphereActor);
+    this->AddActor(planeActor); 
+}
+ 
+void GamePlayWorld::Load1()
+{
 
     //hardcode state; todo;
     timeCount = 0.0f;
 
     std::cout << "load game world" << '\n';
-     
+
     auto renderer = GameApplication::GetInstance()->GetRenderer();
     auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
     auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
@@ -110,7 +85,7 @@ void GamePlayWorld::OnLoad()
     sphereMat->materialCB.useNormalMap = true;
     sphereMat->materialCB.useMetallicMap = true;
     sphereMat->materialCB.useRoughnessMap = true;
-    sphereMat->materialCB.useAOMap = true; 
+    sphereMat->materialCB.useAOMap = true;
 
     //sphereMat->materialCB.useBaseColorMap = false;
     //sphereMat->materialCB.baseColor =  Color::Gold.xyz(); //Color::White.xyz(); 
@@ -130,7 +105,7 @@ void GamePlayWorld::OnLoad()
 
     auto& cubeMat = debugCubeProxy->material;
     cubeMat->materialCB.useBaseColorMap = false;
-    cubeMat->materialCB.baseColor =  Color::White.xyz(); 
+    cubeMat->materialCB.baseColor = Color::White.xyz();
     cubeMat->materialCB.useNormalMap = false;
     cubeMat->materialCB.useMetallicMap = false;
     cubeMat->materialCB.metallic = 0.8f;
@@ -159,11 +134,9 @@ void GamePlayWorld::OnLoad()
     //----
     //auto debugPlayer = debugCubeProxy;
     auto debugPlayer = debugSphereProxy;
-
-
+    std::cout << "debug curr z:" << debugPlayer->position.z() << '\n'; 
     //---------------
-    //this->GenerateObstacles(roadWidth / 2, goalLength, 30);
-
+    //this->GenerateObstacles(roadWidth / 2, goalLength, 30); 
 
     //---------------
     //renderer->SubmitMesh(debugSphereProxy.get());
@@ -178,20 +151,19 @@ void GamePlayWorld::OnLoad()
     m_staticMeshActors[id++] = (debugSphereProxy);
     m_staticMeshActors[id++] = (planeProxy);
     m_staticMeshActors[id++] = (debugCubeProxy);
-
-    
+     
     //
-    dummyCamera->target = debugPlayer;  
-    renderer->SubmitCamera(dummyCamera);
+    //defaultCamera.target = debugPlayer;
+    //renderer->SubmitCamera(defaultCamera);
 
     //new: centralize the physics reegistery 
-    for (auto& [ handle, actor] : m_staticMeshActors) {
+    for (auto& [handle, actor] : m_staticMeshActors) {
 
-        m_physicsScene->AddRigidBody(actor->rigidBody, handle);
-		actor->rigidBody->SetPosition(actor->position);
-		actor->rigidBody->SetRotation(actor->rotation);
-        m_physicsScene->AddCollider(actor->collider); 
-    } 
+        owningWorld->physicsScene->AddRigidBody(actor->rigidBody, handle);
+        actor->rigidBody->SetPosition(actor->position);
+        actor->rigidBody->SetRotation(actor->rotation);
+        owningWorld->physicsScene->AddCollider(actor->collider);
+    }
 
     // 
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
@@ -217,9 +189,7 @@ void GamePlayWorld::OnLoad()
     uiManager->RegisterRootElement(debugHUD2.get());
 
 
-    //--------------------------
-
-
+    //-------------------------- 
     auto debugBehavior = [=](float delta) {
         //std::cout << "tick behavior" << '\n';
         //std::cout << "debugSphereProxy speed:" << ToString(debugSphereProxy->rigidBody->linearVelocity) << '\n';
@@ -263,6 +233,7 @@ void GamePlayWorld::OnLoad()
         //if (inputSystem->IsKeyDown(KeyCode::E)) {
         //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, +30.0f, 0.0f));
         //}
+        //std::cout << "behavior curr z:" << debugPlayer->position.z() << '\n';
 
         if (debugPlayer->position.y() < planeProxy->position.y()) {
             std::cout << "game over? " << '\n';
@@ -275,7 +246,7 @@ void GamePlayWorld::OnLoad()
         }
 
         else if (debugPlayer->position.z() > goalLength / 2 - 20) {
-            std::cout << "goal?" << '\n';
+            std::cout << "goal?" << debugPlayer->position.z() << '\n';
             if (timeCount < Global::lastUsedTime)
                 Global::lastUsedTime = timeCount;
             gameManager->RequestTransitState(GameStateId::MainMenu);
@@ -284,28 +255,35 @@ void GamePlayWorld::OnLoad()
         };
 
     debugPlayer->onUpdate.Add(debugBehavior);
-
 }
+
+
+
+
 
 void GamePlayWorld::OnUnload()
 {
-    std::cout << "unload game world" << '\n'; 
+    std::cout << "unload game world" << '\n';
 
     //auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
     auto renderer = GameApplication::GetInstance()->GetRenderer();
-    renderer->ClearMesh();
+    renderer->ClearMesh(); 
 
-
-    m_physicsScene->ClearCollider();
-    m_physicsScene->ClearRigidBody();
+    owningWorld->physicsScene->ClearCollider();
+    owningWorld->physicsScene->ClearRigidBody();
+    owningWorld->physicsScene->ClearBuffer();
 
     //
-    auto uiManager = GameApplication::GetInstance()->GetUIManager();
-
+    auto uiManager = GameApplication::GetInstance()->GetUIManager(); 
     renderer->ClearUI();
     uiManager->ClearRoot();
 
     //
+    for (auto& [id, actor] : m_staticMeshActors) {
+        actor->onUpdate.Clear();
+       // actor->onUpdate =
+    }
+
     m_staticMeshActors.clear();
     m_HUDs.clear();
     //dummyCamera = nullptr;
@@ -313,6 +291,8 @@ void GamePlayWorld::OnUnload()
 
 void GamePlayWorld::OnUpdate(float delta)
 {
+    ULevel::OnUpdate(delta);
+
 
     DebugDraw::Get().AddRay(
         Float3(0.0f, 0.0f, 0.0f),
@@ -344,19 +324,15 @@ void GamePlayWorld::OnUpdate(float delta)
     //m_debugRenderer->OnUpdate(delta, dummyCamera.pvMatrix); 
     {
 
-        dummyCamera->Tick(delta);
+        defaultCamera.Tick(delta);
     }
 
-
-
-
-
-    //m_physicsScene->SyncPhysics();
+    //owningWorld->physicsScene->SyncPhysics();
     //this->SyncPhysicsToGame();
 
 
     //--------------
-    for (auto& [ actorId , proxy] : m_staticMeshActors)
+    for (auto& [actorId, proxy] : m_staticMeshActors)
     {
         proxy->onUpdate.BlockingBroadCast(delta);
 
@@ -468,7 +444,7 @@ void GamePlayWorld::OnUpdate(float delta)
     auto renderer = GameApplication::GetInstance()->GetRenderer();
     for (auto& [handle, actorProxy] : m_staticMeshActors) {
 
-        Mesh::FStaticMeshProxy proxy = {
+        FStaticMeshProxy proxy = {
        .modelMatrix = actorProxy->modelMatrix,
        .mesh = actorProxy->mesh.get(),
        .material = actorProxy->material.get(),
@@ -477,56 +453,62 @@ void GamePlayWorld::OnUpdate(float delta)
         };
         renderer->SubmitMesh(proxy);
     }
-     
+
+    renderer->SubmitCamera(defaultCamera);
+
 }
+
+
+
 
 void GamePlayWorld::SyncGameToPhysics()
 {
-    for (auto& [actorH, actor] : m_staticMeshActors) { 
-		m_physicsScene->SetPosition(actorH, actor->position);
-		//m_physicsScene->SetRotation(actorH, actor->rotation); 
+    for (auto& [actorH, actor] : m_staticMeshActors) {
+        owningWorld->physicsScene->SetPosition(actorH, actor->position);
+        //owningWorld->physicsScene->SetRotation(actorH, actor->rotation); 
     }
+     
+    //  for (auto& [actorH, rb] : owningWorld->physicsScene->m_bodies) {
 
-
-  //  for (auto& [actorH, rb] : m_physicsScene->m_bodies) {
-
-  //      auto& owner = this->m_staticMeshActors[actorH];
-  //      //::cout << "draw for rb:" << rb->debugName << '\n'; 
-  //      if (!rb->simulatePhysics) continue;
-		////std::cout << "sync game to physics for rb: " << ToString(owner->position) << '\n';
-  //      rb->position = owner->position;
-  //      
-  //      if (!rb->simulateRotation) continue;
-  //      rb->rotation = owner->rotation;
-  //  }
+    //      auto& owner = this->m_staticMeshActors[actorH];
+    //      //::cout << "draw for rb:" << rb->debugName << '\n'; 
+    //      if (!rb->simulatePhysics) continue;
+          ////std::cout << "sync game to physics for rb: " << ToString(owner->position) << '\n';
+    //      rb->position = owner->position;
+    //      
+    //      if (!rb->simulateRotation) continue;
+    //      rb->rotation = owner->rotation;
+    //  }
 }
 
-void GamePlayWorld::SyncPhysicsToGame()
-{
-auto& transformBuffer = m_physicsScene->GetTransformBuffer();
-for (auto& [actorH, trans] : transformBuffer) {
-
-    auto& owner = this->m_staticMeshActors[actorH];
-    
-	owner->position = trans.position;
-	owner->rotation = trans.rotation;
-} 
-
-//for (auto& [actorH, rb] : m_physicsScene->m_bodies) {
-//	 
-//	auto& owner = this->m_staticMeshActors[actorH];
-//	//::cout << "draw for rb:" << rb->debugName << '\n'; 
-//	if (!rb->simulatePhysics) continue;
-//	owner->SetWorldPosition(rb->position); 
-// 
-//	if (!rb->simulateRotation) continue;
-//	owner->SetWorldRotation(rb->rotation);  
+//void GamePlayWorld::SyncPhysicsToGame()
+//{
+//    //ULevel::SyncPhysicsToGame();
 //
-// 
+//    auto& transformBuffer = owningWorld->physicsScene->GetTransformBuffer();
+//    for (auto& [actorH, trans] : transformBuffer) {
+//
+//        if (!this->m_staticMeshActors.contains(actorH)) continue;
+//        auto& owner = this->m_staticMeshActors.at(actorH);
+//
+//        owner->position = trans.position;
+//        owner->rotation = trans.rotation;
+//    }
+//
+//    //for (auto& [actorH, rb] : owningWorld->physicsScene->m_bodies) {
+//    //	 
+//    //	auto& owner = this->m_staticMeshActors[actorH];
+//    //	//::cout << "draw for rb:" << rb->debugName << '\n'; 
+//    //	if (!rb->simulatePhysics) continue;
+//    //	owner->SetWorldPosition(rb->position); 
+//    // 
+//    //	if (!rb->simulateRotation) continue;
+//    //	owner->SetWorldRotation(rb->rotation);  
+//    //
+//    // 
+//    //} 
+//
 //}
-
-
-}
 
 
 
@@ -577,7 +559,7 @@ void MainMenuWorld::OnUnload()
 
     renderer->ClearUI();
 
-    uiManager->ClearRoot(); 
+    uiManager->ClearRoot();
 
     m_Buttons.clear();
 }
@@ -593,14 +575,14 @@ void MainMenuWorld::OnUpdate(float delta)
 //void GamePlayWorld::SyncGameToPhysics()
 //{
 //    for (auto& [handle, proxy] : m_staticMeshActors) {
-//        m_physicsScene->MoveRigidBody(handle, proxy->position);
-//        m_physicsScene->RotateRigidBody(handle, proxy->rotation);
+//        owningWorld->physicsScene->MoveRigidBody(handle, proxy->position);
+//        owningWorld->physicsScene->RotateRigidBody(handle, proxy->rotation);
 //    }
 //}
 //
 //void GamePlayWorld::SyncPhysicsToGame()
 //{
-//    auto& readBuffer = m_physicsScene->syncBuffer.GetReadBuffer();
+//    auto& readBuffer = owningWorld->physicsScene->syncBuffer.GetReadBuffer();
 //	for (auto& [owner ,trans] : readBuffer) {
 //		//auto& owner = trans.owner;
 //        auto& actor = m_staticMeshActors[owner];
@@ -609,3 +591,58 @@ void MainMenuWorld::OnUpdate(float delta)
 //	}
 //}
 
+/*
+void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount)
+{
+
+    auto renderer = GameApplication::GetInstance()->GetRenderer();
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    // Position ranges: X around center , Y height fixed, Z along the road from 0 to roadLength
+    std::uniform_real_distribution<float> distX(-roadWidth, roadWidth);
+    std::uniform_real_distribution<float> distZ(0.0f, roadLength);
+
+    // Random choice between sphere or box
+    std::uniform_int_distribution<int> shapeChoice(0, 1);
+
+    for (uint32_t i = 0; i < obstacleCount; i++)
+    {
+        float x = distX(gen);
+        float y = 1.0f; // height so above ground (adjust as needed)
+        float z = distZ(gen);
+
+        if (shapeChoice(gen) == 0)
+        {
+            // Create Sphere obstacle
+            auto sphereProxy = CreateSphereActor({ x, y, z });
+            sphereProxy->rigidBody->simulatePhysics = false;
+            sphereProxy->rigidBody->simulateRotation = false;
+            sphereProxy->rigidBody->material.friction = 5.0f;
+
+            m_staticMeshActors.push_back(sphereProxy);
+            //renderer->SubmitMesh(sphereProxy.get());
+
+        }
+        else
+        {
+            // Create Box obstacle with random size
+            std::uniform_real_distribution<float> sizeDist(0.5f, 2.0f);
+            float sizeX = sizeDist(gen);
+            float sizeY = sizeDist(gen);
+            float sizeZ = sizeDist(gen);
+
+            auto boxProxy = CreateBoxActor({ x, y, z }, { sizeX, sizeY, sizeZ });
+            boxProxy->rigidBody->simulatePhysics = false;
+            boxProxy->rigidBody->simulateRotation = false;
+            boxProxy->rigidBody->material.friction = 0.3f;
+
+
+            m_staticMeshActors.push_back(boxProxy);
+            //renderer->SubmitMesh(boxProxy.get());
+        }
+    }
+}
+*/
+ 

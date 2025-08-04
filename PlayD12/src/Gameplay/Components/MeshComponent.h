@@ -3,52 +3,43 @@
 #include "PCH.h"
 #include "Gameplay/SceneComponent.h"
 
+#include "Render/Mesh.h"
+#include "Render/Material.h"
+#include "Render/StaticMeshProxy.h"
+ 
+#include "PrimitiveComponent.h"
 
 namespace Gameplay {
-	//all visible shapes ; rigidbody;
-	class UPrimitiveComponent : public USceneComponent {
+ 
+    class UMeshComponent : public UPrimitiveComponent {
+    public:
+    };
+
+    class UStaticMeshComponent : public UMeshComponent {
     public: 
-        //virtual void Draw() = 0;   
- 
-        //void SetVisible(bool bVisible);
-        //bool IsVisible() const; 
- 
-        //virtual AABB GetBounds() const;
+        virtual void TickComponent(float delta);
 
-        void SetSimulatePhysics(bool bSimulate);
-        bool IsSimulatingPhysics() const;
+        virtual void OnRegister() override;
+        FStaticMeshProxy CreateSceneProxy();
 
-        void SetCollisionEnabled(bool bEnabled);
-        bool IsCollisionEnabled() const;
-        //Set/Get CollisionResponse
+        void SetMesh(SharedPtr<UStaticMesh> mesh)
+        {
+            m_mesh = mesh;
+        }
+        SharedPtr<UStaticMesh> GetMesh() const {
+            return m_mesh;
+        }
 
-        ////for the editor
-        //void SetSelected(bool bSelected);
-        //bool IsSelected() const;
-         
-        //void SetRenderLayer(int layer);
-        //int  GetRenderLayer() const;
-
-    protected:
-        //bool m_bVisible = true;
-        bool m_bSimulatePhysics = false;
-        bool m_bCollisionEnabled = true;
-        //bool m_bSelected = false;
-        //int  m_renderLayer = 0;
-	};
-
-	class UMeshComponent : public UPrimitiveComponent {
-	};
-
-	class UStaticMeshComponent : public UMeshComponent {
-         
-    //    void SetMesh(SharedPtr<UStaticMesh> mesh);
-    //    SharedPtr<UStaticMesh> GetMesh() const;
-    //     
-    //    void SetMaterial(int slot, SharedPtr<UMaterial> material);
-    //    SharedPtr<UMaterial> GetMaterial(int slot = 0) const;
-    //     
-    //    int  GetMaterialCount() const;
+        //todo: implement multi-material if needed;
+        void SetMaterial(SharedPtr<UMaterial> material, int slot = 0){
+            m_material = material;
+        }
+        SharedPtr<UMaterial> GetMaterial(int slot = 0) const
+        { 
+            return m_material;
+        }
+        //     
+        //    int  GetMaterialCount() const;
 
         //extra attributes
         //void SetInstanceData(const std::vector<InstanceData>& instanceData);
@@ -67,9 +58,13 @@ namespace Gameplay {
         //int m_currentLOD = 0;
         //bool m_castShadow = true;
 
-    //protected:
-    //    SharedPtr<UStaticMesh> m_mesh;
+    protected:
+        SharedPtr<UStaticMesh> m_mesh{ nullptr };
+        SharedPtr<UMaterial> m_material = CreateShared<UMaterial>();
     //    std::vector<SharedPtr<UMaterial>> m_materials;
-	};
-	 
+
+    protected:
+        FStaticMeshProxy m_sceneProxy;
+    };
+
 }

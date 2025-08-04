@@ -5,7 +5,7 @@
 
 
 
-FMaterialProxy::FMaterialProxy()
+UMaterial::UMaterial()
 {
 	auto& graphContext = Render::graphContext;
 

@@ -2,32 +2,33 @@
 
 #include "PCH.h"
 #include "Math/MMath.h"
- 
+
 #include "ActorComponent.h"
 
 struct FTransform {
 	Float3 position{ 0.0f, 0.0f, 0.0f };
 	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity() };
-	Float3 scale{ 1.0f, 1.0f, 1.0f }; 
+	Float3 scale{ 1.0f, 1.0f, 1.0f };
 
-	FTransform CombineWith(const FTransform& Parent) const;
-
-	Float4x4 ToMatrix() const;
-
+	FTransform CombineWith(const FTransform& Parent) const; 
+	Float4x4 ToMatrix() const; 
 };
 
 namespace Gameplay {
-	class USceneComponent : public UActorComponent { 
-	public: 
+
+	class USceneComponent : public UActorComponent {
+	public:
 
 		const FTransform& GetRelativeTransform() const { return m_relativeTransform; }
 		void SetRelativeTransform(const FTransform& NewTransform) { m_relativeTransform = NewTransform; }
 
-		const FTransform& GetWorldTransform() const { return m_worldTransform; } 
+		const FTransform& GetWorldTransform() const { return m_worldTransform; }
 		void SetWorldTransform(const FTransform& t) { m_worldTransform = t; }
+
+		//for the engine
 		void UpdateWorldTransform();
 
-	public: 
+	public:
 		Float3 GetWorldPosition() const { return m_worldTransform.position; }
 		DirectX::XMVECTOR GetWorldRotation() const { return m_worldTransform.rotation; }
 		Float3 GetWorldScale() const { return m_worldTransform.scale; }
@@ -42,8 +43,8 @@ namespace Gameplay {
 
 		USceneComponent* GetParent() const { return m_parent; }
 		const std::vector<USceneComponent*>& GetChildren() const { return m_children; }
-		 
-	protected: 
+
+	protected:
 		FTransform m_relativeTransform;
 		FTransform m_worldTransform;
 
@@ -56,4 +57,4 @@ namespace Gameplay {
 
 
 
-}  
+}

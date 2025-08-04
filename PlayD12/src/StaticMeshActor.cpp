@@ -1,43 +1,14 @@
 #include "PCH.h"
-#include "StaticMeshActor.h"
 #include "Application.h" 
 
 #include "Physics/PhysicsScene.h"
 
-
-constexpr int instanceCount = 1;
-constexpr float spacing = 5.0f; // Adjust to control sparsity
-constexpr float viewRadius = 7.0f; // Distance from the origin  
-
-std::vector<InstanceData> DebugGenerateInstanceData()
-{
-    std::vector<InstanceData> instanceData;
-
-    // Estimate cube grid dimensions (cubical or close)
-    int gridSize = static_cast<int>(std::ceil(std::cbrt(instanceCount)));
-    const float halfGrid = (gridSize - 1) * spacing * 0.5f;
-
-    for (int i = 0; i < instanceCount; ++i)
-    {
-        int x = i % gridSize;
-        int y = (i / gridSize) % gridSize;
-        int z = i / (gridSize * gridSize);
-
-        InstanceData _data;
-
-        _data.offset = {
-            x * spacing - halfGrid,
-            y * spacing - halfGrid,
-            z * spacing - halfGrid
-        };
-
-        instanceData.push_back(_data);
-    }
-
-    return instanceData;
-}
-
-
+#include "StaticMeshActor.h"
+//todo: 
+/*
+register the mesh as assets
+*/
+ 
 SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh,
     Float3 position,
     Float3 scale
@@ -47,8 +18,7 @@ SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mes
     if (ctx) {
         mesh->CreateGPUResource(ctx->device);
     }
-
-
+     
     //------------------------------  
 
     //auto shadowPassOffset = ctx->shadowShaderPerm->RequestAllocationOnHeap();
@@ -78,7 +48,7 @@ SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mes
     meshProxy->scale = scale;
     meshProxy->mesh = mesh;
     //meshProxy->mainPassHeapOffset = mainPassOffset;
-    meshProxy->material = CreateShared<FMaterialProxy>();
+    meshProxy->material = CreateShared<UMaterial>();
     //meshProxy->objectCB = objectCBRes;
     //meshProxy->shadowPassHeapOffset = shadowPassOffset;
     //meshProxy->shadowMVPConstantBuffer = shadowConstBuffer;
@@ -92,7 +62,7 @@ SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mes
 
 SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale)
 {
-  
+
     auto sphereMesh = CreateShared<SphereMesh>();
     auto sphereProxy = CreateStaticMeshActor(sphereMesh, position, scale);
 
@@ -103,7 +73,7 @@ SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale)
     auto sphereRigidBody = new RigidBody();
 
     auto sphereCollider = new Collider(sphereShape, sphereRigidBody);
-	sphereRigidBody->SetShape(sphereShape); 
+    sphereRigidBody->SetShape(sphereShape);
 
     sphereProxy->collider = sphereCollider;
     sphereProxy->rigidBody = sphereRigidBody;
@@ -113,7 +83,7 @@ SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale)
 }
 
 SharedPtr<StaticMeshActorProxy> CreateBoxActor(Float3 position, Float3 scale)
-{ 
+{
     auto boxMesh = CreateShared<CubeMesh>();
     auto boxProxy = CreateStaticMeshActor(boxMesh, position, scale);
 
@@ -125,7 +95,7 @@ SharedPtr<StaticMeshActorProxy> CreateBoxActor(Float3 position, Float3 scale)
     auto boxRigidBody = new RigidBody();
 
     auto boxCollider = new Collider(boxShape, boxRigidBody);
-	boxRigidBody->SetShape(boxShape); 
+    boxRigidBody->SetShape(boxShape);
 
     boxProxy->collider = boxCollider;
     boxProxy->rigidBody = boxRigidBody;
@@ -140,12 +110,12 @@ SharedPtr<StaticMeshActorProxy> CreatePlaneActor(Float3 position, Float3 scale, 
     auto planeProxy = CreateStaticMeshActor(planeMesh, position, scale);
 
     auto planeShape = Plane{ static_cast<float>(subdivisionX) , static_cast<float>(subdivisionZ) };
-    
+
     //auto planeRigidBody = new RigidBody(planeProxy.get(), planeShape);
 
     //auto planeCollider = new Collider(planeProxy.get(), planeShape, planeRigidBody);
 
-    auto planeRigidBody = new RigidBody(); 
+    auto planeRigidBody = new RigidBody();
     auto planeCollider = new Collider(planeShape, planeRigidBody);
     planeRigidBody->SetShape(planeShape);
 
@@ -227,7 +197,7 @@ void FCameraProxy::Tick(float delta)
 void FollowCameraProxy::Tick(float delta)
 {
     if (target.expired()) {
-        std::cerr << "no valid actor" << std::endl;
+        std::cerr << "follow camera: empty target" << std::endl;
         return;
     }
 
@@ -271,9 +241,77 @@ void FollowCameraProxy::Tick(float delta)
 
     //std::cout << "view matrix:\n " << MMath::ToString(view_) << std::endl;
     //std::cout << "inv view matrix:\n " << MMath::ToString(invView_) << std::endl;  
- //   //std::cout << "inv view matrix ref:\n " << MMath::ToString(MMath::Inverse4x4(view_)) << std::endl;
+    //std::cout << "inv view matrix ref:\n " << MMath::ToString(MMath::Inverse4x4(view_)) << std::endl;
 
     //std::cout << "projection matrix:\n " << MMath::ToString(proj_) << std::endl;
     //std::cout << "inv proj matrix:\n " << MMath::ToString(invProj_) << std::endl;
     //std::cout << "inv proj ref:\n " << MMath::ToString(MMath::Inverse4x4(proj_)) << std::endl;
+}
+
+AStaticMeshActor::AStaticMeshActor()
+{
+    //todo: init default;
+    staticMeshComponent = CreateComponentAsSubObject<UStaticMeshComponent>();
+     
+}
+
+void AStaticMeshActor::OnTick(float delta)
+{
+    AActor::OnTick(delta);
+
+    //std::cout << "tick static mesh\n";
+}
+
+SharedPtr<AStaticMeshActor> Mesh::CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh, Float3 position, Float3 scale)
+{
+    //todo: where to put this thing
+    auto ctx = Render::rendererContext;
+    if (ctx) {
+        mesh->CreateGPUResource(ctx->device);
+    } 
+
+    auto& actor = CreateActor<AStaticMeshActor>();   
+    actor->staticMeshComponent->SetMesh(mesh);
+    return actor;
+}
+
+SharedPtr<AStaticMeshActor> Mesh::CreateSphere(Float3 position, Float3 scale)
+{
+    auto mesh = CreateShared<SphereMesh>();
+    auto actor = Mesh::CreateStaticMeshActor(mesh, position, scale);
+
+    actor->shapeComponent = actor->CreateComponentAsSubObject<USphereComponent>();
+    actor->RootComponent = actor->shapeComponent; 
+
+	actor->RootComponent->SetRelativePosition(position);
+	actor->RootComponent->SetRelativeScale(scale);
+
+
+	//attach the mesh component to the actor
+	actor->staticMeshComponent->AttachTo(actor->RootComponent.get());
+
+    //update the world transform manually:
+    actor->RootComponent->UpdateWorldTransform();
+
+    return actor;
+}
+
+SharedPtr<AStaticMeshActor> Mesh::CreatePlane(Float3 position, Float3 scale, uint32_t subdivisionX, uint32_t subdivisionZ)
+{
+	auto mesh = CreateShared<PlaneMesh>(subdivisionX, subdivisionZ);
+    auto actor = Mesh::CreateStaticMeshActor(mesh, position, scale);
+
+    actor->shapeComponent = actor->CreateComponentAsSubObject<UPlaneComponent>();
+    actor->RootComponent = actor->shapeComponent;
+
+    actor->RootComponent->SetRelativePosition(position);
+    actor->RootComponent->SetRelativeScale(scale);
+
+    actor->staticMeshComponent->AttachTo(actor->RootComponent.get());
+
+
+    //update the world transform manually:
+    actor->RootComponent->UpdateWorldTransform();
+
+    return actor;
 }

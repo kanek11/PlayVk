@@ -2,6 +2,8 @@
 
 #include "ActorComponent.h"
 
+#include "Actor.h"
+
 namespace Gameplay
 {
     UActorComponent::UActorComponent() :
@@ -29,11 +31,23 @@ namespace Gameplay
     void UActorComponent::RegisterOwner(const SharedPtr<AActor>& owner)
     {
         this->m_owner = owner;
+
+        //new:
+        this->OnRegister();
     }
 
     WeakPtr<AActor> UActorComponent::GetOwner() const
     {
         return this->m_owner;
     }
+
+    UWorld* UActorComponent::GetWorld() const
+    {
+        return m_owner.expired() ? nullptr : m_owner.lock()->GetWorld();
+    }
+    void UActorComponent::OnRegister()
+    {
+    }
+
 
 }  

@@ -49,7 +49,7 @@ namespace Materials {
 
 }
 
-struct FMaterialProxy {
+struct UMaterial {
 
     Materials::PBRMaterialCB materialCB;
 
@@ -57,9 +57,9 @@ struct FMaterialProxy {
     std::unordered_map<std::string, std::string > textures;
     //SharedPtr<FD3D12Texture> baseMap;
 
-    FMaterialProxy();
+    UMaterial();
     
-    void DeriveParameters();
+    //void DeriveParameters();
 };
 
 

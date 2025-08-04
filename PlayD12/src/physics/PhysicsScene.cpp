@@ -69,7 +69,7 @@ void PhysicsScene::ApplyExternalForce(float delta)
 {
 	for (auto& [actor, rb] : m_bodies) {
 		if (!rb->simulatePhysics) continue;
-		rb->ApplyForceRate(this->gravity * delta); 
+		rb->ApplyForceRate(this->gravity * delta);
 	}
 }
 
@@ -104,11 +104,11 @@ void PhysicsScene::Integrate(float delta)
 		dq = XMVectorScale(dq, 0.5f * delta);
 		rb->predRot = XMQuaternionNormalize(XMVectorAdd(dq, rb->predRot));
 
-	/*	std::cout << "integrate for rb : " << rb->debugName << '\n';
-		std::cout << "dq: " << MMath::XMToString(dq) << '\n';*/
-		
-		//update pose;
-		//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
+		/*	std::cout << "integrate for rb : " << rb->debugName << '\n';
+			std::cout << "dq: " << MMath::XMToString(dq) << '\n';*/
+
+			//update pose;
+			//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
 		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
 		XMMATRIX invR_ = XMMatrixTranspose(R_);
 
@@ -119,7 +119,7 @@ void PhysicsScene::Integrate(float delta)
 
 		rb->RotationMatrix = R;
 
-		 
+
 		auto worldInertia = MatrixMultiply(MatrixMultiply(R, rb->localInertia), Transpose(R));
 		rb->worldInertia = worldInertia;
 		rb->invWorldInertia = Inverse3x3(worldInertia);
@@ -406,8 +406,8 @@ void PhysicsScene::VelocityPass(float delta)
 
 		//float mu_s = std::sqrt(muA_s * muB_s);
 		//float mu_k = std::sqrt(muA_k * muB_k);
-		float mu_s = std::max(muA_s , muB_s);
-		float mu_k = std::max(muA_k , muB_k);
+		float mu_s = std::max(muA_s, muB_s);
+		float mu_k = std::max(muA_k, muB_k);
 
 		float maxStatic = mu_s * jn;
 		float jt = 0.f;
@@ -471,13 +471,13 @@ void PhysicsScene::PostSimulation()
 	//	//DebugDraw::Get().AddRay(rb->position, { axisVec.x,axisVec.y,axisVec.z }, Color::Cyan);
 
 	//}
-	
+
 	//write to transform buffer:
 	auto& writeBuffer = m_transformBuffer.GetWriteBuffer();
-	for (auto& [actor, rb] : m_bodies) {  
+	for (auto& [actor, rb] : m_bodies) {
 		auto& transform = writeBuffer[actor];
 		transform.position = rb->position;
-		transform.rotation = rb->rotation; 
+		transform.rotation = rb->rotation;
 	}
 
 	m_transformBuffer.SwapBuffers();
@@ -494,7 +494,7 @@ void PhysicsScene::SetPosition(ActorHandle handle, const Float3& position)
 			std::cerr << "RigidBody with handle " << handle << " not found!" << std::endl;
 		}
 		});
-	
+
 }
 
 void PhysicsScene::SetRotation(ActorHandle handle, const DirectX::XMVECTOR& rotation)
@@ -507,9 +507,9 @@ void PhysicsScene::SetRotation(ActorHandle handle, const DirectX::XMVECTOR& rota
 		else {
 			std::cerr << "RigidBody with handle " << handle << " not found!" << std::endl;
 		}
-		}); 
+		});
 }
- 
+
 /*
 RigidBody::RigidBody(StaticMeshActorProxy* owner, ShapeType type)
 	: owner(owner), type(type)
@@ -534,13 +534,12 @@ RigidBody::RigidBody(StaticMeshActorProxy* owner, ShapeType type)
 
 	worldInertia = MatrixMultiply(MatrixMultiply(R, localInertia), Transpose(R));
 	invWorldInertia = Inverse3x3(worldInertia);
-	 
+
 }
 */
 
-RigidBody::RigidBody() 
+RigidBody::RigidBody()
 {
 	//localInertia = MakeInertiaTensor(type, mass);
 }
 
- 

@@ -4,21 +4,21 @@
 using namespace DirectX;
 
 FTransform FTransform::CombineWith(const FTransform& Parent) const
-{ 
-	FTransform Combined; 
-  
+{
+    FTransform Combined;
+
     Float3 outScale = {
         scale.x() * Parent.scale.x(),
         scale.y() * Parent.scale.y(),
         scale.z() * Parent.scale.z()
     };
-	// warn: the order of multiplication matters
+    // warn: the order of multiplication matters
     DirectX::XMVECTOR outRot = DirectX::XMQuaternionMultiply(rotation, Parent.rotation);
-  
-	DirectX::XMFLOAT3 xmPos = DirectX::XMFLOAT3{ position.x(), position.y(), position.z() };
+
+    DirectX::XMFLOAT3 xmPos = DirectX::XMFLOAT3{ position.x(), position.y(), position.z() };
     DirectX::XMVECTOR localPos = DirectX::XMVector3Rotate(DirectX::XMLoadFloat3(&xmPos), Parent.rotation);
     DirectX::XMFLOAT3 xmOutPos;
-    DirectX::XMStoreFloat3(&xmOutPos, localPos);  
+    DirectX::XMStoreFloat3(&xmOutPos, localPos);
 
     Float3 outPos = {
         xmOutPos.x * Parent.scale.x() + Parent.position.x(),
@@ -30,22 +30,22 @@ FTransform FTransform::CombineWith(const FTransform& Parent) const
 
 Float4x4 FTransform::ToMatrix() const
 {
-    auto S = MMath::MatrixScaling(scale.x(), scale.y(), scale.z()); 
+    auto S = MMath::MatrixScaling(scale.x(), scale.y(), scale.z());
     auto T = MMath::MatrixTranslation(position.x(), position.y(), position.z());
-    
+
     XMMATRIX R_ = XMMatrixRotationQuaternion(rotation);
     Float4x4 R;
-	R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
-	R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
-	R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
-	R[3] = { 0.0f, 0.0f, 0.0f, 1.0f }; 
+    R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
+    R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
+    R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
+    R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-	Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
-	modelMatrix = MatrixMultiply(S, modelMatrix);  
-	modelMatrix = MatrixMultiply(R, modelMatrix);   
-	modelMatrix = MatrixMultiply(T, modelMatrix); 
-	return modelMatrix;
-    
+    Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
+    modelMatrix = MatrixMultiply(S, modelMatrix);
+    modelMatrix = MatrixMultiply(R, modelMatrix);
+    modelMatrix = MatrixMultiply(T, modelMatrix);
+    return modelMatrix;
+
 
 }
 
@@ -55,6 +55,8 @@ void Gameplay::USceneComponent::UpdateWorldTransform()
         m_worldTransform = m_relativeTransform.CombineWith(m_parent->m_worldTransform);
     else
         m_worldTransform = m_relativeTransform;
+
+    //std::cout << "USceneComponent::UpdateWorldPos: " << ToString(m_worldTransform.position) << '\n';
 
     for (auto* child : m_children)
     {
@@ -67,7 +69,7 @@ void Gameplay::USceneComponent::AttachTo(USceneComponent* newParent)
 {
     if (m_parent == newParent) return;
 
-	//unbind from current parent if any
+    //unbind from current parent if any
     if (m_parent)
     {
         auto& siblings = m_parent->m_children;

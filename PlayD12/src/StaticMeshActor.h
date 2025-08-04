@@ -13,6 +13,9 @@
 
 #include "Gameplay/Actor.h"
 //#include "Gameplay/Components/SceneComponent.h"
+#include "Gameplay/Components/MeshComponent.h"
+#include "Gameplay/Components/ShapeComponent.h"
+ 
 
 struct StaticMeshActorProxy;
 
@@ -30,42 +33,28 @@ struct FollowCameraProxy : public FCameraProxy {
     WeakPtr<StaticMeshActorProxy> target;
 
     virtual void Tick(float delta) override;
-};
-
-
-
-struct InstanceData
-{
-    MMath::Float3 offset;
-};
-
-template <>
-struct VertexLayoutTraits<InstanceData> {
-    static constexpr bool is_specialized = true;
-    static constexpr std::array<VertexAttribute, 1> attributes = {
-        VertexAttribute{ "INSTANCE_OFFSET", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(InstanceData, offset) }
-    };
-};
-
-
+}; 
+ 
 
 //strip out the minimum to render a static mesh:
 struct StaticMeshActorProxy {
     std::string debugName = "default static mesh";
 
+    //transform
     Float3 position = { 0.0f, 0.0f, 0.0f };
     DirectX::XMVECTOR rotation = DirectX::XMQuaternionIdentity();
     Float3 scale = { 1.0f, 1.0f, 1.0f };
 
     Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
 
+    //static mesh
     SharedPtr<UStaticMesh> mesh;
 
-    SharedPtr<FMaterialProxy> material;
+    SharedPtr<UMaterial> material;
 
-    std::vector<InstanceData> instanceData;
+    std::vector<InstanceData> instanceData;  
 
-    ////new: for physics:
+    //new: for physics:
     RigidBody* rigidBody{ nullptr };
     Collider* collider{ nullptr };
 
@@ -75,18 +64,86 @@ struct StaticMeshActorProxy {
 
     void SetWorldRotation(const DirectX::XMVECTOR& newRotation) {
         rotation = newRotation;
-    }
+    } 
 
-
+    //custom behavior;
     FDelegate<void(float)> onUpdate;
 };
-
-
-
-
+ 
 SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh, Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
 
 SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
 SharedPtr<StaticMeshActorProxy> CreateBoxActor(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
 
 SharedPtr<StaticMeshActorProxy> CreatePlaneActor(Float3 position, Float3 scale, uint32_t subdivisionX, uint32_t subdivisionZ);
+
+
+
+
+using namespace Gameplay;
+
+class ACameraActor : public AActor
+{
+public:
+     
+};
+
+//todo: object initializer or sth;
+class AStaticMeshActor : public AActor
+{
+public:
+    AStaticMeshActor();
+
+    virtual void OnTick(float delta);
+
+public:
+    SharedPtr<UStaticMeshComponent> staticMeshComponent;
+    SharedPtr<UShapeComponent> shapeComponent;
+
+public:
+   
+};
+
+
+namespace Mesh {
+
+    SharedPtr<AStaticMeshActor> CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh, Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
+
+    SharedPtr<AStaticMeshActor> CreateSphere(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
+    SharedPtr<AStaticMeshActor> CreateBox(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
+    SharedPtr<AStaticMeshActor> CreatePlane(Float3 position, Float3 scale, uint32_t subdivisionX, uint32_t subdivisionZ);
+
+}
+
+
+constexpr int instanceCount = 1;
+constexpr float spacing = 5.0f; // Adjust to control sparsity
+constexpr float viewRadius = 7.0f; // Distance from the origin  
+
+inline std::vector<InstanceData> DebugGenerateInstanceData()
+{
+    std::vector<InstanceData> instanceData;
+
+    // Estimate cube grid dimensions (cubical or close)
+    int gridSize = static_cast<int>(std::ceil(std::cbrt(instanceCount)));
+    const float halfGrid = (gridSize - 1) * spacing * 0.5f;
+
+    for (int i = 0; i < instanceCount; ++i)
+    {
+        int x = i % gridSize;
+        int y = (i / gridSize) % gridSize;
+        int z = i / (gridSize * gridSize);
+
+        InstanceData _data;
+
+        _data.offset = {
+            x * spacing - halfGrid,
+            y * spacing - halfGrid,
+            z * spacing - halfGrid
+        };
+
+        instanceData.push_back(_data);
+    }
+
+    return instanceData;
+}

@@ -8,6 +8,7 @@ namespace Gameplay
 
     // forward declaration
     class AActor;
+    class UWorld;
 
     //<<abstract>>
     class UActorComponent : public UObject
@@ -29,6 +30,12 @@ namespace Gameplay
     private:
         WeakPtr<AActor> m_owner; // weak reference to the owner, can't be null
         // bool              m_isRegistered = false;
+
+
+    public:
+        UWorld* GetWorld() const;
+
+        virtual void OnRegister();
     };
 
     // factory function for derived classes

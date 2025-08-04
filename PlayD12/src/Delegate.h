@@ -39,6 +39,11 @@ public:
         _callBackFn.push_back(std::move(func));
     }
 
+    void Clear()
+    {
+        _callBackFn.clear();
+    }
+
     // dispatch, execute, broadcast, Emit
     template <typename... Args>
     void BlockingBroadCast(Args&&... args)

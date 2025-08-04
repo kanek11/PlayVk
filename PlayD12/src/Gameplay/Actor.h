@@ -3,7 +3,7 @@
 #include "Object.h"
 #include "ActorComponent.h"
 #include "SceneComponent.h"
- 
+
 
 // todo: actor can be placed in "level, world",
 // the load/streaming of actors can be subtle;
@@ -14,6 +14,9 @@ using ActorHandle = uint32_t;
 
 namespace Gameplay
 {
+    class ULevel;
+    class UWorld;
+
     // Actor can be placed in the game world;
     //<<abstract>>
     class AActor : public UObject, public std::enable_shared_from_this<AActor>
@@ -35,7 +38,7 @@ namespace Gameplay
 
         void RegisterAllComponents();
 
-        // factory for subobjects
+        // factory for subobjects;  otherwise the component must be register manually;
         template <typename T>
         SharedPtr<T> CreateComponentAsSubObject()
         {
@@ -59,10 +62,15 @@ namespace Gameplay
         }
 
     private:
-        std::vector<SharedPtr<UActorComponent>> m_components; 
+        std::vector<SharedPtr<UActorComponent>> m_components;
 
     public:
-        SharedPtr<USceneComponent> RootComponent = nullptr; 
+        SharedPtr<USceneComponent> RootComponent = nullptr;
+
+    public:
+        //raw ptr suggest it's not managed by entries.
+        ULevel* level{ nullptr };
+        UWorld* GetWorld() const;
     };
 
     // factory function for derived classes
@@ -74,9 +82,9 @@ namespace Gameplay
 
         auto _actor = CreateShared<T>(std::forward<Args>(args)...);
 
-        _actor->RegisterAllComponents(); // register the actor to the components,  post-construction of the actor;
+        //_actor->RegisterAllComponents(); // register the actor to the components,  post-construction of the actor;
 
         return _actor;
     }
 
-}  
+}
