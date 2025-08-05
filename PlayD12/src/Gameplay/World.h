@@ -6,6 +6,8 @@
 #include "Gameplay/SceneComponent.h"
 #include "Gameplay/Components/MeshComponent.h"
 
+#include "Gameplay/Actors/AController.h"
+
 #include "Gameplay/Scene.h"
 
 #include "UI.h" 
@@ -73,6 +75,20 @@ public:
 	 
 	void AddPrimitiveComponent(UPrimitiveComponent* comp) {
 		m_primtiveMap[comp->id] = comp;
+	}
+
+public:
+	//for player controller:
+	std::vector<AController*> playerControllers;
+
+	void AddPlayerController(AController* controller) {
+		if (controller) {
+			playerControllers.push_back(controller);
+		}
+	}
+
+	AController* GetFirstPlayerController() const {
+		return playerControllers.empty() ? nullptr : playerControllers[0];
 	}
 
 public:
