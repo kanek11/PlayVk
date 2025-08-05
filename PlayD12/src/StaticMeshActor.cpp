@@ -8,7 +8,7 @@
 /*
 register the mesh as assets
 */
- 
+
 SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh,
     Float3 position,
     Float3 scale
@@ -18,7 +18,7 @@ SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mes
     if (ctx) {
         mesh->CreateGPUResource(ctx->device);
     }
-     
+
     //------------------------------  
 
     //auto shadowPassOffset = ctx->shadowShaderPerm->RequestAllocationOnHeap();
@@ -252,7 +252,7 @@ AStaticMeshActor::AStaticMeshActor()
 {
     //todo: init default;
     staticMeshComponent = CreateComponentAsSubObject<UStaticMeshComponent>();
-     
+
 }
 
 void AStaticMeshActor::OnTick(float delta)
@@ -263,14 +263,8 @@ void AStaticMeshActor::OnTick(float delta)
 }
 
 SharedPtr<AStaticMeshActor> Mesh::CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh, Float3 position, Float3 scale)
-{
-    //todo: where to put this thing
-    auto ctx = Render::rendererContext;
-    if (ctx) {
-        mesh->CreateGPUResource(ctx->device);
-    } 
-
-    auto& actor = CreateActor<AStaticMeshActor>();   
+{ 
+    auto& actor = CreateActor<AStaticMeshActor>();
     actor->staticMeshComponent->SetMesh(mesh);
     return actor;
 }
@@ -281,14 +275,13 @@ SharedPtr<AStaticMeshActor> Mesh::CreateSphere(Float3 position, Float3 scale)
     auto actor = Mesh::CreateStaticMeshActor(mesh, position, scale);
 
     actor->shapeComponent = actor->CreateComponentAsSubObject<USphereComponent>();
-    actor->RootComponent = actor->shapeComponent; 
+    actor->RootComponent = actor->shapeComponent;
 
-	actor->RootComponent->SetRelativePosition(position);
-	actor->RootComponent->SetRelativeScale(scale);
+    actor->RootComponent->SetRelativePosition(position);
+    actor->RootComponent->SetRelativeScale(scale); 
 
-
-	//attach the mesh component to the actor
-	actor->staticMeshComponent->AttachTo(actor->RootComponent.get());
+    //attach the mesh component to the actor
+    actor->staticMeshComponent->AttachTo(actor->RootComponent.get());
 
     //update the world transform manually:
     actor->RootComponent->UpdateWorldTransform();
@@ -298,17 +291,21 @@ SharedPtr<AStaticMeshActor> Mesh::CreateSphere(Float3 position, Float3 scale)
 
 SharedPtr<AStaticMeshActor> Mesh::CreatePlane(Float3 position, Float3 scale, uint32_t subdivisionX, uint32_t subdivisionZ)
 {
-	auto mesh = CreateShared<PlaneMesh>(subdivisionX, subdivisionZ);
+    auto mesh = CreateShared<PlaneMesh>(subdivisionX, subdivisionZ);
     auto actor = Mesh::CreateStaticMeshActor(mesh, position, scale);
+     
+    
+	actor->shapeComponent = actor->CreateComponentAsSubObject<UPlaneComponent>();
+	actor->RootComponent = actor->shapeComponent;
 
-    actor->shapeComponent = actor->CreateComponentAsSubObject<UPlaneComponent>();
-    actor->RootComponent = actor->shapeComponent;
-
+    if (auto* plane = dynamic_cast<UPlaneComponent*>(actor->shapeComponent.get())) {
+        plane->SetPlaneSize(Float2{ (float)subdivisionX, (float)subdivisionZ });
+    }
+     
     actor->RootComponent->SetRelativePosition(position);
     actor->RootComponent->SetRelativeScale(scale);
 
-    actor->staticMeshComponent->AttachTo(actor->RootComponent.get());
-
+    actor->staticMeshComponent->AttachTo(actor->RootComponent.get()); 
 
     //update the world transform manually:
     actor->RootComponent->UpdateWorldTransform();

@@ -6,70 +6,91 @@
 
 #include "Render/StaticMeshProxy.h"
 
-#include <random> 
+#include "Game/Player.h"
 
-using namespace DirectX; 
+
+using namespace DirectX;
 
 namespace Gameplay {
 
 
-void ULevel::OnLoad()
-{
+    void ULevel::OnLoad()
+    {
+        //auto dftPlayer = CreateActor<APawn>(); 
+        auto dftPlayer = CreateActor<APlayer>();
+        this->AddActor(dftPlayer);
 
-}
-
-void ULevel::OnUpdate(float delta)
-{
-    for (auto& actor : m_actors) {
-        actor->OnTick(delta);
-    } 
-
-    //new:
-	UpdateTransforms();
-
-    defaultCamera.Tick(delta);
-    auto renderer = GameApplication::GetInstance()->GetRenderer();
-    renderer->SubmitCamera(defaultCamera);
-}
- 
-
-void ULevel::AddActor(SharedPtr<AActor> actor)
-{
-    actor->level = this; 
-
-    //this should come after the level registery;
-    actor->RegisterAllComponents();   
-    m_actors.push_back(actor); 
-}
-
-
-void ULevel::UpdateTransforms()
-{
-    for (auto& actor : m_actors) {
-
-        if (actor->RootComponent) {
-            actor->RootComponent->UpdateWorldTransform();
+        //auto possess the default player 
+        if (auto controller = this->owningWorld->GetFirstPlayerController(); controller != nullptr) {
+            std::cout << "level: default controller possess default default player\n";
+            controller->Possess(dftPlayer.get());
         }
     }
-}
 
-void ULevel::ForEachComponent(const sceneIterFn& fn)
-{
-    for (auto& actor : m_actors) {
-        if (actor->RootComponent) {
-            TraverseTree(actor->RootComponent.get(), fn);
+    void ULevel::OnTick(float delta)
+    {     
+        UpdateTransforms();
+
+        for (auto& actor : m_actors) {
+            actor->OnTick(delta);
+        }
+         
+        //defaultCamera.Tick(delta);
+        //auto renderer = GameApplication::GetInstance()->GetRenderer();
+        //renderer->SubmitCamera(defaultCamera);
+    }
+
+    void ULevel::BeginPlay()
+    {
+        for (auto& actor : m_actors) {
+            actor->BeginPlay();
         }
     }
-}
 
-void ULevel::TraverseTree(USceneComponent* comp, const sceneIterFn& fn)
-{
-    fn(comp);
-    for (auto* child : comp->GetChildren()) {
-        TraverseTree(child, fn);
+    void ULevel::EndPlay()
+    {
+        for (auto& actor : m_actors) {
+            actor->EndPlay();
+        }
     }
-} 
- 
+
+
+    void ULevel::AddActor(SharedPtr<AActor> actor)
+    {
+        actor->level = this;
+
+        //this should come after the level registery;
+        actor->RegisterAllComponents();
+        m_actors.push_back(actor);
+    }
+
+
+    void ULevel::UpdateTransforms()
+    {
+        for (auto& actor : m_actors) {
+
+            if (actor->RootComponent) {
+                actor->RootComponent->UpdateWorldTransform();
+            }
+        }
+    }
+
+    void ULevel::ForEachComponent(const sceneIterFn& fn)
+    {
+        for (auto& actor : m_actors) {
+            if (actor->RootComponent) {
+                TraverseTree(actor->RootComponent.get(), fn);
+            }
+        }
+    }
+
+    void ULevel::TraverseTree(USceneComponent* comp, const sceneIterFn& fn)
+    {
+        fn(comp);
+        for (auto* child : comp->GetChildren()) {
+            TraverseTree(child, fn);
+        }
+    }
+
 
 }
-

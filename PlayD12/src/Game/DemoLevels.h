@@ -9,7 +9,7 @@ public:
 	virtual ~GamePlayWorld() = default;
 	virtual void OnLoad() override;
 	virtual void OnUnload()override;
-	virtual void OnUpdate(float delta) override;
+	virtual void OnTick(float delta) override;
 
 	void Load1();
 	void Load2();
@@ -38,7 +38,7 @@ public:
 	virtual ~MainMenuWorld() = default;
 	virtual void OnLoad()override;
 	virtual void OnUnload()override;
-	virtual void OnUpdate(float delta)override;
+	virtual void OnTick(float delta) override;
 
 	std::vector<SharedPtr<UIButton>> m_Buttons;
 };

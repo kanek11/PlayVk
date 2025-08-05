@@ -3,9 +3,14 @@
 
 #include "Application.h"
 
-void Gameplay::FScene::AddPrimitive(FStaticMeshProxy proxy)
+void Gameplay::FScene::AddPrimitive(const FStaticMeshProxy& proxy)
 {
     m_sceneProxies.push_back(proxy);
+}
+
+void Gameplay::FScene::AddSceneView(const FSceneView& sceneView)
+{
+    this->sceneView = sceneView;
 }
 
 void Gameplay::FScene::SubmitAll()
@@ -15,7 +20,9 @@ void Gameplay::FScene::SubmitAll()
     //for (auto& proxy : m_sceneProxies) {
     //    renderer->SubmitMesh(proxy);
     //}
-	renderer->SubmitMeshProxies(m_sceneProxies);
+    renderer->SubmitMeshProxies(m_sceneProxies);
 
-	m_sceneProxies.clear();
+    renderer->SubmitCamera(sceneView);
+
+    m_sceneProxies.clear();
 }

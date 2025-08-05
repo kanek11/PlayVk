@@ -15,7 +15,7 @@
 //#include "Gameplay/Components/SceneComponent.h"
 #include "Gameplay/Components/MeshComponent.h"
 #include "Gameplay/Components/ShapeComponent.h"
- 
+
 
 struct StaticMeshActorProxy;
 
@@ -33,8 +33,8 @@ struct FollowCameraProxy : public FCameraProxy {
     WeakPtr<StaticMeshActorProxy> target;
 
     virtual void Tick(float delta) override;
-}; 
- 
+};
+
 
 //strip out the minimum to render a static mesh:
 struct StaticMeshActorProxy {
@@ -52,7 +52,7 @@ struct StaticMeshActorProxy {
 
     SharedPtr<UMaterial> material;
 
-    std::vector<InstanceData> instanceData;  
+    std::vector<InstanceData> instanceData;
 
     //new: for physics:
     RigidBody* rigidBody{ nullptr };
@@ -64,12 +64,12 @@ struct StaticMeshActorProxy {
 
     void SetWorldRotation(const DirectX::XMVECTOR& newRotation) {
         rotation = newRotation;
-    } 
+    }
 
     //custom behavior;
     FDelegate<void(float)> onUpdate;
 };
- 
+
 SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh, Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
 
 SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
@@ -85,7 +85,7 @@ using namespace Gameplay;
 class ACameraActor : public AActor
 {
 public:
-     
+
 };
 
 //todo: object initializer or sth;
@@ -98,10 +98,7 @@ public:
 
 public:
     SharedPtr<UStaticMeshComponent> staticMeshComponent;
-    SharedPtr<UShapeComponent> shapeComponent;
-
-public:
-   
+    SharedPtr<UShapeComponent> shapeComponent;  
 };
 
 

@@ -253,8 +253,8 @@ void Shadow::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContex
 }
 
 void Shadow::BeginFrame(PassContext& passCtx) noexcept
-{
-
+{ 
+	auto& renderCtx = Render::rendererContext;
     auto& frameCtx = Render::frameContext;
     auto& graphCtx = Render::graphContext;
 
@@ -288,7 +288,12 @@ void Shadow::BeginFrame(PassContext& passCtx) noexcept
         auto cbView = cbAllocator->Upload(&cb);
         shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);
 
+        //todo: where to put this thing 
+        if (!proxy.mesh->uploaded) {
+            proxy.mesh->CreateGPUResource(renderCtx->device);
+        } 
 
+        assert(proxy.mesh != nullptr && "Mesh is null");
         Mesh::DrawCmd cmd =
         {
             .vbv = proxy.mesh->GetVertexBuffer()->GetVertexBufferView(),
@@ -408,6 +413,7 @@ void GBuffer::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassConte
 
 void GBuffer::BeginFrame(PassContext& passCtx) noexcept
 {
+	auto& renderCtx = Render::rendererContext;
     auto& frameCtx = Render::frameContext;
     auto& graphCtx = Render::graphContext;
 
@@ -458,6 +464,13 @@ void GBuffer::BeginFrame(PassContext& passCtx) noexcept
             }
 
         }
+
+        //todo: where to put this thing 
+        if (!proxy.mesh->uploaded) {
+            proxy.mesh->CreateGPUResource(renderCtx->device);
+        }
+
+        assert(proxy.mesh != nullptr && "Mesh is null");
 
         //todo 
         Mesh::DrawCmd cmd =

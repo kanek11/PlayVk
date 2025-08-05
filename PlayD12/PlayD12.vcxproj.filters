@@ -195,6 +195,12 @@
     <ClInclude Include="src\Gameplay\Actors\AController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\render\SceneViewProxy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Game\Player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp">
@@ -306,6 +312,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Gameplay\Actors\AController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\Actors\APawn.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Gameplay\Components\CameraComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

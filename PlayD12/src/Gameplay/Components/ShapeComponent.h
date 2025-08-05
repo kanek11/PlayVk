@@ -29,28 +29,36 @@ namespace Gameplay {
     };
 
     class UBoxComponent : public UShapeComponent {
-        void SetBoxExtent(const Float3& extent);
-        Float3 GetBoxExtent() const;
-        Float3 m_extent = { 1.0f,1.0f,1.0f };
+		void SetBoxExtent(const Float3& extent) { extents = extent; }
+		Float3 GetBoxExtent() const { return extents; };
+
+        Float3 extents = { 1.0f,1.0f,1.0f };
+        virtual void OnRegister() override;
     };
 
     class USphereComponent : public UShapeComponent {
-        void SetSphereRadius(float r) { m_radius = r; }
-        float GetSphereRadius() const {  return m_radius; };
+        void SetSphereRadius(float r) { radius = r; }
+        float GetSphereRadius() const {  return radius; };
 
         virtual void OnRegister() override;
 
-        float m_radius = 1.0f; 
+        float radius = 1.0f; 
     };
 
 	class UPlaneComponent : public UShapeComponent {
-		void SetPlaneSize(const Float2& size);
-		Float2 GetPlaneSize() const;
+	public:
 
-
+		void SetPlaneSize(const Float2& size) { 
+			this->size = size;
+		}
+		void SetPlaneSize(float width, float height) {
+			this->size = { width, height };
+		}
+		Float2 GetPlaneSize() const { return size; }
+         
         virtual void OnRegister() override;
 
-        Float2 m_size = { 1.0f, 1.0f };
+        Float2 size = { 1.0f, 1.0f };
     };
 
 

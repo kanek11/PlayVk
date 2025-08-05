@@ -21,79 +21,81 @@
 namespace Gameplay {
 
 
-class UWorld {
-public: 
-	void Init();
+	class UWorld {
+	public:
+		void Init();
 
-	void RegisterLevel(std::string name, SharedPtr<ULevel> level) {
-		levels[name] = level;
-		level->owningWorld = this;
-	}
+		void BeginPlay();
+		void EndPlay(); 
 
-	void TransitLevel(std::string name) {
-		if (currentLevel) {
-			currentLevel->OnUnload();
+		void OnTick(float delta); 
+
+		void RegisterLevel(std::string name, SharedPtr<ULevel> level) {
+			levels[name] = level;
+			level->owningWorld = this;
 		}
 
-		if (!levels.contains(name)) {
-			std::cerr << "world name not found" << std::endl;
-			return;
+		//todo: level loading could be async or more complex;
+		void TransitLevel(std::string name) {
+			if (currentLevel) {
+				currentLevel->EndPlay();
+				currentLevel->OnUnload();
+			}
+
+			if (!levels.contains(name)) {
+				std::cerr << "world name not found" << std::endl;
+				return;
+			}
+
+			std::cout << "set current world: " << name << '\n';
+			currentLevel = levels[name];
+
+			if (currentLevel) {
+				currentLevel->OnLoad();
+				currentLevel->BeginPlay();
+			}
 		}
 
-		std::cout << "set current world: " << name << '\n';
-		currentLevel = levels[name];
-
-		if (currentLevel) {
-			currentLevel->OnLoad();
-		}
-	}
-
-	void Update(float delta) {
-		if (currentLevel) {
-			//std::cout << "tick current world: " << currentWorld << '\n';
-			currentLevel->OnUpdate(delta);
+		void SyncGameToPhysics() {
+			if (currentLevel) {
+				currentLevel->SyncGameToPhysics();
+			}
 		}
 
-		scene.SubmitAll();
-	}
+		void SyncPhysicsToGame();
 
-	void SyncGameToPhysics() {
-		if (currentLevel) {
-			currentLevel->SyncGameToPhysics();
+	private:
+		SharedPtr<ULevel> currentLevel;
+		std::unordered_map<std::string, SharedPtr<ULevel>> levels; 
+
+	public:
+		PhysicsScene* physicsScene{ nullptr };
+		std::unordered_map<FPrimitiveComponentId, UPrimitiveComponent*> m_primtiveMap;
+
+		void AddPrimitiveComponent(UPrimitiveComponent* comp) {
+			m_primtiveMap[comp->id] = comp;
 		}
-	}
 
-	void SyncPhysicsToGame();
-private:
-	SharedPtr<ULevel> currentLevel;
-	std::unordered_map<std::string, SharedPtr<ULevel>>  levels;
+	public:
+		//for player controller:
+		std::vector<SharedPtr<AController>> playerControllers;
 
-
-public:
-	PhysicsScene* physicsScene{ nullptr };
-	std::unordered_map<FPrimitiveComponentId, UPrimitiveComponent* > m_primtiveMap;
-	 
-	void AddPrimitiveComponent(UPrimitiveComponent* comp) {
-		m_primtiveMap[comp->id] = comp;
-	}
-
-public:
-	//for player controller:
-	std::vector<AController*> playerControllers;
-
-	void AddPlayerController(AController* controller) {
-		if (controller) {
-			playerControllers.push_back(controller);
+		void AddPlayerController(SharedPtr<AController> controller) {
+			if (controller) {
+				playerControllers.push_back(controller);
+			}
 		}
-	}
 
-	AController* GetFirstPlayerController() const {
-		return playerControllers.empty() ? nullptr : playerControllers[0];
-	}
+		AController* GetFirstPlayerController() const {
+			return playerControllers.empty() ? nullptr : playerControllers[0].get();
+		}
 
-public:
-	Gameplay::FScene scene; 
-};
+
+		void ConstructSceneView();
+
+	public:
+		Gameplay::FScene scene;
+	};
 
 
 

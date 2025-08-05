@@ -7,10 +7,10 @@
 
 void Gameplay::UStaticMeshComponent::TickComponent(float delta)
 {
-	UMeshComponent::TickComponent(delta);
+    UMeshComponent::TickComponent(delta);
 
     //new: register to scene:
-	//todo: update proxy on dirty change;
+    //todo: update proxy on dirty change;
     auto proxy = CreateSceneProxy();
 
     this->GetWorld()->scene.AddPrimitive(proxy);
@@ -19,7 +19,7 @@ void Gameplay::UStaticMeshComponent::TickComponent(float delta)
 void Gameplay::UStaticMeshComponent::OnRegister()
 {
     UMeshComponent::OnRegister();
-    std::cout << "static mesh on register\n"; 
+    std::cout << "static mesh on register\n";
 }
 
 FStaticMeshProxy Gameplay::UStaticMeshComponent::CreateSceneProxy()
@@ -33,5 +33,5 @@ FStaticMeshProxy Gameplay::UStaticMeshComponent::CreateSceneProxy()
 .instanceData = instanceData.data(),
 .instanceCount = instanceData.size(),
     };
-	return proxy;
+    return proxy;
 }

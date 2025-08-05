@@ -65,8 +65,66 @@ void Gameplay::USceneComponent::UpdateWorldTransform()
     m_transformDirty = false;
 }
 
+//usecases such as late update;
+void Gameplay::USceneComponent::UpdateChildTransforms()
+{
+    for (auto* child : m_children)
+    {
+        child->UpdateWorldTransform();
+    } 
+}
+
+Float3 Gameplay::USceneComponent::GetForwardVector() const
+{
+    DirectX::XMVECTOR forward_ = DirectX::XMVector3Rotate(DirectX::XMVECTOR{ 0.0f, 0.0f, 1.0f }, this->GetWorldRotation());
+    DirectX::XMFLOAT3 xmOut;
+    DirectX::XMStoreFloat3(&xmOut, forward_);
+    Float3 forward = { xmOut.x, xmOut.y, xmOut.z };
+    return forward; 
+}
+
+Float3 Gameplay::USceneComponent::GetRightVector() const
+{
+    return Float3{ 1.0f, 0.0f,  0.0f };
+}
+
+Float3 Gameplay::USceneComponent::GetUpVector() const
+{
+    return Float3{ 0.0f, 1.0f, 0.0f };
+}
+
+Float4x4 Gameplay::USceneComponent::GetViewMatrix() const
+{
+    auto forward = this->GetForwardVector();
+    auto up = this->GetUpVector();
+
+    auto eyePos = this->GetWorldPosition();
+    auto targetPos = eyePos + forward;
+
+    auto view_ = MMath::LookAtLH(eyePos, targetPos, up);
+    auto invView_ = MMath::InverseLookAtLH(eyePos, targetPos, up);
+
+    return view_;
+}
+
+Float4x4 Gameplay::USceneComponent::GetInvViewMatrix() const
+{
+    auto forward = this->GetForwardVector();
+    auto up = this->GetUpVector();
+
+    auto eyePos = this->GetWorldPosition();
+    auto targetPos = eyePos + forward;
+     
+    auto invView_ = MMath::InverseLookAtLH(eyePos, targetPos, up);
+
+    return invView_;
+}
+
 void Gameplay::USceneComponent::AttachTo(USceneComponent* newParent)
 {
+	assert(newParent != this && "Cannot attach to self");
+	assert(newParent != nullptr && "Cannot attach to null parent");
+
     if (m_parent == newParent) return;
 
     //unbind from current parent if any

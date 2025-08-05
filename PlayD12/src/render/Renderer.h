@@ -16,7 +16,7 @@
 
 #include "UI.h"
 
-#include "StaticMeshActor.h"
+//#include "StaticMeshActor.h"
 
 #include "UIPass.h" 
 #include "GeometryPass.h"
@@ -25,9 +25,12 @@
 
 #include "Probe.h"
 
+#include "StaticMeshProxy.h"
+#include "SceneViewProxy.h"
+
 
 //todo: is there any cases the renderer might access a dangling ptr?
- 
+
 //todo: generic untyped std::function is not opt for perf.; but trivial to implement;
 using RenderCommand = std::function<void()>;
 
@@ -55,7 +58,7 @@ public:
     }
 
 private:
-    std::vector<RenderCommand> m_commandBuffers[2]; 
+    std::vector<RenderCommand> m_commandBuffers[2];
     int m_writeIndex;
     int m_readIndex;
     std::mutex m_mutex;
@@ -86,7 +89,7 @@ struct RendererContext {
     ID3D12CommandQueue* cmdQueue;
 
     SharedPtr<ShaderLibrary> shaderManager;
-    SharedPtr<PSOManager> psoManager; 
+    SharedPtr<PSOManager> psoManager;
 
     SharedPtr<FDescriptorHeapAllocator> dsvHeapAllocator;
     SharedPtr<FDescriptorHeapAllocator> rtvHeapAllocator;
@@ -113,7 +116,7 @@ struct RenderGraphContext {
 
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> gbuffers;
     SharedPtr<FD3D12Texture> sceneDepth;
-     
+
     SharedPtr<FProbe> probe;
 
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadedTextures;
@@ -200,11 +203,10 @@ private:
         m_device->CreateDepthStencilView(tex->GetRawResource(), nullptr, dsvHandle);
         return dsvHandle;
     }
-     
+
     //-------- 
     SharedPtr<FD3D12Buffer> sceneCB;
-    SceneCB sceneCBData{};
-
+    SceneCB sceneCBData{}; 
 
     //---------
     void InitPresentPass();
@@ -278,8 +280,8 @@ public:
     void SubmitMeshProxies(const std::vector<FStaticMeshProxy>& mesh);
     void ClearMesh();
 
-    void SubmitCamera(const FCameraProxy& camera);
-
+    //void SubmitCamera(const FCameraProxy& camera);
+    void SubmitCamera(const FSceneView& sceneView);
 
 public:
     Lit::PassContext litPassCtx;
@@ -319,25 +321,22 @@ public:
 
 
 public:
-    PBR::PassContext pbrShadingCtx; 
+    PBR::PassContext pbrShadingCtx;
 
     //public:
     //    Compute::ComputeContext computeCtx;
     // 
 
 public:
-    void InitEnvMap(); 
+    void InitEnvMap();
 
-public:
-
+public: 
     void UploadTexture(std::vector<UploadTask> tasks);
 
 public:
-
-
-
+     
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;\
-    
+
     FrameDataContext* m_frame = new FrameDataContext{};
     RenderGraphContext* m_graph = new RenderGraphContext();
 

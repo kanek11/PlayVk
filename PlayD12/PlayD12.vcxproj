@@ -186,6 +186,7 @@
     <ClInclude Include="src\Gameplay\Object.h" />
     <ClInclude Include="src\Gameplay\World.h" />
     <ClInclude Include="src\Game\DemoLevels.h" />
+    <ClInclude Include="src\Game\Player.h" />
     <ClInclude Include="src\InputSystem.h" />
     <ClInclude Include="src\Math\Graph.h" />
     <ClInclude Include="src\Math\Matrix.h" />
@@ -211,6 +212,7 @@
     <ClInclude Include="src\render\RenderPass.h" />
     <ClInclude Include="src\render\Resource.h" />
     <ClInclude Include="src\D12Helper.h" />
+    <ClInclude Include="src\render\SceneViewProxy.h" />
     <ClInclude Include="src\render\Shader.h" />
     <ClInclude Include="src\Math\Vector.h" />
     <ClInclude Include="src\render\ShaderParameters.h" />
@@ -232,6 +234,8 @@
     <ClCompile Include="src\Gameplay\Actor.cpp" />
     <ClCompile Include="src\Gameplay\ActorComponent.cpp" />
     <ClCompile Include="src\Gameplay\Actors\AController.cpp" />
+    <ClCompile Include="src\Gameplay\Actors\APawn.cpp" />
+    <ClCompile Include="src\Gameplay\Components\CameraComponent.cpp" />
     <ClCompile Include="src\Gameplay\Components\MeshComponent.cpp" />
     <ClCompile Include="src\Gameplay\Components\PrimitiveComponent.cpp" />
     <ClCompile Include="src\Gameplay\Components\ShapeComponent.cpp" />
@@ -240,6 +244,7 @@
     <ClCompile Include="src\Gameplay\SceneComponent.cpp" />
     <ClCompile Include="src\Gameplay\World.cpp" />
     <ClCompile Include="src\Game\DemoLevels.cpp" />
+    <ClCompile Include="src\Game\Player.cpp" />
     <ClCompile Include="src\InputSystem.cpp" />
     <ClCompile Include="src\physics\PhysicsScene.cpp" />
     <ClCompile Include="src\render\DebugRay.cpp" />

@@ -5,38 +5,36 @@
 
 namespace Gameplay
 { 
-     
-class AController; 
+    class AController;
 
-class APawn : public AActor {
-public:
-    APawn() : Controller(nullptr) {}
-     
-    AController* Controller;
-     
-    virtual void PossessedBy(AController* NewController) {
-        Controller = NewController;
-		//response to possession
-    }
-     
-    virtual void UnPossessed() {
-        Controller = nullptr;
-    }
-     
-    virtual void OnTick(float DeltaTime) override {
-    
-    }
-     
-    /*Input bindings*/
-    //virtual void SetupPlayerInputComponent() {
-    //   
-    //}
+    class APawn : public AActor {
+    public:
+        APawn(); 
 
-    //bind to player; optional;
-    //int32_t AutoPossessPlayer = -1; // -1,0 local ,1 
-     
+        virtual void PossessedBy(AController* NewController) {
+            Controller = NewController;
+            //response to possession
+        }
 
-public: 
-	SharedPtr<UCameraComponent> CameraComponent; 
-};
+        virtual void UnPossessed() {
+            Controller = nullptr;
+        }
+
+        //virtual void OnTick(float DeltaTime) override;
+
+        /*Input bindings*/
+        //virtual void SetupPlayerInputComponent() {
+        //   
+        //}
+
+        //bind to player; optional;
+        //int32_t AutoPossessPlayer = -1; // -1,0 local ,1 
+
+
+    public: 
+        AController* Controller{ nullptr };
+
+        SharedPtr<USpringArmComponent> SpringArmComponent;
+        SharedPtr<UCameraComponent> CameraComponent;
+    };
 }

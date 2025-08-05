@@ -6,17 +6,17 @@
 #include "Render/Mesh.h"
 #include "Render/Material.h"
 #include "Render/StaticMeshProxy.h"
- 
+
 #include "PrimitiveComponent.h"
 
 namespace Gameplay {
- 
+
     class UMeshComponent : public UPrimitiveComponent {
     public:
     };
 
     class UStaticMeshComponent : public UMeshComponent {
-    public: 
+    public:
         virtual void TickComponent(float delta);
 
         virtual void OnRegister() override;
@@ -31,11 +31,11 @@ namespace Gameplay {
         }
 
         //todo: implement multi-material if needed;
-        void SetMaterial(SharedPtr<UMaterial> material, int slot = 0){
+        void SetMaterial(SharedPtr<UMaterial> material, int slot = 0) {
             m_material = material;
         }
         SharedPtr<UMaterial> GetMaterial(int slot = 0) const
-        { 
+        {
             return m_material;
         }
         //     
@@ -61,7 +61,7 @@ namespace Gameplay {
     protected:
         SharedPtr<UStaticMesh> m_mesh{ nullptr };
         SharedPtr<UMaterial> m_material = CreateShared<UMaterial>();
-    //    std::vector<SharedPtr<UMaterial>> m_materials;
+        //    std::vector<SharedPtr<UMaterial>> m_materials;
 
     protected:
         FStaticMeshProxy m_sceneProxy;

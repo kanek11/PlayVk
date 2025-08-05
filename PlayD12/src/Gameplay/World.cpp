@@ -8,22 +8,49 @@ namespace Gameplay {
 
 
 	void UWorld::Init()
-	{ 
+	{
 		auto& gTime = GameApplication::GetInstance()->GetTimeSystem();
 		physicsScene = new PhysicsScene();
 		physicsScene->OnInit();
 
+		//physics update is handled by time system;
 		gTime.RegisterFixedFrame([=](float delta) {
 			physicsScene->Tick(delta);
 			});
-	 
+
+
+		//new understanding:  controllers are managed by world itself; 
+		auto dftPlayerController = CreateActor<AController>();
+		this->AddPlayerController(dftPlayerController); 
 	}
+
+	void UWorld::BeginPlay()
+	{
+		if (currentLevel) { 
+			currentLevel->BeginPlay();
+		}
+
+		for (auto& controller : playerControllers) {
+			controller->BeginPlay();
+		}
+	}
+	void UWorld::EndPlay()
+	{
+		if (currentLevel) {
+			currentLevel->EndPlay();
+		}
+
+		for (auto& controller : playerControllers) {
+			controller->EndPlay();
+		}
+	}
+
 	void UWorld::SyncPhysicsToGame()
 	{
 		//if (currentLevel) {
 		//	currentLevel->SyncPhysicsToGame();
 		//}
-		  
+
 		auto& transformBuffer = physicsScene->GetTransformBuffer();
 		for (auto& [id, trans] : transformBuffer) {
 
@@ -33,8 +60,72 @@ namespace Gameplay {
 			owner->SetRelativePosition(trans.position);
 			owner->SetRelativeRotation(trans.rotation);
 
-			//std::cout << "update physics pos:" << ToString(trans.position) << " for id:" << id << '\n';
-
+			//std::cout << "update physics pos:" << ToString(trans.position) << " for id:" << id << '\n'; 
 		}
 	}
+
+	//somewhat unavoidable verbosity?
+	void UWorld::ConstructSceneView()
+	{
+		//
+		auto controller = this->GetFirstPlayerController();
+		if (!controller) return; 
+
+		std::cout << "detect player controller\n";
+
+		//
+		AActor* viewer = controller->GetViewTarget();
+		if (!viewer) return;
+
+		std::cout << "detect player\n";
+
+		//
+		auto cameraComp = viewer->GetComponent<UCameraComponent>();
+		if (!cameraComp) return;
+
+		std::cout << "detect camera\n";
+		 
+		//leave it here for now
+		//auto& cameraTrans = cameraComp->GetWorldTransform(); 
+		auto eyePos = cameraComp->GetWorldPosition();
+		std::cout << "camera position: " << ToString(eyePos) << '\n';
+
+		auto view_ = cameraComp->GetViewMatrix();
+		auto invView_ = cameraComp->GetInvViewMatrix();
+
+		auto proj_ = cameraComp->GetProjectionMatrix();
+		auto invProj_ = cameraComp->GetInvProjectionMatrix();
+
+		auto pvMatrix = MMath::MatrixMultiply(proj_, view_);
+
+		FSceneView sceneView = {
+			.pvMatrix = pvMatrix,
+			.invProjMatrix = invProj_,
+			.invViewMatrix = invView_,
+			.position = eyePos,
+		};
+
+		this->scene.AddSceneView(sceneView);
+	}
+
+
+	void UWorld::OnTick(float delta) 
+	{
+		if (currentLevel) {
+			//std::cout << "tick current world: " << currentWorld << '\n';
+			currentLevel->OnTick(delta);
+		}
+
+		for (auto& controller : playerControllers) {
+			controller->OnTick(delta);
+		}
+
+	
+		this->ConstructSceneView();
+
+		//
+		scene.SubmitAll();
+	}
+
+
 }

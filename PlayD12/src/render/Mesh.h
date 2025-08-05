@@ -202,6 +202,8 @@ public:
 	StaticMeshData m_meshData;
 
 	SharedPtr<FD3D12MeshResource> m_GPUResource;
+
+	bool uploaded{ false }; 
 };
 
 

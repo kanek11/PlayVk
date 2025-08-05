@@ -10,8 +10,8 @@ struct FTransform {
 	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity() };
 	Float3 scale{ 1.0f, 1.0f, 1.0f };
 
-	FTransform CombineWith(const FTransform& Parent) const; 
-	Float4x4 ToMatrix() const; 
+	FTransform CombineWith(const FTransform& Parent) const;
+	Float4x4 ToMatrix() const;
 };
 
 namespace Gameplay {
@@ -27,16 +27,31 @@ namespace Gameplay {
 
 		//for the engine
 		void UpdateWorldTransform();
+		void UpdateChildTransforms();
 
 	public:
 		Float3 GetWorldPosition() const { return m_worldTransform.position; }
 		DirectX::XMVECTOR GetWorldRotation() const { return m_worldTransform.rotation; }
 		Float3 GetWorldScale() const { return m_worldTransform.scale; }
 
+		void SetWorldPosition(const Float3& pos) { m_worldTransform.position = pos; MarkDirty(); }
+		void SetWorldRotation(const DirectX::XMVECTOR& rot) { m_worldTransform.rotation = rot; MarkDirty(); }
+		void SetWorldScale(const Float3& scl) { m_worldTransform.scale = scl; MarkDirty(); }
+
+		 
 		void SetRelativePosition(const Float3& pos) { m_relativeTransform.position = pos; MarkDirty(); }
 		void SetRelativeRotation(const DirectX::XMVECTOR& rot) { m_relativeTransform.rotation = rot; MarkDirty(); }
 		void SetRelativeScale(const Float3& scl) { m_relativeTransform.scale = scl; MarkDirty(); }
 
+	public:
+
+		Float3 GetForwardVector() const;
+		Float3 GetRightVector() const;
+		Float3 GetUpVector() const;
+
+		//i simply put it here
+		Float4x4 GetViewMatrix() const;
+		Float4x4 GetInvViewMatrix() const;
 	public:
 		void AttachTo(USceneComponent* newParent);
 		void DetachFromParent();

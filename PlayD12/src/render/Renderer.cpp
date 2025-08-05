@@ -29,12 +29,20 @@ void D3D12HelloRenderer::ConsumeCmdBuffer()
 }
 
 
-void D3D12HelloRenderer::SubmitCamera(const FCameraProxy& camera)
-{ 
-    sceneCBData.pvMatrix  = camera.pvMatrix;
-    sceneCBData.invProj   = camera.invProjMatrix;
-    sceneCBData.invView   = camera.invViewMatrix;
-    sceneCBData.cameraPos = camera.position; 
+//void D3D12HelloRenderer::SubmitCamera(const FCameraProxy& camera)
+//{
+//    sceneCBData.pvMatrix = camera.pvMatrix;
+//    sceneCBData.invProj = camera.invProjMatrix;
+//    sceneCBData.invView = camera.invViewMatrix;
+//    sceneCBData.cameraPos = camera.position;
+//}
+
+void D3D12HelloRenderer::SubmitCamera(const FSceneView& sceneView)
+{
+    sceneCBData.pvMatrix  = sceneView.pvMatrix;
+    sceneCBData.invProj   = sceneView.invProjMatrix;
+    sceneCBData.invView   = sceneView.invViewMatrix;
+    sceneCBData.cameraPos = sceneView.position;
 }
 
 
@@ -126,7 +134,7 @@ void D3D12HelloRenderer::OnInit()
     Render::frameContext = m_frame;
 
 
-    Render::graphContext = m_graph; 
+    Render::graphContext = m_graph;
 
     m_graph->shadowMapWidth = m_shadowMapWidth;
     m_graph->shadowMapHeight = m_shadowMapHeight;
@@ -147,7 +155,7 @@ void D3D12HelloRenderer::OnRender()
     // Record all the commands we need to render the scene into the command list.
     //PopulateCommandList();  
     //Lit::BeginFrame(litPassCtx); 
-     
+
     //GPU-side cmdList ; 
     //comes before the building of drawcmd;
     BeginFrame();
@@ -177,7 +185,7 @@ void D3D12HelloRenderer::OnRender()
     //Lit::FlushAndRender(m_commandList.Get(), litPassCtx);
 
     PBR::FlushAndRender(m_commandList.Get(), pbrShadingCtx);
-     
+
     UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
 
     //DebugDraw::Get().FlushAndRender(m_commandList.Get());  
@@ -823,7 +831,7 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateCheckerboardData()
 //}
 
 void D3D12HelloRenderer::SubmitMesh(FStaticMeshProxy proxy)
-{  
+{
     cmdBuffer.Enqueue([=] {
         m_frame->staticMeshes.push_back(proxy);
         });
@@ -832,11 +840,11 @@ void D3D12HelloRenderer::SubmitMesh(FStaticMeshProxy proxy)
 void D3D12HelloRenderer::SubmitMeshProxies(const std::vector<FStaticMeshProxy>& mesh)
 {
     cmdBuffer.Enqueue([=] {
-		m_frame->staticMeshes.insert(
-			m_frame->staticMeshes.end(),
-			mesh.begin(),
-			mesh.end()
-		);
+        m_frame->staticMeshes.insert(
+            m_frame->staticMeshes.end(),
+            mesh.begin(),
+            mesh.end()
+        );
         });
 }
 
@@ -1097,11 +1105,11 @@ void D3D12HelloRenderer::InitEnvMap()
 
     probe->Init();
     probe->CreateFromHDRI(hdri);
-    probe->GenerateBRDFLUT(); 
-    probe->GenerateIrradiance(); 
-    probe->GeneratePrefilter(); 
+    probe->GenerateBRDFLUT();
+    probe->GenerateIrradiance();
+    probe->GeneratePrefilter();
     probe->Finalize();
-     
+
     // Close the command list and execute it to begin the initial GPU setup.
     ThrowIfFailed(m_commandList->Close());
     ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };

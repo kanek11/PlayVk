@@ -14,44 +14,47 @@
 
 #include "Physics/PhysicsScene.h"
 #include "StaticMeshActor.h"
- 
+
+#include "Gameplay/Actors/APawn.h"
+#include "Gameplay/Actors/AController.h"
 
 namespace Global {
 	static float lastUsedTime = std::numeric_limits<float>::max();
-} 
+}
 
-namespace Gameplay{ 
+namespace Gameplay {
 
-using sceneIterFn = std::function<void(USceneComponent*)>;
- 
+	using sceneIterFn = std::function<void(USceneComponent*)>; 
 
-class UWorld;
+	class UWorld;
 
-class ULevel {
-public:
-	virtual ~ULevel() = default;
-	virtual void OnLoad() ;
-	virtual void OnUnload() = 0;
-	virtual void OnUpdate(float delta);
+	class ULevel {
+	public:
+		virtual ~ULevel() = default;
+		virtual void OnLoad();
+		virtual void OnUnload() = 0;
+		virtual void OnTick(float delta);
 
-	virtual void SyncGameToPhysics() {}; 
+		void BeginPlay();
+		void EndPlay(); 
 
-public: 
-	//new:
-	std::vector<SharedPtr<AActor>> m_actors;
+		virtual void SyncGameToPhysics() {};
 
-	void AddActor(SharedPtr<AActor> actor);
+	public:
+		//new:
+		std::vector<SharedPtr<AActor>> m_actors;
 
-	void UpdateTransforms();
+		void AddActor(SharedPtr<AActor> actor);
 
-	void ForEachComponent(const sceneIterFn& fn);
-	void TraverseTree(USceneComponent* comp, const sceneIterFn& fn);
-	 
+		void UpdateTransforms();
 
-	//dummy design: 
-	FCameraProxy defaultCamera;
-
-public:
-	UWorld* owningWorld;
-}; 
+		void ForEachComponent(const sceneIterFn& fn);
+		void TraverseTree(USceneComponent* comp, const sceneIterFn& fn);
+		 
+		//dummy design: 
+		//FCameraProxy defaultCamera;
+		//APawn* defaultPlayer; 
+	public:
+		UWorld* owningWorld;
+	};
 }

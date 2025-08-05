@@ -20,12 +20,11 @@ void GamePlayWorld::OnLoad()
 
 void GamePlayWorld::Load2()
 {
-    auto sphereActor = Mesh::CreateSphere({ 0.0f, 2.0f, 0.0f }); 
+    auto sphereActor = Mesh::CreateSphere({ 2.0f, 4.0f, 0.0f }); 
 
 	auto& sphereRB = sphereActor->shapeComponent->rigidBody;
 	sphereRB->simulatePhysics = true;
-	sphereRB->simulateRotation = true;
-
+	sphereRB->simulateRotation = true; 
 
     auto& sphereMat = sphereActor->staticMeshComponent->GetMaterial();
     sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png";
@@ -49,8 +48,7 @@ void GamePlayWorld::Load2()
 }
  
 void GamePlayWorld::Load1()
-{
-
+{ 
     //hardcode state; todo;
     timeCount = 0.0f;
 
@@ -58,8 +56,7 @@ void GamePlayWorld::Load1()
 
     auto renderer = GameApplication::GetInstance()->GetRenderer();
     auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
-    auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
-
+    auto gameManager = GameApplication::GetInstance()->GetGameStateManager(); 
 
     int screenWidth = GameApplication::GetInstance()->GetWidth();
     int screenHeight = GameApplication::GetInstance()->GetHeight();
@@ -186,8 +183,7 @@ void GamePlayWorld::Load1()
     //todo:  manually submit 
     uiManager->RegisterRootElement(debugHUD.get());
     uiManager->RegisterRootElement(debugHUD1.get());
-    uiManager->RegisterRootElement(debugHUD2.get());
-
+    uiManager->RegisterRootElement(debugHUD2.get()); 
 
     //-------------------------- 
     auto debugBehavior = [=](float delta) {
@@ -258,9 +254,7 @@ void GamePlayWorld::Load1()
 }
 
 
-
-
-
+ 
 void GamePlayWorld::OnUnload()
 {
     std::cout << "unload game world" << '\n';
@@ -289,10 +283,9 @@ void GamePlayWorld::OnUnload()
     //dummyCamera = nullptr;
 }
 
-void GamePlayWorld::OnUpdate(float delta)
+void GamePlayWorld::OnTick(float delta)
 {
-    ULevel::OnUpdate(delta);
-
+    ULevel::OnTick(delta); 
 
     DebugDraw::Get().AddRay(
         Float3(0.0f, 0.0f, 0.0f),
@@ -318,18 +311,16 @@ void GamePlayWorld::OnUpdate(float delta)
     for (auto& HUD : m_HUDs) {
         HUD->Tick(delta);
     }
-
-
+     
     //--------------
     //m_debugRenderer->OnUpdate(delta, dummyCamera.pvMatrix); 
     {
 
-        defaultCamera.Tick(delta);
+        //defaultCamera.Tick(delta);
     }
 
     //owningWorld->physicsScene->SyncPhysics();
-    //this->SyncPhysicsToGame();
-
+    //this->SyncPhysicsToGame(); 
 
     //--------------
     for (auto& [actorId, proxy] : m_staticMeshActors)
@@ -399,8 +390,7 @@ void GamePlayWorld::OnUpdate(float delta)
 
         proxy->modelMatrix = modelMatrix_;
 
-
-
+         
         //shadow pass:
         //auto shadowConstBufferH = proxy->shadowMVPConstantBuffer;
         //if (shadowConstBufferH == nullptr) {
@@ -441,20 +431,20 @@ void GamePlayWorld::OnUpdate(float delta)
 
 
     //--------------
-    auto renderer = GameApplication::GetInstance()->GetRenderer();
-    for (auto& [handle, actorProxy] : m_staticMeshActors) {
+    //auto renderer = GameApplication::GetInstance()->GetRenderer();
+    //for (auto& [handle, actorProxy] : m_staticMeshActors) {
 
-        FStaticMeshProxy proxy = {
-       .modelMatrix = actorProxy->modelMatrix,
-       .mesh = actorProxy->mesh.get(),
-       .material = actorProxy->material.get(),
-       .instanceData = actorProxy->instanceData.data(),
-       .instanceCount = actorProxy->instanceData.size(),
-        };
-        renderer->SubmitMesh(proxy);
-    }
+    //    FStaticMeshProxy proxy = {
+    //   .modelMatrix = actorProxy->modelMatrix,
+    //   .mesh = actorProxy->mesh.get(),
+    //   .material = actorProxy->material.get(),
+    //   .instanceData = actorProxy->instanceData.data(),
+    //   .instanceCount = actorProxy->instanceData.size(),
+    //    };
+    //    renderer->SubmitMesh(proxy);
+    //}
 
-    renderer->SubmitCamera(defaultCamera);
+    //renderer->SubmitCamera(defaultCamera);
 
 }
 
@@ -564,7 +554,7 @@ void MainMenuWorld::OnUnload()
     m_Buttons.clear();
 }
 
-void MainMenuWorld::OnUpdate(float delta)
+void MainMenuWorld::OnTick(float delta)
 {
     for (auto& button : m_Buttons) {
         button->Tick(delta);
