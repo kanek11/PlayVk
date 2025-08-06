@@ -10,7 +10,7 @@
 
 // std::enable_shared_from_this is safer ;
 
-using ActorHandle = uint32_t;
+//using ActorId = uint32_t;
 
 namespace Gameplay
 {

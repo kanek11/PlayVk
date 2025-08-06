@@ -5,8 +5,7 @@
 #include "Application.h"
 
 namespace Gameplay {
-
-
+	 
 	void UWorld::Init()
 	{
 		auto& gTime = GameApplication::GetInstance()->GetTimeSystem();
@@ -71,24 +70,24 @@ namespace Gameplay {
 		auto controller = this->GetFirstPlayerController();
 		if (!controller) return; 
 
-		std::cout << "detect player controller\n";
+		//std::cout << "detect player controller\n";
 
 		//
 		AActor* viewer = controller->GetViewTarget();
 		if (!viewer) return;
 
-		std::cout << "detect player\n";
+		//std::cout << "detect player\n";
 
 		//
 		auto cameraComp = viewer->GetComponent<UCameraComponent>();
 		if (!cameraComp) return;
 
-		std::cout << "detect camera\n";
+		//std::cout << "detect camera\n";
 		 
 		//leave it here for now
 		//auto& cameraTrans = cameraComp->GetWorldTransform(); 
 		auto eyePos = cameraComp->GetWorldPosition();
-		std::cout << "camera position: " << ToString(eyePos) << '\n';
+		//std::cout << "camera position: " << ToString(eyePos) << '\n';
 
 		auto view_ = cameraComp->GetViewMatrix();
 		auto invView_ = cameraComp->GetInvViewMatrix();
@@ -121,6 +120,7 @@ namespace Gameplay {
 		}
 
 	
+		//
 		this->ConstructSceneView();
 
 		//

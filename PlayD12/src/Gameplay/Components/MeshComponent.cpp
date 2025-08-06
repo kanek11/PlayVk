@@ -9,6 +9,9 @@ void Gameplay::UStaticMeshComponent::TickComponent(float delta)
 {
     UMeshComponent::TickComponent(delta);
 
+	//if mesh is not set, skip tick:
+	assert(m_mesh != nullptr && "static mesh component mesh is not set");
+
     //new: register to scene:
     //todo: update proxy on dirty change;
     auto proxy = CreateSceneProxy();

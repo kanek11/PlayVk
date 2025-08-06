@@ -5,12 +5,10 @@
 #include "Render/Mesh.h"
 #include "Render/Material.h"
 #include "Render/StaticMeshProxy.h"
-
-#include "Physics/PhysicsScene.h"
-
-
+ 
 #include <atomic>
-
+ 
+#include "Physics/PhysicsScene.h"
 
 namespace Gameplay {
 
@@ -54,8 +52,7 @@ namespace Gameplay {
     public:
         RigidBody* rigidBody = new RigidBody(); 
 
-        static std::atomic<uint32_t> GComponentIdGenerator;
-        
+        static std::atomic<uint32_t> GComponentIdGenerator; 
     public:
         FPrimitiveComponentId id;
     };

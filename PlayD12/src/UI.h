@@ -96,8 +96,7 @@ public:
 	FDelegate<void()> OnClick;
 	FDelegate<void()> OnHover;
 };
-
-
+ 
 
 //todo: visible ,enable; blocking;
 class UIButton : public UIElement
@@ -118,9 +117,7 @@ public:
 	FRect layout;
 	std::string text = "HELLO";
 };
-
-
-
+ 
 
 class UIManager {
 public:

@@ -38,8 +38,7 @@ namespace Gameplay {
         {
             return m_material;
         }
-        //     
-        //    int  GetMaterialCount() const;
+        //int  GetMaterialCount() const;
 
         //extra attributes
         //void SetInstanceData(const std::vector<InstanceData>& instanceData);
@@ -48,8 +47,7 @@ namespace Gameplay {
         // LOD 
         //void SetLOD(int lod);
         //int  GetLOD() const;
-
-        // 
+         
         //void SetCastShadow(bool bCastShadow);
         //bool GetCastShadow() const;
 
@@ -61,9 +59,10 @@ namespace Gameplay {
     protected:
         SharedPtr<UStaticMesh> m_mesh{ nullptr };
         SharedPtr<UMaterial> m_material = CreateShared<UMaterial>();
-        //    std::vector<SharedPtr<UMaterial>> m_materials;
+        //std::vector<SharedPtr<UMaterial>> m_materials;
 
     protected:
+        //cache 
         FStaticMeshProxy m_sceneProxy;
     };
 

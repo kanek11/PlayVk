@@ -3,9 +3,14 @@
 #include <functional>
 #include <vector>
 #include <mutex>
+ 
+//#include "Gameplay/Components/PrimitiveComponent.h"
 
+//using ActorId = Gameplay::FPrimitiveComponentId;
+using ActorId = uint32_t;
 
 using PhysicsCommand = std::function<void()>;
+
 
 class PhysicsCommandBuffer {
 public:
@@ -47,13 +52,13 @@ struct PhysicsTransform {
     DirectX::XMVECTOR rotation;
 };
 
-using PhysicsTransformBuffer = std::unordered_map<ActorHandle, PhysicsTransform>;
+using PhysicsTransformBuffer = std::unordered_map<ActorId, PhysicsTransform>;
 
 class PhysicsTransformSyncBuffer {
 public:
     PhysicsTransformSyncBuffer() : m_writeIndex(0), m_readIndex(1) {}
 
-    void Write(ActorHandle actor, const PhysicsTransform& transform) {
+    void Write(ActorId actor, const PhysicsTransform& transform) {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_Buffers[m_writeIndex][actor] = transform;
     }

@@ -3,8 +3,6 @@
 #include "Math/MMath.h"
 #include "Shape.h"
 
-#include "Gameplay/Actor.h"
-
 #include "PhysicsSync.h"
 //design decision: use PBD solver ;
 
@@ -13,9 +11,7 @@
 /*
 design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
-*/
-
-
+*/  
 
 struct PhysicalMaterial {
 	float restitution;
@@ -143,7 +139,7 @@ public:
 
 public:
 	void AddRigidBody(RigidBody* rb,
-		ActorHandle owener,
+		ActorId owener,
 		const Float3& position = Float3{ 0.0f, 0.0f, 0.0f },
 		const DirectX::XMVECTOR& rotation = DirectX::XMQuaternionIdentity()
 	);
@@ -185,7 +181,7 @@ private:
 	void PostSimulation();
 
 private:
-	std::unordered_map<ActorHandle, RigidBody*> m_bodies;
+	std::unordered_map<ActorId, RigidBody*> m_bodies;
 	std::vector<Collider* > m_colliders;
 	std::vector<Contact>  m_contacts;
 	//std::vector<Constraints* > m_constraints;
@@ -204,8 +200,8 @@ public:
 		return m_transformBuffer.GetReadBuffer();
 	}
 
-	void SetPosition(ActorHandle handle, const Float3& position);
-	void SetRotation(ActorHandle handle, const DirectX::XMVECTOR& rotation);
+	void SetPosition(ActorId handle, const Float3& position);
+	void SetRotation(ActorId handle, const DirectX::XMVECTOR& rotation);
 
 	void ClearBuffer() {
 		m_commandBuffer.Clear();

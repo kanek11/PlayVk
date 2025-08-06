@@ -45,7 +45,7 @@ void PhysicsScene::OnDestroy()
 {
 }
 
-void PhysicsScene::AddRigidBody(RigidBody* rb, ActorHandle owener,
+void PhysicsScene::AddRigidBody(RigidBody* rb, ActorId owener,
 	const Float3& position,
 	const DirectX::XMVECTOR& rotation
 )
@@ -483,7 +483,7 @@ void PhysicsScene::PostSimulation()
 	m_transformBuffer.SwapBuffers();
 }
 
-void PhysicsScene::SetPosition(ActorHandle handle, const Float3& position)
+void PhysicsScene::SetPosition(ActorId handle, const Float3& position)
 {
 	m_commandBuffer.Enqueue([=]() {
 		auto it = m_bodies.find(handle);
@@ -497,7 +497,7 @@ void PhysicsScene::SetPosition(ActorHandle handle, const Float3& position)
 
 }
 
-void PhysicsScene::SetRotation(ActorHandle handle, const DirectX::XMVECTOR& rotation)
+void PhysicsScene::SetRotation(ActorId handle, const DirectX::XMVECTOR& rotation)
 {
 	m_commandBuffer.Enqueue([=]() {
 		auto it = m_bodies.find(handle);

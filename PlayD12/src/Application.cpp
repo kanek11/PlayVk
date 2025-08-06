@@ -184,8 +184,8 @@ void GameApplication::onBeginGame()
 	m_world->BeginPlay();
 
 
-	m_world->RegisterLevel("gameplay", CreateShared<GamePlayWorld>());
-	m_world->RegisterLevel("mainMenu", CreateShared<MainMenuWorld>());
+	m_world->RegisterLevel("gameplay", CreateShared<GamePlayLevel>());
+	m_world->RegisterLevel("mainMenu", CreateShared<MainMenuLevel>());
 
 
 	if (auto mainMenuState = m_gameManager->Register<MainMenuState>()) {

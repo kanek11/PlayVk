@@ -54,6 +54,7 @@ USpringArmComponent::USpringArmComponent()
 }
 
 
+//todo: move this logic to "late tick"
 void USpringArmComponent::TickComponent(float delta)
 {
     USceneComponent::TickComponent(delta);

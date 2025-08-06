@@ -51,6 +51,11 @@ namespace Gameplay {
 		void ForEachComponent(const sceneIterFn& fn);
 		void TraverseTree(USceneComponent* comp, const sceneIterFn& fn);
 		 
+
+	public:
+		//UIs are managed separately with actors
+		std::vector<SharedPtr<UIButton>> m_Buttons;
+
 		//dummy design: 
 		//FCameraProxy defaultCamera;
 		//APawn* defaultPlayer; 

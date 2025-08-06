@@ -7,18 +7,19 @@
 
 using namespace DirectX;
 
-void GamePlayWorld::OnLoad()
+void GamePlayLevel::OnLoad()
 {
     ULevel::OnLoad();
 
     assert(owningWorld->physicsScene != nullptr); 
 
     //this->Load1();
-    this->Load2();
+    this->LoadActors();
+    this->LoadUI();
 }
 
 
-void GamePlayWorld::Load2()
+void GamePlayLevel::LoadActors()
 {
     auto sphereActor = Mesh::CreateSphere({ 2.0f, 4.0f, 0.0f }); 
 
@@ -47,7 +48,7 @@ void GamePlayWorld::Load2()
     this->AddActor(planeActor); 
 }
  
-void GamePlayWorld::Load1()
+void GamePlayLevel::LoadLegacy()
 { 
     //hardcode state; todo;
     timeCount = 0.0f;
@@ -144,7 +145,7 @@ void GamePlayWorld::Load1()
     //m_staticMeshActors.push_back(debugSphereProxy);
     //m_staticMeshActors.push_back(planeProxy);
     //m_staticMeshActors.push_back(debugCubeProxy);
-    ActorHandle id = 0;
+    ActorId id = 0;
     m_staticMeshActors[id++] = (debugSphereProxy);
     m_staticMeshActors[id++] = (planeProxy);
     m_staticMeshActors[id++] = (debugCubeProxy);
@@ -173,12 +174,11 @@ void GamePlayWorld::Load1()
     auto debugHUD1 = CreateShared<UIButton>(buttonRect1);
 
     FRect buttonRect2 = { 10, 200, 300, 50 };
-    auto debugHUD2 = CreateShared<UIButton>(buttonRect2);
+    auto debugHUD2 = CreateShared<UIButton>(buttonRect2); 
 
-
-    m_HUDs.push_back(debugHUD);
-    m_HUDs.push_back(debugHUD1);
-    m_HUDs.push_back(debugHUD2);
+    m_Buttons.push_back(debugHUD);
+    m_Buttons.push_back(debugHUD1);
+    m_Buttons.push_back(debugHUD2);
 
     //todo:  manually submit 
     uiManager->RegisterRootElement(debugHUD.get());
@@ -253,9 +253,33 @@ void GamePlayWorld::Load1()
     debugPlayer->onUpdate.Add(debugBehavior);
 }
 
+void GamePlayLevel::LoadUI()
+{
+    auto uiManager = GameApplication::GetInstance()->GetUIManager();
+
+    //FRect buttonRect = { 0, 0, 300, 150 };
+    FRect buttonRect = { 10, 20, 300, 50 };
+    auto debugHUD = CreateShared<UIButton>(buttonRect);
+
+    FRect buttonRect1 = { 10, 100, 300, 50 };
+    auto debugHUD1 = CreateShared<UIButton>(buttonRect1);
+
+    FRect buttonRect2 = { 10, 200, 300, 50 };
+    auto debugHUD2 = CreateShared<UIButton>(buttonRect2);
+
+    m_Buttons.push_back(debugHUD);
+    m_Buttons.push_back(debugHUD1);
+    m_Buttons.push_back(debugHUD2);
+
+    //todo:  manually submit 
+    uiManager->RegisterRootElement(debugHUD.get());
+    uiManager->RegisterRootElement(debugHUD1.get());
+    uiManager->RegisterRootElement(debugHUD2.get());
+}
+
 
  
-void GamePlayWorld::OnUnload()
+void GamePlayLevel::OnUnload()
 {
     std::cout << "unload game world" << '\n';
 
@@ -279,11 +303,11 @@ void GamePlayWorld::OnUnload()
     }
 
     m_staticMeshActors.clear();
-    m_HUDs.clear();
+    m_Buttons.clear();
     //dummyCamera = nullptr;
 }
 
-void GamePlayWorld::OnTick(float delta)
+void GamePlayLevel::OnTick(float delta)
 {
     ULevel::OnTick(delta); 
 
@@ -308,7 +332,7 @@ void GamePlayWorld::OnTick(float delta)
 
 
     //--------------
-    for (auto& HUD : m_HUDs) {
+    for (auto& HUD : m_Buttons) {
         HUD->Tick(delta);
     }
      
@@ -451,7 +475,7 @@ void GamePlayWorld::OnTick(float delta)
 
 
 
-void GamePlayWorld::SyncGameToPhysics()
+void GamePlayLevel::SyncGameToPhysics()
 {
     for (auto& [actorH, actor] : m_staticMeshActors) {
         owningWorld->physicsScene->SetPosition(actorH, actor->position);
@@ -503,7 +527,7 @@ void GamePlayWorld::SyncGameToPhysics()
 
 
 
-void MainMenuWorld::OnLoad()
+void MainMenuLevel::OnLoad()
 {
     std::cout << "load main menu world" << '\n';
 
@@ -539,7 +563,7 @@ void MainMenuWorld::OnLoad()
     uiManager->RegisterRootElement(timeHUD.get());
 }
 
-void MainMenuWorld::OnUnload()
+void MainMenuLevel::OnUnload()
 {
     std::cout << "unload main menu world" << '\n';
 
@@ -554,7 +578,7 @@ void MainMenuWorld::OnUnload()
     m_Buttons.clear();
 }
 
-void MainMenuWorld::OnTick(float delta)
+void MainMenuLevel::OnTick(float delta)
 {
     for (auto& button : m_Buttons) {
         button->Tick(delta);
