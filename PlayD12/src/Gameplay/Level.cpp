@@ -12,29 +12,37 @@
 using namespace DirectX;
 
 namespace Gameplay {
-
-
+     
     void ULevel::OnLoad()
     {
         //auto dftPlayer = CreateActor<APawn>(); 
         auto dftPlayer = CreateActor<APlayer>();
-        this->AddActor(dftPlayer);
+
+        dftPlayer->RootComponent->SetRelativePosition({ 0.0f, 4.0f, -2.0f });
+        dftPlayer->RootComponent->UpdateWorldTransform();
 
         //auto possess the default player 
         if (auto controller = this->owningWorld->GetFirstPlayerController(); controller != nullptr) {
             std::cout << "level: default controller possess default default player\n";
             controller->Possess(dftPlayer.get());
-        }
+        } 
+
+        this->AddActor(dftPlayer);
     }
 
     void ULevel::OnTick(float delta)
-    {     
+    {
+        //todo: introduce late update?
         UpdateTransforms();
-
+        //
         for (auto& actor : m_actors) {
             actor->OnTick(delta);
         }
-         
+        //
+        for (auto& HUD : m_buttons) {
+            HUD->Tick(delta);
+        }
+
         //defaultCamera.Tick(delta);
         //auto renderer = GameApplication::GetInstance()->GetRenderer();
         //renderer->SubmitCamera(defaultCamera);

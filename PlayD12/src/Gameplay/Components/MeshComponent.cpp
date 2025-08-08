@@ -1,7 +1,7 @@
 #include "PCH.h"
 #include "MeshComponent.h"
 
-#include "StaticMeshActor.h"
+#include "Gameplay/Actors/StaticMeshActor.h"
 
 #include "Gameplay/World.h"
 
@@ -9,8 +9,10 @@ void Gameplay::UStaticMeshComponent::TickComponent(float delta)
 {
     UMeshComponent::TickComponent(delta);
 
-	//if mesh is not set, skip tick:
-	assert(m_mesh != nullptr && "static mesh component mesh is not set");
+    //if mesh is not set, skip tick:
+    assert(m_mesh != nullptr && "static mesh component mesh is not set");
+
+    if (!bVisible) return;
 
     //new: register to scene:
     //todo: update proxy on dirty change;
@@ -28,6 +30,8 @@ void Gameplay::UStaticMeshComponent::OnRegister()
 FStaticMeshProxy Gameplay::UStaticMeshComponent::CreateSceneProxy()
 {
     auto instanceData = DebugGenerateInstanceData();
+
+    //std::cout << "mesh world scale: " << ToString(this->GetWorldScale()) << '\n';
 
     FStaticMeshProxy proxy = {
 .modelMatrix = this->GetWorldTransform().ToMatrix(),

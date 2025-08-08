@@ -203,7 +203,7 @@ public:
 
 	SharedPtr<FD3D12MeshResource> m_GPUResource;
 
-	bool uploaded{ false }; 
+	bool uploaded{ false };
 };
 
 

@@ -10,7 +10,7 @@
 
 // std::enable_shared_from_this is safer ;
 
-//using ActorId = uint32_t;
+using ActorHandle = uint32_t;
 
 namespace Gameplay
 {
@@ -68,9 +68,11 @@ namespace Gameplay
         SharedPtr<USceneComponent> RootComponent = nullptr;
 
     public:
-        //raw ptr suggest it's not managed by entries.
+        //raw ptr suggest not managed.
         ULevel* level{ nullptr };
         UWorld* GetWorld() const;
+
+        std::string tag = "defaultTag";
     };
 
     // factory function for derived classes
@@ -82,7 +84,9 @@ namespace Gameplay
 
         auto _actor = CreateShared<T>(std::forward<Args>(args)...);
 
-        //_actor->RegisterAllComponents(); // register the actor to the components,  post-construction of the actor;
+        // register the actor to the components,  post-construction of the actor;
+        // 8.4 : it should be delayed until add to world;
+        //_actor->RegisterAllComponents(); 
 
         return _actor;
     }

@@ -5,14 +5,17 @@
 #include "Render/Mesh.h"
 #include "Render/Material.h"
 #include "Render/StaticMeshProxy.h"
- 
+
 #include <atomic>
- 
+
 #include "Physics/PhysicsScene.h"
+#include "Delegate.h"
 
-namespace Gameplay {
+namespace Gameplay { 
+    using OverlapEvent = FDelegate<void(AActor*)>;
 
-    using FPrimitiveComponentId = uint32_t; 
+
+    using FPrimitiveComponentId = uint32_t;
 
     //all visible shapes ; rigidbody;
     class UPrimitiveComponent : public USceneComponent {
@@ -23,16 +26,14 @@ namespace Gameplay {
 
         //virtual void Draw() = 0;    
 
-        //void SetVisible(bool bVisible);
-        //bool IsVisible() const; 
+        //because not only mesh is visible obj.
+        void SetVisible(bool visible) { this->bVisible = visible; }
+        bool IsVisible() const { this->bVisible; }
 
         //virtual AABB GetBounds() const;
 
-        //void SetSimulatePhysics(bool bSimulate);
-        //bool IsSimulatingPhysics() const;
-
-        //void SetCollisionEnabled(bool bEnabled);
-        //bool IsCollisionEnabled() const;
+        void SetSimulatePhysics(bool bSimulate) { bSimulatePhysics = bSimulate; }
+        bool IsSimulatingPhysics() const { return bSimulatePhysics;  }
         //Set/Get CollisionResponse
 
         ////for the editor
@@ -43,18 +44,20 @@ namespace Gameplay {
         //int  GetRenderLayer() const;
 
     protected:
-        //bool m_bVisible = true;
-        //bool m_bSimulatePhysics = false;
+        bool bVisible{ true };
+        bool bSimulatePhysics{ true };
         //bool m_bCollisionEnabled = true;
         //bool m_bSelected = false;
         //int  m_renderLayer = 0;
 
     public:
-        RigidBody* rigidBody = new RigidBody(); 
+        RigidBody* rigidBody = new RigidBody();
 
-        static std::atomic<uint32_t> GComponentIdGenerator; 
+        static std::atomic<uint32_t> GComponentIdGenerator;
     public:
         FPrimitiveComponentId id;
+
+        OverlapEvent onOverlap;
     };
 
 }

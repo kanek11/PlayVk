@@ -39,9 +39,9 @@ void D3D12HelloRenderer::ConsumeCmdBuffer()
 
 void D3D12HelloRenderer::SubmitCamera(const FSceneView& sceneView)
 {
-    sceneCBData.pvMatrix  = sceneView.pvMatrix;
-    sceneCBData.invProj   = sceneView.invProjMatrix;
-    sceneCBData.invView   = sceneView.invViewMatrix;
+    sceneCBData.pvMatrix = sceneView.pvMatrix;
+    sceneCBData.invProj = sceneView.invProjMatrix;
+    sceneCBData.invView = sceneView.invViewMatrix;
     sceneCBData.cameraPos = sceneView.position;
 }
 
@@ -63,6 +63,8 @@ void D3D12HelloRenderer::OnUpdate(float delta)
     //    std::cerr << "no valid camera" << std::endl;
     //}
 
+    //new:
+    sceneCBData.OnTick();
     sceneCBData.deltaTime = delta;
     sceneCBData.viewportSize = { (float)m_width, (float)m_height };
     this->sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
@@ -122,7 +124,8 @@ void D3D12HelloRenderer::OnInit()
 
     InitGBuffers();
 
-    //Lit::Init(Render::rendererContext, litPassCtx);
+    OverlayMesh::Init(Render::rendererContext, overlayMeshCtx);
+
     Shadow::Init(Render::rendererContext, shadowPassCtx);
 
     GBuffer::Init(Render::rendererContext, gbufferPassCtx);
@@ -154,7 +157,6 @@ void D3D12HelloRenderer::OnRender()
 {
     // Record all the commands we need to render the scene into the command list.
     //PopulateCommandList();  
-    //Lit::BeginFrame(litPassCtx); 
 
     //GPU-side cmdList ; 
     //comes before the building of drawcmd;
@@ -164,7 +166,9 @@ void D3D12HelloRenderer::OnRender()
     UI::BeginFrame(uiPassCtx);
     Shadow::BeginFrame(shadowPassCtx);
     GBuffer::BeginFrame(gbufferPassCtx);
-    PBR::BeginFrame(pbrShadingCtx);
+    PBR::BeginFrame(pbrShadingCtx); 
+    OverlayMesh::BeginFrame(overlayMeshCtx); 
+
 
 
     //rg->Execute(m_commandList.Get());
@@ -176,17 +180,20 @@ void D3D12HelloRenderer::OnRender()
 
     //
     BeginGBufferPass(m_commandList.Get());
+
     GBuffer::FlushAndRender(m_commandList.Get(), gbufferPassCtx);
 
     EndGBufferPass(m_commandList.Get());
 
-    BeginPresentPass(m_commandList.Get());
+    BeginPresentPass(m_commandList.Get()); 
 
-    //Lit::FlushAndRender(m_commandList.Get(), litPassCtx);
-
+    //
     PBR::FlushAndRender(m_commandList.Get(), pbrShadingCtx);
 
     UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
+
+    OverlayMesh::FlushAndRender(m_commandList.Get(), overlayMeshCtx);
+
 
     //DebugDraw::Get().FlushAndRender(m_commandList.Get());  
 
@@ -195,11 +202,13 @@ void D3D12HelloRenderer::OnRender()
 
     EndFrame();
 
-    //Lit::EndFrame(litPassCtx);
+    // 
     UI::EndFrame(uiPassCtx);
     Shadow::EndFrame(shadowPassCtx);
     GBuffer::EndFrame(gbufferPassCtx);
     PBR::EndFrame(pbrShadingCtx);
+
+    OverlayMesh::EndFrame(overlayMeshCtx);
 }
 
 
@@ -618,7 +627,7 @@ void D3D12HelloRenderer::EndFrame()
 
 
     //new:
-    m_frame->staticMeshes.clear();
+    m_frame->clear();
 }
 
 void D3D12HelloRenderer::BeginPresentPass(ID3D12GraphicsCommandList* commandList)
@@ -655,10 +664,20 @@ void D3D12HelloRenderer::BeginPresentPass(ID3D12GraphicsCommandList* commandList
     //}
 
     // //actually, the present pass is now pure post-processing, we don't depth;
-   //todo: skip this by pass desc or sth.
-    m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+    //todo: skip this by pass desc or sth.
+    // 
+    //m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
-
+    //new: we can continue using the gbuffer depth?
+    if (m_gbufferAttachments.dsv.has_value())
+    {
+        //commandList->ClearDepthStencilView(m_gbufferAttachments.dsv.value(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+        commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_gbufferAttachments.dsv.value());
+    }
+    else {
+        std::cerr << "GBuffer pass: DSV is not set!" << std::endl;
+    }
+     
     auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_width), static_cast<float>(m_height));
     auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height));
 
@@ -833,19 +852,25 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateCheckerboardData()
 void D3D12HelloRenderer::SubmitMesh(FStaticMeshProxy proxy)
 {
     cmdBuffer.Enqueue([=] {
+        if(!proxy.material->transparent)
         m_frame->staticMeshes.push_back(proxy);
+        else
+        m_frame->transparentMeshes.push_back(proxy);
         });
 }
 
-void D3D12HelloRenderer::SubmitMeshProxies(const std::vector<FStaticMeshProxy>& mesh)
+void D3D12HelloRenderer::SubmitMeshProxies(const std::vector<FStaticMeshProxy>& meshes)
 {
-    cmdBuffer.Enqueue([=] {
-        m_frame->staticMeshes.insert(
-            m_frame->staticMeshes.end(),
-            mesh.begin(),
-            mesh.end()
-        );
-        });
+    //cmdBuffer.Enqueue([=] {
+    //    m_frame->staticMeshes.insert(
+    //        m_frame->staticMeshes.end(),
+    //        meshes.begin(),
+    //        meshes.end()
+    //    );
+    //    });
+    for (auto& mesh : meshes) {
+        this->SubmitMesh(mesh);
+    }
 }
 
 void D3D12HelloRenderer::ClearMesh()
@@ -1102,6 +1127,7 @@ void D3D12HelloRenderer::InitEnvMap()
     auto& hdri = this->loadTextures["rogland_clear_night_1k.hdr"];
     //auto& hdri = this->loadTextures["autumn_field_puresky_1k.hdr"];
     //auto& hdri = this->loadTextures["citrus_orchard_road_puresky_1k.hdr"]; 
+    //auto& hdri = this->loadTextures["kloppenheim_02_puresky_4k.hdr"]; 
 
     probe->Init();
     probe->CreateFromHDRI(hdri);

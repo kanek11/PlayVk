@@ -62,6 +62,8 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(
         rt.BlendEnable = TRUE;
         rt.SrcBlend = D3D12_BLEND_SRC_ALPHA;
         rt.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+        //rt.SrcBlend = D3D12_BLEND_ONE;
+        //rt.DestBlend = D3D12_BLEND_ONE;
         rt.BlendOp = D3D12_BLEND_OP_ADD;
         rt.SrcBlendAlpha = D3D12_BLEND_ONE;
         rt.DestBlendAlpha = D3D12_BLEND_ZERO;
@@ -76,7 +78,8 @@ ComPtr<ID3D12PipelineState> PSOManager::GetOrCreate(
 
     // Rasterizer
     psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-    psoDesc.RasterizerState.CullMode = pass.cullMode;
+    psoDesc.RasterizerState.FillMode = mat.enableWireFrame? D3D12_FILL_MODE_WIREFRAME : D3D12_FILL_MODE_SOLID;
+    psoDesc.RasterizerState.CullMode = pass.cullMode;  //culling behavior
     psoDesc.RasterizerState.FrontCounterClockwise = TRUE;
 
 

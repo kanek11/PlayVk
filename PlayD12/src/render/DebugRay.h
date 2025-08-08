@@ -15,8 +15,7 @@
 
 #include "Text.h"  
 
-#include "Mesh.h"
-#include "StaticMeshActor.h"
+#include "Mesh.h" 
 
 
 struct RendererContext; 

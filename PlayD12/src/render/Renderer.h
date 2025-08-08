@@ -64,8 +64,7 @@ private:
     std::mutex m_mutex;
 };
 
-
-
+ 
 
 constexpr size_t MaxUIBatch = 128;
 constexpr size_t MaxStaticMesh = 128;
@@ -74,11 +73,7 @@ constexpr uint32_t descriptorPoolSize = 4096;
 
 using UploadTask = std::function<void(ID3D12GraphicsCommandList* cmdList)>;
 
-
-struct FResourcePool {
-
-
-};
+ 
 
 
 struct RendererContext {
@@ -98,12 +93,18 @@ struct RendererContext {
 
 struct FrameDataContext {
     //std::vector<StaticMeshActorProxy*> staticMeshes;  
-    std::vector < FStaticMeshProxy> staticMeshes;
+    std::vector <FStaticMeshProxy> staticMeshes;
+    std::vector <FStaticMeshProxy> transparentMeshes;
     //FCameraProxy* mainCamera;
 
     FD3D12Buffer* sceneCB;
     //current present rtv:
     D3D12_CPU_DESCRIPTOR_HANDLE currentRTV;
+
+    void clear() {
+        staticMeshes.clear();
+        transparentMeshes.clear();
+    }
 };
 
 struct RenderGraphContext {
@@ -206,7 +207,7 @@ private:
 
     //-------- 
     SharedPtr<FD3D12Buffer> sceneCB;
-    SceneCB sceneCBData{}; 
+    SceneCB sceneCBData{};
 
     //---------
     void InitPresentPass();
@@ -283,8 +284,6 @@ public:
     //void SubmitCamera(const FCameraProxy& camera);
     void SubmitCamera(const FSceneView& sceneView);
 
-public:
-    Lit::PassContext litPassCtx;
 
 public:
     Shadow::PassContext shadowPassCtx;
@@ -330,11 +329,15 @@ public:
 public:
     void InitEnvMap();
 
-public: 
+public:
     void UploadTexture(std::vector<UploadTask> tasks);
 
+      
 public:
-     
+    OverlayMesh::PassContext overlayMeshCtx;
+
+public:
+
     std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;\
 
     FrameDataContext* m_frame = new FrameDataContext{};
@@ -344,4 +347,6 @@ public:
     RenderCommandBuffer cmdBuffer;
 
     void ConsumeCmdBuffer();
+
+
 };

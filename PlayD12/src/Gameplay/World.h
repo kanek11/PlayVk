@@ -12,10 +12,11 @@
 
 #include "UI.h" 
 
-#include "Physics/PhysicsScene.h"
-#include "StaticMeshActor.h"
+#include "Physics/PhysicsScene.h" 
 
 #include "Level.h"
+
+#include "GameStateBase.h"
 
 
 namespace Gameplay {
@@ -26,9 +27,9 @@ namespace Gameplay {
 		void Init();
 
 		void BeginPlay();
-		void EndPlay(); 
+		void EndPlay();
 
-		void OnTick(float delta); 
+		void OnTick(float delta);
 
 		void RegisterLevel(std::string name, SharedPtr<ULevel> level) {
 			levels[name] = level;
@@ -56,6 +57,7 @@ namespace Gameplay {
 			}
 		}
 
+	public:
 		void SyncGameToPhysics() {
 			if (currentLevel) {
 				currentLevel->SyncGameToPhysics();
@@ -64,9 +66,11 @@ namespace Gameplay {
 
 		void SyncPhysicsToGame();
 
+		void DispatchPhysicsEvents();
+
 	private:
 		SharedPtr<ULevel> currentLevel;
-		std::unordered_map<std::string, SharedPtr<ULevel>> levels; 
+		std::unordered_map<std::string, SharedPtr<ULevel>> levels;
 
 	public:
 		PhysicsScene* physicsScene{ nullptr };
@@ -74,6 +78,14 @@ namespace Gameplay {
 
 		void AddPrimitiveComponent(UPrimitiveComponent* comp) {
 			m_primtiveMap[comp->id] = comp;
+		}
+
+		//todo: so verbose..
+		AActor* PrimitiveIdToActor(FPrimitiveComponentId id) {
+			if (m_primtiveMap.contains(id) && !m_primtiveMap.at(id)->GetOwner().expired()) {
+				return m_primtiveMap.at(id)->GetOwner().lock().get();
+			}
+			return nullptr;
 		}
 
 	public:
@@ -91,10 +103,29 @@ namespace Gameplay {
 		}
 
 
+
+	private:
 		void ConstructSceneView();
 
 	public:
 		Gameplay::FScene scene;
+
+
+	private:
+		SharedPtr<AGameStateBase> m_gameState;
+
+	public: 
+		template<typename T>
+		void CreateGameState() {
+			//static_assert(std::is_base_of<AGameStateBase, T>::value, "Must be a GameStateBase");
+			m_gameState = CreateShared<T>();
+		}
+
+		template<typename T>
+		T* GetGameState() const {
+			return dynamic_cast<T*>(m_gameState.get());
+		}
+
 	};
 
 

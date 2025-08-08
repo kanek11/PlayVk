@@ -4,12 +4,12 @@
 #include "Gameplay/Components/CameraComponent.h"
 
 namespace Gameplay
-{ 
+{
     class AController;
 
     class APawn : public AActor {
     public:
-        APawn(); 
+        APawn();
 
         virtual void PossessedBy(AController* NewController) {
             Controller = NewController;
@@ -31,7 +31,7 @@ namespace Gameplay
         //int32_t AutoPossessPlayer = -1; // -1,0 local ,1 
 
 
-    public: 
+    public:
         AController* Controller{ nullptr };
 
         SharedPtr<USpringArmComponent> SpringArmComponent;

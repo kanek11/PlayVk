@@ -4,6 +4,13 @@
 #include "Application.h"
 
 #include "Gameplay/World.h"
+#include "Gameplay/Actors/StaticMeshActor.h"
+
+#include "GameState.h"
+
+#include "Item.h" 
+#include "HUD.h"
+
 
 using namespace DirectX;
 
@@ -11,7 +18,12 @@ void GamePlayLevel::OnLoad()
 {
     ULevel::OnLoad();
 
-    assert(owningWorld->physicsScene != nullptr); 
+    assert(owningWorld->physicsScene != nullptr);
+
+    //new:
+    //auto gameState = CreateShared<AGameState>(); 
+    owningWorld->CreateGameState<AGameState>(); 
+    auto gameState = owningWorld->GetGameState<AGameState>(); 
 
     //this->Load1();
     this->LoadActors();
@@ -20,290 +32,94 @@ void GamePlayLevel::OnLoad()
 
 
 void GamePlayLevel::LoadActors()
-{
-    auto sphereActor = Mesh::CreateSphere({ 2.0f, 4.0f, 0.0f }); 
-
-	auto& sphereRB = sphereActor->shapeComponent->rigidBody;
-	sphereRB->simulatePhysics = true;
-	sphereRB->simulateRotation = true; 
-
-    auto& sphereMat = sphereActor->staticMeshComponent->GetMaterial();
-    sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png";
-    sphereMat->textures["normalMap"] = "rusty_metal_04_nor_dx_1k.png";
-    sphereMat->textures["metallicMap"] = "rusty_metal_04_metal_1k.png";
-    sphereMat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png";
-    sphereMat->textures["AOMap"] = "rusty_metal_04_ao_1k.png";
-
-    sphereMat->materialCB.useBaseColorMap = true;
-    sphereMat->materialCB.useNormalMap = true;
-    sphereMat->materialCB.useMetallicMap = true;
-    sphereMat->materialCB.useRoughnessMap = true;
-    sphereMat->materialCB.useAOMap = true;
-
-
-    //plane:
-	auto planeActor = Mesh::CreatePlane({ 0.0f, -2.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, static_cast<uint32_t>(roadWidth), static_cast<uint32_t>(goalLength));
-  
-    this->AddActor(sphereActor);
-    this->AddActor(planeActor); 
-}
- 
-void GamePlayLevel::LoadLegacy()
 { 
-    //hardcode state; todo;
-    timeCount = 0.0f;
+    //plane:
+    auto planeActor = Mesh::CreatePlaneActor((uint32_t)roadWidth, (uint32_t)goalLength,
+        Float3{ 0.0f, 0.0f, 0.0f }); 
+    planeActor->staticMeshComponent->SetMaterial(Materials::GetSnowSurface());
 
-    std::cout << "load game world" << '\n';
-
-    auto renderer = GameApplication::GetInstance()->GetRenderer();
-    auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
-    auto gameManager = GameApplication::GetInstance()->GetGameStateManager(); 
-
-    int screenWidth = GameApplication::GetInstance()->GetWidth();
-    int screenHeight = GameApplication::GetInstance()->GetHeight();
-
-
-    auto debugSphereProxy = CreateSphereActor({ 0.0f, 1.0f, 0.0f });
-    debugSphereProxy->rigidBody->simulatePhysics = true;
-    debugSphereProxy->rigidBody->simulateRotation = true;
-
-    debugSphereProxy->rigidBody->debugName = "debug sphere";
-    debugSphereProxy->rigidBody->material.friction = 10.0f;
-
-
-    //------------------------- 
-    auto& sphereMat = debugSphereProxy->material;
-    sphereMat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png";
-    sphereMat->textures["normalMap"] = "rusty_metal_04_nor_dx_1k.png";
-    sphereMat->textures["metallicMap"] = "rusty_metal_04_metal_1k.png";
-    sphereMat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png";
-    sphereMat->textures["AOMap"] = "rusty_metal_04_ao_1k.png";
-
-    sphereMat->materialCB.useBaseColorMap = true;
-    sphereMat->materialCB.useNormalMap = true;
-    sphereMat->materialCB.useMetallicMap = true;
-    sphereMat->materialCB.useRoughnessMap = true;
-    sphereMat->materialCB.useAOMap = true;
-
-    //sphereMat->materialCB.useBaseColorMap = false;
-    //sphereMat->materialCB.baseColor =  Color::Gold.xyz(); //Color::White.xyz(); 
-    //sphereMat->materialCB.useNormalMap = false;
-    //sphereMat->materialCB.useMetallicMap = false;
-    //sphereMat->materialCB.metallic = 0.8f;
-    //sphereMat->materialCB.useRoughnessMap = false;
-    //sphereMat->materialCB.roughness = 0.1f;
-    //sphereMat->materialCB.useAOMap = false;
-
-    //------------------------- 
-    auto debugCubeProxy = CreateBoxActor({ 3.0f, 3.0f,-3.0f }, { 1.0f, 1.0f, 1.0f });
-    debugCubeProxy->rigidBody->simulatePhysics = true;
-    debugCubeProxy->rigidBody->simulateRotation = false;
-    debugCubeProxy->rigidBody->material.friction = 0.1f;
-
-
-    auto& cubeMat = debugCubeProxy->material;
-    cubeMat->materialCB.useBaseColorMap = false;
-    cubeMat->materialCB.baseColor = Color::White.xyz();
-    cubeMat->materialCB.useNormalMap = false;
-    cubeMat->materialCB.useMetallicMap = false;
-    cubeMat->materialCB.metallic = 0.8f;
-    cubeMat->materialCB.useRoughnessMap = false;
-    cubeMat->materialCB.roughness = 0.1f;
-    cubeMat->materialCB.useAOMap = false;
-
-    //--------------- 
-    auto planeProxy = CreatePlaneActor({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f }, static_cast<uint32_t>(roadWidth), static_cast<uint32_t>(goalLength));
-
-
-    auto& planeMat = planeProxy->material;
-    //planeMat->textures["baseColorMap"] = "stone_wall_05_diff_1k.png";
-    //planeMat->textures["normalMap"]    = "stone_wall_05_nor_dx_1k.png";
-    ////planeMat->textures["metallicMap"]  "floor_tiles_metal.png"];
-    //planeMat->textures["RoughnessMap"] = "stone_wall_05_rough_1k.png";
-    //planeMat->textures["AOMap"]        = "stone_wall_05_ao_1k.png"; 
-    //planeMat->materialCB.useBaseColorMap = true;
-    //planeMat->materialCB.useNormalMap = true;
-    //planeMat->materialCB.useMetallicMap = false;
-    //planeMat->materialCB.metallic = 0.0f;
-    //planeMat->materialCB.useRoughnessMap = true;
-    //planeMat->materialCB.useAOMap = true;
-
-
-    //----
-    //auto debugPlayer = debugCubeProxy;
-    auto debugPlayer = debugSphereProxy;
-    std::cout << "debug curr z:" << debugPlayer->position.z() << '\n'; 
-    //---------------
-    //this->GenerateObstacles(roadWidth / 2, goalLength, 30); 
-
-    //---------------
-    //renderer->SubmitMesh(debugSphereProxy.get());
-    //renderer->SubmitMesh(planeProxy.get());
-    //renderer->SubmitMesh(debugCubeProxy.get());
-
-
-    //m_staticMeshActors.push_back(debugSphereProxy);
-    //m_staticMeshActors.push_back(planeProxy);
-    //m_staticMeshActors.push_back(debugCubeProxy);
-    ActorId id = 0;
-    m_staticMeshActors[id++] = (debugSphereProxy);
-    m_staticMeshActors[id++] = (planeProxy);
-    m_staticMeshActors[id++] = (debugCubeProxy);
-     
-    //
-    //defaultCamera.target = debugPlayer;
-    //renderer->SubmitCamera(defaultCamera);
-
-    //new: centralize the physics reegistery 
-    for (auto& [handle, actor] : m_staticMeshActors) {
-
-        owningWorld->physicsScene->AddRigidBody(actor->rigidBody, handle);
-        actor->rigidBody->SetPosition(actor->position);
-        actor->rigidBody->SetRotation(actor->rotation);
-        owningWorld->physicsScene->AddCollider(actor->collider);
-    }
 
     // 
-    auto uiManager = GameApplication::GetInstance()->GetUIManager();
+    //auto sphereActor = Mesh::CreateSphereActor( 1.0f, Float3{ 2.0f, 2.0f, 0.0f });
 
-    //FRect buttonRect = { 0, 0, 300, 150 };
-    FRect buttonRect = { 10, 20, 300, 50 };
-    auto debugHUD = CreateShared<UIButton>(buttonRect);
-
-    FRect buttonRect1 = { 10, 100, 300, 50 };
-    auto debugHUD1 = CreateShared<UIButton>(buttonRect1);
-
-    FRect buttonRect2 = { 10, 200, 300, 50 };
-    auto debugHUD2 = CreateShared<UIButton>(buttonRect2); 
-
-    m_Buttons.push_back(debugHUD);
-    m_Buttons.push_back(debugHUD1);
-    m_Buttons.push_back(debugHUD2);
-
-    //todo:  manually submit 
-    uiManager->RegisterRootElement(debugHUD.get());
-    uiManager->RegisterRootElement(debugHUD1.get());
-    uiManager->RegisterRootElement(debugHUD2.get()); 
-
-    //-------------------------- 
-    auto debugBehavior = [=](float delta) {
-        //std::cout << "tick behavior" << '\n';
-        //std::cout << "debugSphereProxy speed:" << ToString(debugSphereProxy->rigidBody->linearVelocity) << '\n';
-
-        float currSpeed = Length(debugPlayer->rigidBody->linearVelocity);
-        debugHUD->text = std::format("vel:{:.2f}", currSpeed);
-
-        float currDist = goalLength / 2 - debugPlayer->position.z();
-        debugHUD1->text = std::format("dist:{:.2f}", currDist);
-
-        timeCount += delta;
-        debugHUD2->text = std::format("time:{:.2f}", timeCount);
-
-        if (inputSystem == nullptr) {
-            std::cerr << "empty input system" << '\n';
-            return;
-        }
-        //if (inputSystem->IsKeyDown(KeyCode::W)) {
-        //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, +5.0f));
-        //}
-        //if (inputSystem->IsKeyDown(KeyCode::S)) {
-        //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, -5.0f));
-        //}
-        //if (inputSystem->IsKeyDown(KeyCode::S)) {
-        //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, 0.0f, -5.0f));
-        //}
-        //if (inputSystem->IsKeyDown(KeyCode::A)) {
-        //    debugPlayer->rigidBody->ApplyForce(Float3(-5.0f, 0.0f, 0.0f));
-        //}
-        float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-        debugPlayer->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f) * delta);
-
-        float axisX = inputSystem->GetAxis(EAxis::MoveX);
-        debugPlayer->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta);
+    //auto& sphereRB = sphereActor->shapeComponent->rigidBody;
+    //sphereRB->simulatePhysics = false;
+    //sphereRB->simulateRotation = false; 
+    //sphereActor->shapeComponent->SetIsTrigger(true); 
+    //sphereActor->staticMeshComponent->SetMaterial(Materials::GetRustyIron()); 
 
 
-        //if (inputSystem->IsKeyDown(KeyCode::D)) {
-        //    debugPlayer->rigidBody->ApplyForce(Float3(+5.0f, 0.0f, 0.0f));
-        //}
+    //auto itemActor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, { 0.0f, 2.0f, 4.0f }); 
+    auto itemActor = CreateShared<ABoxItem>();
+    itemActor->RootComponent->SetRelativePosition({ 0.0f, 1.0f, 4.0f }); 
+    itemActor->RootComponent->UpdateWorldTransform(); 
 
-        //if (inputSystem->IsKeyDown(KeyCode::E)) {
-        //    debugPlayer->rigidBody->ApplyForce(Float3(0.0f, +30.0f, 0.0f));
-        //}
-        //std::cout << "behavior curr z:" << debugPlayer->position.z() << '\n';
+    auto checkPt = CreateShared<ATriggerVolume>();
+    checkPt->RootComponent->SetRelativePosition({ 0.0f, 1.0f, 8.0f });
+    checkPt->RootComponent->UpdateWorldTransform();
 
-        if (debugPlayer->position.y() < planeProxy->position.y()) {
-            std::cout << "game over? " << '\n';
-            debugPlayer->position = { 0.0f, 2.0f, 0.0f };
-            debugPlayer->rigidBody->linearVelocity = Float3{};
-            debugPlayer->rigidBody->angularVelocity = Float3{};
 
-            timeCount = 0.0f;
-            //gameManager->RequestTransitState(GameStateId::MainMenu);
-        }
-
-        else if (debugPlayer->position.z() > goalLength / 2 - 20) {
-            std::cout << "goal?" << debugPlayer->position.z() << '\n';
-            if (timeCount < Global::lastUsedTime)
-                Global::lastUsedTime = timeCount;
-            gameManager->RequestTransitState(GameStateId::MainMenu);
-        }
-
-        };
-
-    debugPlayer->onUpdate.Add(debugBehavior);
+    //this->AddActor(sphereActor);
+    this->AddActor(planeActor);
+    this->AddActor(itemActor);
+    this->AddActor(checkPt);
 }
+ 
 
 void GamePlayLevel::LoadUI()
 {
-    auto uiManager = GameApplication::GetInstance()->GetUIManager();
+    auto playeHUD = CreateActor<APlayerHUD>();
+    this->AddActor(playeHUD);
 
-    //FRect buttonRect = { 0, 0, 300, 150 };
-    FRect buttonRect = { 10, 20, 300, 50 };
-    auto debugHUD = CreateShared<UIButton>(buttonRect);
+    //auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
-    FRect buttonRect1 = { 10, 100, 300, 50 };
-    auto debugHUD1 = CreateShared<UIButton>(buttonRect1);
+    ////FRect buttonRect = { 0, 0, 300, 150 };
+    //FRect buttonRect = { 10, 20, 300, 50 };
+    //auto debugHUD = CreateShared<UIButton>(buttonRect);
 
-    FRect buttonRect2 = { 10, 200, 300, 50 };
-    auto debugHUD2 = CreateShared<UIButton>(buttonRect2);
+    //FRect buttonRect1 = { 10, 100, 300, 50 };
+    //auto debugHUD1 = CreateShared<UIButton>(buttonRect1);
 
-    m_Buttons.push_back(debugHUD);
-    m_Buttons.push_back(debugHUD1);
-    m_Buttons.push_back(debugHUD2);
+    //FRect buttonRect2 = { 10, 200, 300, 50 };
+    //auto debugHUD2 = CreateShared<UIButton>(buttonRect2);
 
-    //todo:  manually submit 
-    uiManager->RegisterRootElement(debugHUD.get());
-    uiManager->RegisterRootElement(debugHUD1.get());
-    uiManager->RegisterRootElement(debugHUD2.get());
+    //m_buttons.push_back(debugHUD);
+    //m_buttons.push_back(debugHUD1);
+    //m_buttons.push_back(debugHUD2);
+
+    ////todo:  manually submit 
+    //uiManager->RegisterRootElement(debugHUD.get());
+    //uiManager->RegisterRootElement(debugHUD1.get());
+    //uiManager->RegisterRootElement(debugHUD2.get());
 }
 
 
- 
+
 void GamePlayLevel::OnUnload()
 {
     std::cout << "unload game world" << '\n';
 
     //auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
     auto renderer = GameApplication::GetInstance()->GetRenderer();
-    renderer->ClearMesh(); 
+    renderer->ClearMesh();
 
     owningWorld->physicsScene->ClearCollider();
     owningWorld->physicsScene->ClearRigidBody();
     owningWorld->physicsScene->ClearBuffer();
 
     //
-    auto uiManager = GameApplication::GetInstance()->GetUIManager(); 
+    auto uiManager = GameApplication::GetInstance()->GetUIManager();
     renderer->ClearUI();
     uiManager->ClearRoot();
 
     //
-    for (auto& [id, actor] : m_staticMeshActors) {
-        actor->onUpdate.Clear();
-       // actor->onUpdate =
-    }
+    //for (auto& [id, actor] : m_staticMeshActors) {
+    //    actor->onUpdate.Clear();
+    //    // actor->onUpdate =
+    //}
 
-    m_staticMeshActors.clear();
-    m_Buttons.clear();
+    //m_staticMeshActors.clear();
+    m_buttons.clear();
     //dummyCamera = nullptr;
 }
 
@@ -311,177 +127,15 @@ void GamePlayLevel::OnTick(float delta)
 {
     ULevel::OnTick(delta); 
 
-    DebugDraw::Get().AddRay(
-        Float3(0.0f, 0.0f, 0.0f),
-        Float3(1.0f, 0.0f, 0.0f),
-        Color::Red
-    );
-
-    DebugDraw::Get().AddRay(
-        Float3(0.0f, 0.0f, 0.0f),
-        Float3(0.0f, 1.0f, 0.0f),
-        Color::Green
-    );
-
-
-    DebugDraw::Get().AddRay(
-        Float3(0.0f, 0.0f, 0.0f),
-        Float3(0.0f, 0.0f, 1.0f),
-        Color::Blue
-    );
-
-
-    //--------------
-    for (auto& HUD : m_Buttons) {
-        HUD->Tick(delta);
-    }
-     
-    //--------------
-    //m_debugRenderer->OnUpdate(delta, dummyCamera.pvMatrix); 
-    {
-
-        //defaultCamera.Tick(delta);
-    }
-
-    //owningWorld->physicsScene->SyncPhysics();
-    //this->SyncPhysicsToGame(); 
-
-    //--------------
-    for (auto& [actorId, proxy] : m_staticMeshActors)
-    {
-        proxy->onUpdate.BlockingBroadCast(delta);
-
-        //auto objectCBH = proxy->objectCB;
-        //if (objectCBH == nullptr) {
-        //    continue;
-        //}
-
-        //auto yAxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-        //auto rotation = XMQuaternionRotationAxis(yAxis, delta);
-        //proxy->rotation = XMQuaternionMultiply(rotation, proxy->rotation);
-
-        //ObjectCB objectCBData = {};
-
-        auto modelMatrix_ = MMath::MatrixIdentity<float, 4>();
-        auto scaleMatrix = MMath::MatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z());
-        modelMatrix_ = MatrixMultiply(scaleMatrix, modelMatrix_);
-
-        auto R_ = XMMatrixRotationQuaternion(proxy->rotation);
-        auto R = MMath::MatrixIdentity<float, 4>();
-        R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
-        R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
-        R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
-        R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-        modelMatrix_ = MatrixMultiply(R, modelMatrix_); //rotate the model using the quaternion 
-
-        //translate: 
-        auto translation = MMath::MatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
-        //translation = Transpose(translation); 
-        //std::cout << "translation matrix: " << ToString(translation) << std::endl;
-
-        //modelMatrix_ = MatrixMultiply(translation, modelMatrix_); 
-
-        modelMatrix_ = MatrixMultiply(translation, modelMatrix_);
-
-        //modelMatrix_ = MMath::MatrixIdentity<float, 4>();
-        //modelMatrix_ = Transpose(modelMatrix_); 
-
-        //auto modelMatrix = XMMatrixIdentity();
-        //auto translation_ = XMMatrixTranslation(proxy->position.x(), proxy->position.y(), proxy->position.z());
-        //std::cout << "expected translation: " << '\n';
-        //std::cout << MMath::XMMatrixToString(translation_) << std::endl;
-        //
-
-        //modelMatrix = XMMatrixRotationQuaternion(proxy->rotation) * modelMatrix;
-        //modelMatrix = XMMatrixScaling(proxy->scale.x(), proxy->scale.y(), proxy->scale.z()) * modelMatrix;
-
-        // Translate the model to its position
-        // Rotate the model using the quaternion 
-
-        //XMStoreFloat4x4(&mainConstBufferData.modelMatrix, modelMatrix);
-
-        //make sure transpose before present to hlsl;
-        //mainConstBufferData.modelMatrix = Transpose(modelMatrix_);
-
-        //objectCBData.modelMatrix = modelMatrix_;
-
-        //XMStoreFloat4x4(&constBufferData.viewProjectionMatrix, vp);
-        //mainConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
-
-        // Upload the constant buffer data.
-        //objectCBH->UploadData(&objectCBData, sizeof(ObjectCB));
-
-        proxy->modelMatrix = modelMatrix_;
-
-         
-        //shadow pass:
-        //auto shadowConstBufferH = proxy->shadowMVPConstantBuffer;
-        //if (shadowConstBufferH == nullptr) {
-        //    continue;
-        //}
-
-        //MVPConstantBuffer shadowConstBufferData = {};
-        //shadowConstBufferData.modelMatrix = modelMatrix_;
-        //shadowConstBufferData.projectionViewMatrix = dummyCamera->pvMatrix;
-
-        //// Upload the shadow constant buffer data.
-        //shadowConstBufferH->UploadData(&shadowConstBufferData, sizeof(MVPConstantBuffer));
-
-
-        DebugDraw::Get().AddRay(
-            proxy->position,
-            R[0].xyz(),
-            Color::Red
-        );
-
-        DebugDraw::Get().AddRay(
-            proxy->position,
-            R[1].xyz(),
-            Color::Green
-        );
-
-        DebugDraw::Get().AddRay(
-            proxy->position,
-            R[2].xyz(),
-            Color::Blue
-        );
-
-    }
-
-
-    //new:--------
-    //this->SyncPhysicsToGame();
-
-
-    //--------------
-    //auto renderer = GameApplication::GetInstance()->GetRenderer();
-    //for (auto& [handle, actorProxy] : m_staticMeshActors) {
-
-    //    FStaticMeshProxy proxy = {
-    //   .modelMatrix = actorProxy->modelMatrix,
-    //   .mesh = actorProxy->mesh.get(),
-    //   .material = actorProxy->material.get(),
-    //   .instanceData = actorProxy->instanceData.data(),
-    //   .instanceCount = actorProxy->instanceData.size(),
-    //    };
-    //    renderer->SubmitMesh(proxy);
-    //}
-
-    //renderer->SubmitCamera(defaultCamera);
-
 }
-
-
-
 
 void GamePlayLevel::SyncGameToPhysics()
 {
-    for (auto& [actorH, actor] : m_staticMeshActors) {
-        owningWorld->physicsScene->SetPosition(actorH, actor->position);
-        //owningWorld->physicsScene->SetRotation(actorH, actor->rotation); 
-    }
-     
+    //for (auto& [actorH, actor] : m_staticMeshActors) {
+    //    owningWorld->physicsScene->SetPosition(actorH, actor->position);
+    //    //owningWorld->physicsScene->SetRotation(actorH, actor->rotation); 
+    //}
+
     //  for (auto& [actorH, rb] : owningWorld->physicsScene->m_bodies) {
 
     //      auto& owner = this->m_staticMeshActors[actorH];
@@ -557,8 +211,8 @@ void MainMenuLevel::OnLoad()
 
     //todo:  manually submit
     //debugButton->Render(); 
-    m_Buttons.push_back(entryButton);
-    m_Buttons.push_back(timeHUD);
+    m_buttons.push_back(entryButton);
+    m_buttons.push_back(timeHUD);
     uiManager->RegisterRootElement(entryButton.get());
     uiManager->RegisterRootElement(timeHUD.get());
 }
@@ -575,14 +229,15 @@ void MainMenuLevel::OnUnload()
 
     uiManager->ClearRoot();
 
-    m_Buttons.clear();
+    m_buttons.clear();
 }
 
 void MainMenuLevel::OnTick(float delta)
 {
-    for (auto& button : m_Buttons) {
-        button->Tick(delta);
-    }
+    ULevel::OnTick(delta);
+    //for (auto& button : m_buttons) {
+    //    button->Tick(delta);
+    //}
 }
 
 
@@ -659,4 +314,3 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
     }
 }
 */
- 

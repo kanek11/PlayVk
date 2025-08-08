@@ -11,22 +11,21 @@ public:
 	virtual void OnUnload()override;
 	virtual void OnTick(float delta) override;
 
-	void LoadUI(); 
-	void LoadActors(); 
+	void LoadUI();
+	void LoadActors();
 
-	void LoadLegacy();
+	//void LoadLegacy();
 
 private:
 	//std::vector<SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
-	std::unordered_map<ActorId, SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
-	 
-public: 
+	//std::unordered_map<ActorId, SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
+
+public:
 	//void GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount);
 	float roadWidth = 10;
-	float goalLength = 50;
+	float goalLength = 100;
 
 	float timeCount{}; 
-
 public:
 	void SyncGameToPhysics() override;
 	//void SyncPhysicsToGame() override;
@@ -38,7 +37,6 @@ public:
 	virtual ~MainMenuLevel() = default;
 	virtual void OnLoad()override;
 	virtual void OnUnload()override;
-	virtual void OnTick(float delta) override; 
+	virtual void OnTick(float delta) override;
 };
-
 

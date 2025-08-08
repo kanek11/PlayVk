@@ -71,7 +71,7 @@ void Gameplay::USceneComponent::UpdateChildTransforms()
     for (auto* child : m_children)
     {
         child->UpdateWorldTransform();
-    } 
+    }
 }
 
 Float3 Gameplay::USceneComponent::GetForwardVector() const
@@ -80,7 +80,7 @@ Float3 Gameplay::USceneComponent::GetForwardVector() const
     DirectX::XMFLOAT3 xmOut;
     DirectX::XMStoreFloat3(&xmOut, forward_);
     Float3 forward = { xmOut.x, xmOut.y, xmOut.z };
-    return forward; 
+    return forward;
 }
 
 Float3 Gameplay::USceneComponent::GetRightVector() const
@@ -114,7 +114,7 @@ Float4x4 Gameplay::USceneComponent::GetInvViewMatrix() const
 
     auto eyePos = this->GetWorldPosition();
     auto targetPos = eyePos + forward;
-     
+
     auto invView_ = MMath::InverseLookAtLH(eyePos, targetPos, up);
 
     return invView_;
@@ -122,8 +122,8 @@ Float4x4 Gameplay::USceneComponent::GetInvViewMatrix() const
 
 void Gameplay::USceneComponent::AttachTo(USceneComponent* newParent)
 {
-	assert(newParent != this && "Cannot attach to self");
-	assert(newParent != nullptr && "Cannot attach to null parent");
+    assert(newParent != this && "Cannot attach to self");
+    assert(newParent != nullptr && "Cannot attach to null parent");
 
     if (m_parent == newParent) return;
 

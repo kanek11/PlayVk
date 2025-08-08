@@ -40,8 +40,8 @@ void CubeMesh::CreateMeshData()
     };
 
     const Float4 faceColor[6] = {
-        {1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1},
-        {1, 1, 0, 1}, {0, 1, 1, 1}, {1, 0, 1, 1}
+        {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1},
+        {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}
     };
 
     const Face faces[6] = {
@@ -125,8 +125,8 @@ void FD3D12MeshResource::CreateResources()
 void UStaticMesh::CreateGPUResource(ID3D12Device* device)
 {
     m_GPUResource = CreateShared<FD3D12MeshResource>(device, m_meshData);
- 
-	uploaded = true; // Mark as uploaded 
+
+    uploaded = true; // Mark as uploaded 
 }
 
 PlaneMesh::PlaneMesh(uint32_t subdivisionX, uint32_t subdivisionZ) :

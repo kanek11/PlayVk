@@ -70,15 +70,7 @@ struct StaticMeshActorProxy {
     FDelegate<void(float)> onUpdate;
 };
 
-SharedPtr<StaticMeshActorProxy> CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh, Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
-
-SharedPtr<StaticMeshActorProxy> CreateSphereActor(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
-SharedPtr<StaticMeshActorProxy> CreateBoxActor(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
-
-SharedPtr<StaticMeshActorProxy> CreatePlaneActor(Float3 position, Float3 scale, uint32_t subdivisionX, uint32_t subdivisionZ);
-
-
-
+  
 
 using namespace Gameplay;
 
@@ -98,17 +90,21 @@ public:
 
 public:
     SharedPtr<UStaticMeshComponent> staticMeshComponent;
-    SharedPtr<UShapeComponent> shapeComponent;  
+    SharedPtr<UShapeComponent> shapeComponent;
 };
 
 
 namespace Mesh {
 
-    SharedPtr<AStaticMeshActor> CreateStaticMeshActor(SharedPtr<UStaticMesh> mesh, Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
+    void SetSphere(AActor* actor, float radius);
+    void SetPlane(AActor* actor, uint32_t subdivisionX, uint32_t subdivisionZ);
+    void SetBox(AActor* actor, Float3 extents);
 
-    SharedPtr<AStaticMeshActor> CreateSphere(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
-    SharedPtr<AStaticMeshActor> CreateBox(Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
-    SharedPtr<AStaticMeshActor> CreatePlane(Float3 position, Float3 scale, uint32_t subdivisionX, uint32_t subdivisionZ);
+
+    SharedPtr<AStaticMeshActor> CreateSphereActor(float radius, Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
+    SharedPtr<AStaticMeshActor> CreatePlaneActor(uint32_t subdivX, uint32_t subdivZ,  Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
+
+    SharedPtr<AStaticMeshActor> CreateBoxActor(Float3 extents, Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
 
 }
 

@@ -30,9 +30,11 @@ struct alignas(256) SceneCB
     alignas(16) Float3 lightColor = Float3(1.0f, 1.0f, 1.0f);
     float lightIntensity = 1.0f;
 
-    SceneCB() {
-        Float3 lightPos = lightDir * 10.0f;
-        Float3 target = Float3(0.0f, 0.0f, 0.0f);
+    void OnTick() 
+    {
+        //new:
+        Float3 lightPos = cameraPos + lightDir * 10.0f;
+        Float3 target = cameraPos; // Float3(0.0f, 0.0f, 0.0f);
 
         // 4. Up vector (choose world up, e.g. Y axis)
         Float3 up = Float3(0.0f, 1.0f, 0.0f);
@@ -64,6 +66,8 @@ namespace Mesh {
     {
         Float4x4 modelMatrix;
         Float4x4 normalMatrix;
+        Float3 center;
+        alignas(16) Float4 color { 1.0f, 0.0f, 0.0f, 0.5f };
     };
 
     //static_assert((sizeof(ObjectCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");

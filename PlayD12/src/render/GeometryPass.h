@@ -24,12 +24,11 @@ struct RendererContext;
 
 namespace Passes {
 
-    inline RenderPassDesc ForwardPassDesc = {
-     .passTag = "Forward",
+    inline RenderPassDesc DebugMeshPassDesc = {
+    .passTag = "Volume",
     .colorFormats = {DXGI_FORMAT_R8G8B8A8_UNORM},
     .depthFormat = DXGI_FORMAT_D32_FLOAT,
-    .enableDepth = true,
-    .enableBlend = false,
+    .enableDepth = true, 
     .cullMode = D3D12_CULL_MODE_NONE,
     };
 
@@ -37,14 +36,14 @@ namespace Passes {
 
 namespace Materials {
 
-    inline MaterialDesc LitMaterialDesc = {
-    .shaderTag = "Lit",
-    .enableAlphaBlend = false,
-    .doubleSided = false,
-    .depthWrite = true,
+    inline MaterialDesc DebugMeshMaterialDesc = {
+    .shaderTag = "Debug",
+    .enableAlphaBlend = true,
+    .doubleSided = true,
+    .depthWrite = false,
+    .enableWireFrame = false, 
     };
 }
-
  
 
 namespace Mesh {
@@ -68,13 +67,6 @@ namespace Mesh {
         D3D12_PRIMITIVE_TOPOLOGY topology;
         D3D12_INDEX_BUFFER_VIEW ibv;
         size_t indexCount;
-
-        //Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
-        //SharedPtr<FD3D12Buffer> objectCB;
-        //D3D12_GPU_VIRTUAL_ADDRESS objectCBAddr;
-
-        //std::vector<InstanceData> instanceData;
-        //SharedPtr<FD3D12Buffer> instanceBuffer;
 
         D3D12_VERTEX_BUFFER_VIEW instanceVBV;
         size_t instanceCount = 0;
@@ -100,12 +92,13 @@ namespace Mesh {
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
 
-    void EndFrame(PassContext& passCtx) noexcept;
+    void BeginFrame(PassContext& passCtx) noexcept;
+    void EndFrame(PassContext& passCtx) noexcept; 
 }
 
 
 
-namespace Lit
+namespace OverlayMesh
 {
     using PassContext = Mesh::PassContext;
     using ObjectCB = Mesh::ObjectCB;
@@ -119,14 +112,15 @@ namespace Lit
 }
 
 
+
+
 namespace Passes {
 
     inline RenderPassDesc ShadowPassDesc = {
        .passTag = "Shadow",
        .colorFormats = { },
        .depthFormat = DXGI_FORMAT_D32_FLOAT,
-       .enableDepth = true,
-       .enableBlend = false,
+       .enableDepth = true, 
        .cullMode = D3D12_CULL_MODE_NONE,
     };
 
@@ -184,8 +178,7 @@ namespace Passes {
         "rt2_position_metallic",
        },
        .depthFormat = DXGI_FORMAT_D32_FLOAT,
-       .enableDepth = true,
-       .enableBlend = false,
+       .enableDepth = true, 
        .cullMode = D3D12_CULL_MODE_NONE,
     };
 

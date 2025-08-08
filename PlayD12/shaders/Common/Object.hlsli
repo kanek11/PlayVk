@@ -9,6 +9,8 @@ cbuffer ObjectCB : register(b1)
     float4x4 gModelMatrix;
     float4x4 gNormalMatrix; // transpose(inverse(gModelMatrix))
     float3 gCenterPos; //for probe;
+    
+    float4 gColor;
 };
   
 #endif

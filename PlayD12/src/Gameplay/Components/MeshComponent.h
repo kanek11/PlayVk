@@ -47,7 +47,7 @@ namespace Gameplay {
         // LOD 
         //void SetLOD(int lod);
         //int  GetLOD() const;
-         
+
         //void SetCastShadow(bool bCastShadow);
         //bool GetCastShadow() const;
 

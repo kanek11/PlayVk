@@ -4,6 +4,8 @@
 #include "Shape.h"
 
 #include "PhysicsSync.h"
+
+#include "Delegate.h"
 //design decision: use PBD solver ;
 
 //using namespace DirectX;
@@ -11,15 +13,14 @@
 /*
 design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
-*/  
+*/
 
+ 
 struct PhysicalMaterial {
 	float restitution;
 	float friction;
 };
-
-struct StaticMeshActorProxy;
-
+ 
 struct RigidBody {
 
 	std::string debugName; //for debug purpose
@@ -47,7 +48,7 @@ struct RigidBody {
 	//inertia
 	Float3x3 localInertia;
 	Float3x3 worldInertia;
-	Float3x3  invWorldInertia;
+	Float3x3 invWorldInertia;
 
 	DirectX::XMVECTOR prevRot{ DirectX::XMQuaternionIdentity() };
 	DirectX::XMVECTOR predRot{ DirectX::XMQuaternionIdentity() };
@@ -74,6 +75,18 @@ struct RigidBody {
 		this->prevRot = rotation;
 	}
 
+	void ClearRotation() {
+		this->rotation = DirectX::XMQuaternionIdentity();
+		this->predRot = DirectX::XMQuaternionIdentity();
+		this->prevRot = DirectX::XMQuaternionIdentity();
+		 
+		angularVelocity *= 0.5f;
+	}
+
+	void SetPhysicalMaterial(const PhysicalMaterial& material) {
+		this->material = material;
+	}
+
 	ShapeType type;
 	void SetShape(ShapeType shape) {
 		this->type = shape;
@@ -88,19 +101,26 @@ struct Collider {
 	ShapeType type;
 
 	RigidBody* body{ nullptr };
-	Collider(ShapeType type, RigidBody* body)
-		:type(type), body(body)
+	 
+	void SetShape(ShapeType shape) {
+		this->type = shape;
+	}
+
+	void SetIsTrigger(bool isTrigger) {
+		this->bIsTrigger = isTrigger;
+	}
+
+	Collider(RigidBody* body)
+		:body(body)
 	{
 	};
+
+
+	ActorId actorId;
+	bool bIsTrigger{ false };
+	bool bEnabled{ true };
 };
-
-//using ColliderPair = std::pair<const Collider* , const Collider* >;
-//class BroadPhaseCollision {
-//public:
-//	 
-//};
-
-
+ 
 struct Contact {
 	Float3 point;
 	Float3 normal;
@@ -113,6 +133,13 @@ struct Contact {
 };
 
 
+//using ColliderPair = std::pair<const Collider* , const Collider* >;
+//class BroadPhaseCollision {
+//public:
+//	 
+//};
+
+ 
 class NarrowPhaseCollision {
 public:
 	void DetectCollisions();
@@ -128,6 +155,7 @@ public:
 	void Integrate();
 };
 
+ 
 
 class PhysicsScene {
 public:
@@ -138,13 +166,15 @@ public:
 
 
 public:
-	void AddRigidBody(RigidBody* rb,
-		ActorId owener,
+	void SetRigidBody(RigidBody* rb,
+		ActorId owner,
 		const Float3& position = Float3{ 0.0f, 0.0f, 0.0f },
 		const DirectX::XMVECTOR& rotation = DirectX::XMQuaternionIdentity()
 	);
-	void AddCollider(Collider* collider) {
-		m_colliders.push_back(collider);
+	void SetCollider(Collider* collider, ActorId owner) {
+		collider->actorId = owner;
+		m_colliders[owner] = collider;
+		
 	}
 
 	void ClearRigidBody() {
@@ -182,7 +212,8 @@ private:
 
 private:
 	std::unordered_map<ActorId, RigidBody*> m_bodies;
-	std::vector<Collider* > m_colliders;
+	std::unordered_map<ActorId, Collider*> m_colliders;
+	//std::vector<Collider* > m_colliders;
 	std::vector<Contact>  m_contacts;
 	//std::vector<Constraints* > m_constraints;
 
@@ -211,5 +242,5 @@ public:
 private:
 	PhysicsTransformSyncBuffer m_transformBuffer;
 	PhysicsCommandBuffer m_commandBuffer;
+	 
 };
-

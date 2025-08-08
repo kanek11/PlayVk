@@ -176,16 +176,22 @@
     <ClInclude Include="src\Gameplay\ActorComponent.h" />
     <ClInclude Include="src\Gameplay\Actors\AController.h" />
     <ClInclude Include="src\Gameplay\Actors\APawn.h" />
+    <ClInclude Include="src\Gameplay\Actors\StaticMeshActor.h" />
     <ClInclude Include="src\Gameplay\Components\CameraComponent.h" />
+    <ClInclude Include="src\Gameplay\Components\LightComponent.h" />
     <ClInclude Include="src\Gameplay\Components\MeshComponent.h" />
     <ClInclude Include="src\Gameplay\Components\PrimitiveComponent.h" />
     <ClInclude Include="src\Gameplay\Components\ShapeComponent.h" />
+    <ClInclude Include="src\Gameplay\GameStateBase.h" />
     <ClInclude Include="src\Gameplay\Level.h" />
     <ClInclude Include="src\Gameplay\Scene.h" />
     <ClInclude Include="src\Gameplay\SceneComponent.h" />
     <ClInclude Include="src\Gameplay\Object.h" />
     <ClInclude Include="src\Gameplay\World.h" />
     <ClInclude Include="src\Game\DemoLevels.h" />
+    <ClInclude Include="src\Game\GameState.h" />
+    <ClInclude Include="src\Game\HUD.h" />
+    <ClInclude Include="src\Game\Item.h" />
     <ClInclude Include="src\Game\Player.h" />
     <ClInclude Include="src\InputSystem.h" />
     <ClInclude Include="src\Math\Graph.h" />
@@ -193,6 +199,7 @@
     <ClInclude Include="src\Math\MMath.h" />
     <ClInclude Include="src\Math\MathUtility.h" />
     <ClInclude Include="src\physics\Collision.h" />
+    <ClInclude Include="src\physics\PhysicsEvent.h" />
     <ClInclude Include="src\physics\PhysicsScene.h" />
     <ClInclude Include="src\physics\PhysicsSync.h" />
     <ClInclude Include="src\physics\Shape.h" />
@@ -219,8 +226,6 @@
     <ClInclude Include="src\render\StaticMeshProxy.h" />
     <ClInclude Include="src\render\Texture.h" />
     <ClInclude Include="src\render\UIPass.h" />
-    <ClInclude Include="src\StaticMeshActor.h" />
-    <ClInclude Include="src\Time.h" />
     <ClInclude Include="src\UI.h" />
     <ClInclude Include="src\Window.h" />
     <ClInclude Include="src\render\Text.h" />
@@ -235,6 +240,7 @@
     <ClCompile Include="src\Gameplay\ActorComponent.cpp" />
     <ClCompile Include="src\Gameplay\Actors\AController.cpp" />
     <ClCompile Include="src\Gameplay\Actors\APawn.cpp" />
+    <ClCompile Include="src\Gameplay\Actors\StaticMeshActor.cpp" />
     <ClCompile Include="src\Gameplay\Components\CameraComponent.cpp" />
     <ClCompile Include="src\Gameplay\Components\MeshComponent.cpp" />
     <ClCompile Include="src\Gameplay\Components\PrimitiveComponent.cpp" />
@@ -244,6 +250,8 @@
     <ClCompile Include="src\Gameplay\SceneComponent.cpp" />
     <ClCompile Include="src\Gameplay\World.cpp" />
     <ClCompile Include="src\Game\DemoLevels.cpp" />
+    <ClCompile Include="src\Game\HUD.cpp" />
+    <ClCompile Include="src\Game\Item.cpp" />
     <ClCompile Include="src\Game\Player.cpp" />
     <ClCompile Include="src\InputSystem.cpp" />
     <ClCompile Include="src\physics\PhysicsScene.cpp" />
@@ -267,7 +275,6 @@
     <ClCompile Include="src\render\Resource.cpp" />
     <ClCompile Include="src\render\Shader.cpp" />
     <ClCompile Include="src\render\Texture.cpp" />
-    <ClCompile Include="src\StaticMeshActor.cpp" />
     <ClCompile Include="src\UI.cpp" />
     <ClCompile Include="src\Window.cpp" />
     <ClCompile Include="src\render\Text.cpp" />

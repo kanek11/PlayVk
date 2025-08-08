@@ -12,8 +12,7 @@
 
 #include "UI.h" 
 
-#include "Physics/PhysicsScene.h"
-#include "StaticMeshActor.h"
+#include "Physics/PhysicsScene.h" 
 
 #include "Gameplay/Actors/APawn.h"
 #include "Gameplay/Actors/AController.h"
@@ -24,7 +23,7 @@ namespace Global {
 
 namespace Gameplay {
 
-	using sceneIterFn = std::function<void(USceneComponent*)>; 
+	using sceneIterFn = std::function<void(USceneComponent*)>;
 
 	class UWorld;
 
@@ -36,7 +35,7 @@ namespace Gameplay {
 		virtual void OnTick(float delta);
 
 		void BeginPlay();
-		void EndPlay(); 
+		void EndPlay();
 
 		virtual void SyncGameToPhysics() {};
 
@@ -50,11 +49,11 @@ namespace Gameplay {
 
 		void ForEachComponent(const sceneIterFn& fn);
 		void TraverseTree(USceneComponent* comp, const sceneIterFn& fn);
-		 
+
 
 	public:
 		//UIs are managed separately with actors
-		std::vector<SharedPtr<UIButton>> m_Buttons;
+		std::vector<SharedPtr<UIButton>> m_buttons;
 
 		//dummy design: 
 		//FCameraProxy defaultCamera;

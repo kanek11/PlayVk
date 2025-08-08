@@ -4,8 +4,10 @@
 
 #include "Application.h"
 
+#include "Physics/PhysicsEvent.h"
+
 namespace Gameplay {
-	 
+
 	void UWorld::Init()
 	{
 		auto& gTime = GameApplication::GetInstance()->GetTimeSystem();
@@ -20,12 +22,12 @@ namespace Gameplay {
 
 		//new understanding:  controllers are managed by world itself; 
 		auto dftPlayerController = CreateActor<AController>();
-		this->AddPlayerController(dftPlayerController); 
+		this->AddPlayerController(dftPlayerController);
 	}
 
 	void UWorld::BeginPlay()
 	{
-		if (currentLevel) { 
+		if (currentLevel) {
 			currentLevel->BeginPlay();
 		}
 
@@ -49,17 +51,33 @@ namespace Gameplay {
 		//if (currentLevel) {
 		//	currentLevel->SyncPhysicsToGame();
 		//}
+		this->DispatchPhysicsEvents();
+
 
 		auto& transformBuffer = physicsScene->GetTransformBuffer();
 		for (auto& [id, trans] : transformBuffer) {
 
-			if (!this->m_primtiveMap.contains(id)) continue;
-			auto& owner = this->m_primtiveMap.at(id);
+			if (!this->m_primtiveMap.contains(id)) continue; 
+			auto& primitive = this->m_primtiveMap.at(id);
 
-			owner->SetRelativePosition(trans.position);
-			owner->SetRelativeRotation(trans.rotation);
+			if (!primitive->IsSimulatingPhysics()) continue;
+
+			primitive->SetRelativePosition(trans.position);
+			primitive->SetRelativeRotation(trans.rotation);
 
 			//std::cout << "update physics pos:" << ToString(trans.position) << " for id:" << id << '\n'; 
+		}
+	}
+
+	void UWorld::DispatchPhysicsEvents()
+	{
+		auto& events = PhysicsEventQueue::Get().Drain();
+		for (auto& event : events) {
+			auto actorA = this->PrimitiveIdToActor(event.a_ID);
+			auto actorB = this->PrimitiveIdToActor(event.b_ID);
+
+			m_primtiveMap[event.a_ID]->onOverlap.BlockingBroadCast(actorB);
+			m_primtiveMap[event.b_ID]->onOverlap.BlockingBroadCast(actorA);
 		}
 	}
 
@@ -68,7 +86,7 @@ namespace Gameplay {
 	{
 		//
 		auto controller = this->GetFirstPlayerController();
-		if (!controller) return; 
+		if (!controller) return;
 
 		//std::cout << "detect player controller\n";
 
@@ -83,7 +101,7 @@ namespace Gameplay {
 		if (!cameraComp) return;
 
 		//std::cout << "detect camera\n";
-		 
+
 		//leave it here for now
 		//auto& cameraTrans = cameraComp->GetWorldTransform(); 
 		auto eyePos = cameraComp->GetWorldPosition();
@@ -108,7 +126,7 @@ namespace Gameplay {
 	}
 
 
-	void UWorld::OnTick(float delta) 
+	void UWorld::OnTick(float delta)
 	{
 		if (currentLevel) {
 			//std::cout << "tick current world: " << currentWorld << '\n';
@@ -119,7 +137,7 @@ namespace Gameplay {
 			controller->OnTick(delta);
 		}
 
-	
+
 		//
 		this->ConstructSceneView();
 

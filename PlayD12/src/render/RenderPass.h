@@ -19,7 +19,7 @@ struct RenderPassDesc {
     std::vector<std::string> rtvNames;
     DXGI_FORMAT depthFormat = DXGI_FORMAT_D32_FLOAT;
     bool enableDepth = true;
-    bool enableBlend = false;
+    //bool enableBlend = false;
     D3D12_CULL_MODE cullMode = D3D12_CULL_MODE_NONE;
     D3D12_PRIMITIVE_TOPOLOGY_TYPE topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 };

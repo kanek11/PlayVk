@@ -3,9 +3,9 @@
 
 #include "Render/Renderer.h" 
 
-#include "Collision.h"  
+#include "Collision.h"   
 
-#include "StaticMeshActor.h"
+#include "PhysicsEvent.h"
 
 using namespace DirectX;
 
@@ -45,7 +45,7 @@ void PhysicsScene::OnDestroy()
 {
 }
 
-void PhysicsScene::AddRigidBody(RigidBody* rb, ActorId owener,
+void PhysicsScene::SetRigidBody(RigidBody* rb, ActorId owener,
 	const Float3& position,
 	const DirectX::XMVECTOR& rotation
 )
@@ -62,7 +62,11 @@ void PhysicsScene::PreSimulation()
 
 	//new: consume the cmd buffer: 
 	m_commandBuffer.SwapBuffers();
-	m_commandBuffer.Execute();
+	m_commandBuffer.Execute(); 
+
+	auto events = PhysicsEventQueue::Get().Drain(); 
+	if(events.size()>0)
+	std::cout << "unhandled collision: " << events.size() << '\n';
 }
 
 void PhysicsScene::ApplyExternalForce(float delta)
@@ -107,8 +111,8 @@ void PhysicsScene::Integrate(float delta)
 		/*	std::cout << "integrate for rb : " << rb->debugName << '\n';
 			std::cout << "dq: " << MMath::XMToString(dq) << '\n';*/
 
-			//update pose;
-			//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
+		//update pose;
+		//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
 		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
 		XMMATRIX invR_ = XMMatrixTranspose(R_);
 
@@ -137,7 +141,10 @@ void PhysicsScene::DetectCollisions()
 
 	std::vector<WorldShapeProxy> ws;
 	ws.reserve(m_colliders.size());
-	for (Collider* c : m_colliders) {
+	for (auto& [actor, c] : m_colliders) {
+		//new:
+		if (!c->bEnabled) continue;
+
 		WorldShapeProxy proxy = { MakeWorldShape(*c), c };
 		ws.push_back(proxy);
 	}
@@ -189,14 +196,29 @@ void PhysicsScene::SolveConstraints(float delta)
 
 	for (Contact& contact : m_contacts) {
 
+		//new:
+		if (contact.a->bIsTrigger || contact.b->bIsTrigger) {
+			FCollisionEvent event = {
+				.a_ID= contact.a->actorId,
+				.b_ID = contact.b->actorId,
+				.contact = contact,
+			};
+			PhysicsEventQueue::Get().Push(event);
+			continue;
+		}
+
+
 		RigidBody* A = contact.a->body;
 		RigidBody* B = contact.b->body;
 
-		Float3 posA = A ? A->predPos : Float3{};
-		Float3 posB = B ? B->predPos : Float3{};
+		//new: the architecture now assumes valid rigidbody;
+		assert(A != nullptr && B != nullptr);
 
-		Float3 ra = contact.point - (A ? A->predPos : Float3{});
-		Float3 rb = contact.point - (B ? B->predPos : Float3{});
+		Float3 posA = A->predPos;
+		Float3 posB = B->predPos;
+
+		Float3 ra = contact.point - (A->predPos);
+		Float3 rb = contact.point - (B->predPos);
 
 		float wA = generalizedInvMass(A, ra, contact.normal);
 		float wB = generalizedInvMass(B, rb, contact.normal);
@@ -542,4 +564,3 @@ RigidBody::RigidBody()
 {
 	//localInertia = MakeInertiaTensor(type, mass);
 }
-

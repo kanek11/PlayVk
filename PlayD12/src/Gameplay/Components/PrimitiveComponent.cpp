@@ -12,7 +12,7 @@ namespace Gameplay {
 	}
 
 	void UPrimitiveComponent::OnRegister()
-	{ 
+	{
 		auto owningWorld = this->GetWorld();
 		owningWorld->AddPrimitiveComponent(this);
 
@@ -20,6 +20,5 @@ namespace Gameplay {
 		this->rigidBody->SetRotation(this->GetWorldRotation());
 
 		std::cout << "primitive component on register, id:" << id << " position: " << ToString(this->GetWorldPosition()) << '\n';
-	} 
+	}
 }
-

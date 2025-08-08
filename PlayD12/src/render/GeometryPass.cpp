@@ -1,11 +1,10 @@
 #include "PCH.h"
 
 #include "GeometryPass.h"
-#include "Renderer.h"
-
-#include "StaticMeshActor.h"
+#include "Renderer.h" 
 
 
+//------------------------------
 void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
 {
     auto& frameData = Render::frameContext;
@@ -45,6 +44,71 @@ void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext&
     }
 }
 
+void Mesh::BeginFrame(PassContext& passCtx) noexcept
+{
+    auto& renderCtx = Render::rendererContext;
+    auto& frameCtx = Render::frameContext;
+    auto& graphCtx = Render::graphContext;
+
+    if (frameCtx == nullptr || graphCtx == nullptr) {
+        std::cerr << "render context is not inited" << std::endl;
+        return;
+    }
+
+    auto& shader = passCtx.res.shader;
+    auto& batchData = passCtx.data;
+
+    assert(passCtx.res.baseHeapOffset.has_value());
+    auto baseHeapOffset = passCtx.res.baseHeapOffset;
+
+    auto& cbAllocator = passCtx.res.objCBAllocator;
+    auto& instAllocator = passCtx.res.instanceBufferAllocator; 
+
+    for (auto& proxy : frameCtx->staticMeshes) {
+
+        auto currIndex = batchData.cmds.size();
+        auto localHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
+
+        auto instBV = instAllocator->Upload(proxy.instanceData, proxy.instanceCount);
+
+        //
+        ObjectCB cb =
+        {
+            .modelMatrix = proxy.modelMatrix,
+            .normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
+        };
+        auto cbView = cbAllocator->Upload(&cb);
+        shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);
+
+        //todo: where to put this thing 
+        if (!proxy.mesh->uploaded) {
+            proxy.mesh->CreateGPUResource(renderCtx->device);
+        }
+
+        assert(proxy.mesh != nullptr && proxy.mesh->uploaded);
+        Mesh::DrawCmd cmd =
+        {
+            .vbv = proxy.mesh->GetVertexBuffer()->GetVertexBufferView(),
+
+            .topology = proxy.mesh->GetTopology(),
+
+            .ibv = proxy.mesh->GetIndexBuffer()->GetIndexBufferView(),
+
+            .indexCount = proxy.mesh->GetIndexCount(),
+
+            .instanceVBV = GetVertexBufferView(instBV),
+            .instanceCount = proxy.instanceCount, 
+
+            .localHeapOffset = localHeapOffset,
+
+        };
+
+        batchData.cmds.push_back(cmd);
+    }
+}
+
+
+
 void Mesh::EndFrame(PassContext& passCtx) noexcept
 {
     passCtx.data.Clear();
@@ -54,10 +118,11 @@ void Mesh::EndFrame(PassContext& passCtx) noexcept
     passCtx.res.instanceBufferAllocator->Reset();
 }
 
+ 
 
 
-
-void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
+//------------------------------
+void OverlayMesh::Init(const RendererContext* ctx, PassContext& passCtx)
 {
 
     {
@@ -75,8 +140,8 @@ void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
         auto& shader = passCtx.res.shader;
 
         ShaderPermutationKey key = {
-            .shaderTag = "Lit",
-            .passTag = "Forward", };
+            .shaderTag = "Debug",
+            .passTag = "Volume", };
 
         shader = ctx->shaderManager->GetOrLoad(key);
 
@@ -101,8 +166,8 @@ void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
 
         //------------ 
         pso = ctx->psoManager->GetOrCreate(
-            MaterialDesc{ .shaderTag = "Lit" },
-            RenderPassDesc{ .passTag = "Forward" },
+            Materials::DebugMeshMaterialDesc,
+            Passes::DebugMeshPassDesc,
             inputDescs
         );
 
@@ -110,14 +175,14 @@ void Lit::Init(const RendererContext* ctx, PassContext& passCtx)
 
 }
 
-void Lit::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
+void OverlayMesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
 {
-    Mesh::FlushAndRender(cmdList, passCtx);
-
+    Mesh::FlushAndRender(cmdList, passCtx); 
 }
 
-void Lit::BeginFrame(PassContext& passCtx) noexcept
-{ 
+void OverlayMesh::BeginFrame(PassContext& passCtx) noexcept
+{
+    auto& renderCtx = Render::rendererContext;
     auto& frameCtx = Render::frameContext;
     auto& graphCtx = Render::graphContext;
 
@@ -135,47 +200,28 @@ void Lit::BeginFrame(PassContext& passCtx) noexcept
     auto& cbAllocator = passCtx.res.objCBAllocator;
     auto& instAllocator = passCtx.res.instanceBufferAllocator;
 
-
-    for (auto& proxy : frameCtx->staticMeshes) {
+    for (auto& proxy : frameCtx->transparentMeshes) {
 
         auto currIndex = batchData.cmds.size();
         auto localHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
 
         auto instBV = instAllocator->Upload(proxy.instanceData, proxy.instanceCount);
 
+        //
         ObjectCB cb =
         {
             .modelMatrix = proxy.modelMatrix,
             .normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
- 
         };
         auto cbView = cbAllocator->Upload(&cb);
         shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);
 
-        auto& baseMap = graphCtx->loadedTextures["assets/textures/rusty_metal_diff.png"];
+        //todo: where to put this thing 
+        if (!proxy.mesh->uploaded) {
+            proxy.mesh->CreateGPUResource(renderCtx->device);
+        }
 
-        for (auto& [name, texName] : proxy.material->textures)
-        {
-            auto& tex = graphCtx->loadedTextures[texName];
-            if (tex)
-            {
-                shader->SetSRV(name, tex->GetRawResource(), tex->GetSRVDesc(), localHeapOffset);
-            }
-            else
-            {
-                std::cerr << "didn't find load tex:" << texName << std::endl;
-            }
-
-        } 
-
-        if (graphCtx->shadowMap)
-            shader->SetSRV("shadowMap", graphCtx->shadowMap->GetRawResource(), graphCtx->shadowMap->GetSRVDesc(), localHeapOffset);
-
-        /*     auto shadowMap = graphCtx->graph->GetTexture(RGNode{ "ShadowPass","Depth" });
-             shader->SetSRV("shadowMap", shadowMap->GetRawResource(), shadowMap->GetSRVDesc(), localHeapOffset);*/
-
-
-
+        assert(proxy.mesh != nullptr && proxy.mesh->uploaded);
         Mesh::DrawCmd cmd =
         {
             .vbv = proxy.mesh->GetVertexBuffer()->GetVertexBufferView(),
@@ -195,13 +241,15 @@ void Lit::BeginFrame(PassContext& passCtx) noexcept
 
         batchData.cmds.push_back(cmd);
     }
+
 }
 
-void Lit::EndFrame(PassContext& passCtx) noexcept
+void OverlayMesh::EndFrame(PassContext& passCtx) noexcept
 {
     Mesh::EndFrame(passCtx);
-}
+} 
 
+//------------------------------
 void Shadow::Init(const RendererContext* ctx, PassContext& passCtx)
 {
 
@@ -235,8 +283,7 @@ void Shadow::Init(const RendererContext* ctx, PassContext& passCtx)
         // Assemble input layout for shadow pass.
         auto inputDescs = InputLayoutBuilder::Build<StaticMeshShadowVertex>();
 
-        //------------
-
+        //------------ 
         pso = ctx->psoManager->GetOrCreate(
             Materials::ShadowMaterialDesc,
             Passes::ShadowPassDesc,
@@ -253,73 +300,16 @@ void Shadow::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContex
 }
 
 void Shadow::BeginFrame(PassContext& passCtx) noexcept
-{ 
-	auto& renderCtx = Render::rendererContext;
-    auto& frameCtx = Render::frameContext;
-    auto& graphCtx = Render::graphContext;
-
-    if (frameCtx == nullptr || graphCtx == nullptr) {
-        std::cerr << "render context is not inited" << std::endl;
-        return;
-    }
-
-    auto& shader = passCtx.res.shader;
-    auto& batchData = passCtx.data;
-
-    assert(passCtx.res.baseHeapOffset.has_value());
-    auto baseHeapOffset = passCtx.res.baseHeapOffset;
-
-    auto& cbAllocator = passCtx.res.objCBAllocator;
-    auto& instAllocator = passCtx.res.instanceBufferAllocator;
-
-
-    for (auto& proxy : frameCtx->staticMeshes) {
-
-        auto currIndex = batchData.cmds.size();
-        auto localHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
-
-        auto instBV = instAllocator->Upload(proxy.instanceData, proxy.instanceCount);
-
-        ObjectCB cb =
-        {
-            .modelMatrix = proxy.modelMatrix,
-            .normalMatrix = ToFloat4x4(MMath::Transpose(MMath::Inverse3x3(ToFloat3x3(proxy.modelMatrix)))),
-        };
-        auto cbView = cbAllocator->Upload(&cb);
-        shader->SetCBV("ObjectCB", GetCBVDesc(cbView), localHeapOffset);
-
-        //todo: where to put this thing 
-        if (!proxy.mesh->uploaded) {
-            proxy.mesh->CreateGPUResource(renderCtx->device);
-        } 
-
-        assert(proxy.mesh != nullptr && "Mesh is null");
-        Mesh::DrawCmd cmd =
-        {
-            .vbv = proxy.mesh->GetVertexBuffer()->GetVertexBufferView(),
-
-            .topology = proxy.mesh->GetTopology(),
-
-            .ibv = proxy.mesh->GetIndexBuffer()->GetIndexBufferView(),
-
-            .indexCount = proxy.mesh->GetIndexCount(),
-
-            .instanceVBV = GetVertexBufferView(instBV),
-            .instanceCount = proxy.instanceCount,
-
-
-            .localHeapOffset = localHeapOffset,
-
-        };
-
-        batchData.cmds.push_back(cmd);
-    }
+{
+    Mesh::BeginFrame(passCtx);
 }
 
 void Shadow::EndFrame(PassContext& passCtx) noexcept
 {
     Mesh::EndFrame(passCtx);
 }
+
+
 
 void GBuffer::Init(const RendererContext* ctx, PassContext& passCtx)
 {
@@ -413,7 +403,7 @@ void GBuffer::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassConte
 
 void GBuffer::BeginFrame(PassContext& passCtx) noexcept
 {
-	auto& renderCtx = Render::rendererContext;
+    auto& renderCtx = Render::rendererContext;
     auto& frameCtx = Render::frameContext;
     auto& graphCtx = Render::graphContext;
 
@@ -470,8 +460,7 @@ void GBuffer::BeginFrame(PassContext& passCtx) noexcept
             proxy.mesh->CreateGPUResource(renderCtx->device);
         }
 
-        assert(proxy.mesh != nullptr && "Mesh is null");
-
+        assert(proxy.mesh != nullptr && proxy.mesh->uploaded); 
         //todo 
         Mesh::DrawCmd cmd =
         {
