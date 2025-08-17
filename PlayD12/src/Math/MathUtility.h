@@ -58,8 +58,7 @@ namespace MMath {
 		translation[3] = { x, y, z, 1.0f };
 		
 		//std::cout << "translation matrix: " << ToString(translation) << std::endl;
-
-
+		 
 		//translation = Transpose(translation);  
 		return translation;
 	}
@@ -242,17 +241,22 @@ namespace MMath {
 	}
 
 
+	inline float Det3x3(const Float3x3& m)
+	{
+		return m[0].x() * (m[1].y() * m[2].z() - m[1].z() * m[2].y()) -
+			m[0].y() * (m[1].x() * m[2].z() - m[1].z() * m[2].x()) +
+			m[0].z() * (m[1].x() * m[2].y() - m[1].y() * m[2].x());
+	}
+
 	//matrix3x3 inverse
 	inline Float3x3 Inverse3x3(const Float3x3& m)
 	{
 		Float3x3 inv;
-		float det = m[0].x() * (m[1].y() * m[2].z() - m[1].z() * m[2].y()) -
-			m[0].y() * (m[1].x() * m[2].z() - m[1].z() * m[2].x()) +
-			m[0].z() * (m[1].x() * m[2].y() - m[1].y() * m[2].x());
-		if (det == 0.0f) {
-			std::cerr << "Matrix is singular." << std::endl;
-			return Float3x3{}; // return zero matrix if singular
-		}
+		float det = Det3x3(m);
+		if (det < 1e-07) {
+			std::cerr << "Inverse: Matrix is (almost) singular." << std::endl;
+			return Float3x3{};  
+		} 
 		float invDet = 1.0f / det;
 		inv[0] = {
 			invDet * (m[1].y() * m[2].z() - m[1].z() * m[2].y()),
@@ -444,5 +448,63 @@ namespace MMath {
 
 
 
+	inline std::vector<Float3> GenerateGrid3D(Float3 dim , float spacing)
+	{
+		std::vector<Float3> data;  
+		Float3 offset = { -dim.x() * spacing * 0.5f, spacing * 1.0f, -dim.z() * spacing * 0.5f };
 
+		for (int x = 0; x < dim.x(); ++x)
+			for (int y = 0; y < dim.y(); ++y)
+				for (int z = 0; z < dim.z(); ++z)
+		{ 
+			Float3 _data = Float3{ x * spacing  , y * spacing , z * spacing   } + offset; 
+			data.push_back(_data);
+		}
+
+		return data;
+	}
+
+
+	template <FLOP_t Scalar_t, std::size_t Rows, std::size_t Cols>
+	inline Scalar_t FNorm(const Matrix<Scalar_t, Rows, Cols>& mat)
+	{
+		Scalar_t sum = 0;
+		for (std::size_t i = 0; i < Rows; ++i) {
+			for (std::size_t j = 0; j < Cols; ++j) {
+				sum += mat[i][j] * mat[i][j];
+			}
+		}
+		return std::sqrt(sum);
+	}
+	 
+	template <FLOP_t Scalar_t, std::size_t Rows, std::size_t Cols>
+	inline bool NearZero(const Matrix<Scalar_t, Rows, Cols>& mat, Scalar_t epsilon = 1e-6f)
+	{
+		return FNorm(mat) < epsilon;
+	}
+
+	inline Float3x3 QuaternionToRotationMatrix(const DirectX::XMVECTOR& q)
+	{
+		using namespace DirectX;
+		// Convert quaternion to rotation matrix
+		XMMATRIX R_ = XMMatrixRotationQuaternion(q);
+		Float3x3 R;
+		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
+		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
+		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
+		return R;
+	} 
+
+
+  
+}
+
+
+namespace Random {
+
+	inline float Uniform01() {
+		static thread_local std::mt19937 gen{ std::random_device{}() };
+		static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+		return dist(gen);
+	}
 }

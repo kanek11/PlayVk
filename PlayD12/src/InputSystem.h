@@ -10,7 +10,7 @@
 enum class EAxis { MoveX, MoveY, MoveZ, COUNT };
 constexpr size_t MAX_Axis = static_cast<size_t>(EAxis::COUNT);
 
-enum class EAction { Jump };
+enum class EAction { Jump , COUNT };
 
 struct Binding { 
 	KeyCode key;  
@@ -150,7 +150,7 @@ private:
 
 //new:
 public:
-    float  GetAxis(EAxis axis) const;
+    float GetAxis(EAxis axis) const;
     std::array<float, (size_t)EAxis::COUNT> m_axisState{};
 };
 

@@ -6,15 +6,13 @@
 namespace Gameplay
 {
     class AController;
+	class UInputComponent;
 
     class APawn : public AActor {
     public:
         APawn();
 
-        virtual void PossessedBy(AController* NewController) {
-            Controller = NewController;
-            //response to possession
-        }
+        virtual void PossessedBy(AController* NewController);
 
         virtual void UnPossessed() {
             Controller = nullptr;
@@ -36,5 +34,8 @@ namespace Gameplay
 
         SharedPtr<USpringArmComponent> SpringArmComponent;
         SharedPtr<UCameraComponent> CameraComponent;
+
+        //unregistered, controlled by PC;
+        SharedPtr<UInputComponent> InputComponent;
     };
 }

@@ -15,27 +15,16 @@ namespace Gameplay {
      
     void ULevel::OnLoad()
     {
-        //auto dftPlayer = CreateActor<APawn>(); 
-        auto dftPlayer = CreateActor<APlayer>();
 
-        dftPlayer->RootComponent->SetRelativePosition({ 0.0f, 4.0f, -2.0f });
-        dftPlayer->RootComponent->UpdateWorldTransform();
-
-        //auto possess the default player 
-        if (auto controller = this->owningWorld->GetFirstPlayerController(); controller != nullptr) {
-            std::cout << "level: default controller possess default default player\n";
-            controller->Possess(dftPlayer.get());
-        } 
-
-        this->AddActor(dftPlayer);
     }
 
     void ULevel::OnTick(float delta)
     {
         //todo: introduce late update?
         UpdateTransforms();
+
         //
-        for (auto& actor : m_actors) {
+        for (auto& actor : actors) {
             actor->OnTick(delta);
         }
         //
@@ -48,16 +37,16 @@ namespace Gameplay {
         //renderer->SubmitCamera(defaultCamera);
     }
 
-    void ULevel::BeginPlay()
+    void ULevel::RouteActorBeginPlay()
     {
-        for (auto& actor : m_actors) {
+        for (auto& actor : actors) {
             actor->BeginPlay();
         }
     }
 
     void ULevel::EndPlay()
     {
-        for (auto& actor : m_actors) {
+        for (auto& actor : actors) {
             actor->EndPlay();
         }
     }
@@ -69,13 +58,13 @@ namespace Gameplay {
 
         //this should come after the level registery;
         actor->RegisterAllComponents();
-        m_actors.push_back(actor);
+        actors.push_back(actor);
     }
 
 
     void ULevel::UpdateTransforms()
     {
-        for (auto& actor : m_actors) {
+        for (auto& actor : actors) {
 
             if (actor->RootComponent) {
                 actor->RootComponent->UpdateWorldTransform();
@@ -85,7 +74,7 @@ namespace Gameplay {
 
     void ULevel::ForEachComponent(const sceneIterFn& fn)
     {
-        for (auto& actor : m_actors) {
+        for (auto& actor : actors) {
             if (actor->RootComponent) {
                 TraverseTree(actor->RootComponent.get(), fn);
             }

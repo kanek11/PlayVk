@@ -19,31 +19,7 @@
 
 
 struct RendererContext;
-
-namespace Passes {
-
-    inline RenderPassDesc UIPassDesc = {
-        .passTag = "UI",
-        .colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM },
-        .depthFormat = DXGI_FORMAT_UNKNOWN,
-        .enableDepth = false,
-        .cullMode = D3D12_CULL_MODE_NONE
-    };
-
-}
-
-namespace Materials {
-
-    inline  MaterialDesc UIMaterialDesc = {
-    .shaderTag = "UI",
-
-    .enableAlphaBlend = true,
-    .doubleSided = false,
-    .depthWrite = false
-    };
-}
-
-
+ 
 struct FQuadDesc {
     FRect  rect;
     Float2 uvTL = { 0,0 };
@@ -82,35 +58,69 @@ namespace SS {
     };
 
     //basically the CPU side;
-    struct BuildData {
+    struct BuildData { 
+        std::vector<DrawCmd> cmds;
         std::vector<Vertex> vertices;
         std::vector<INDEX_FORMAT> indices;
-        std::vector<DrawCmd> cmds;
 
         std::vector<FQuadDesc> pendings;
 
-        void Clear()
+        virtual void ResetFrame()
         {
-            pendings.clear();
             cmds.clear();
             indices.clear();
             vertices.clear();
+
+            pendings.clear();
         }
     };
 
-
-
-    //persistant
+     
+  
     struct GPUResources {
-        SharedPtr<FD3D12Buffer> batchVB;
-        SharedPtr<FD3D12Buffer> batchIB;
         SharedPtr<FD3D12ShaderPermutation> shader;
         ComPtr<ID3D12PipelineState> pso;
 
         std::optional<uint32_t> baseHeapOffset = 0;
+
+        SharedPtr<FD3D12Buffer> batchVB;
+		FBufferView batchVBV; 
+        SharedPtr<FD3D12Buffer> batchIB; 
+		FBufferView batchIBV;
+    };
+
+    //void BeginFrame(BuildData& data) noexcept;
+
+    //void Init(const RendererContext* ctx, GPUResources& res,
+    //    const RenderPassDesc& passDesc, const MaterialDesc& matDesc); 
+ 
+}
+
+
+
+namespace Passes {
+
+    inline RenderPassDesc UIPassDesc = {
+        .passTag = "UI",
+        .colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM },
+        .depthFormat = DXGI_FORMAT_UNKNOWN,
+        .enableDepth = false,
+        .cullMode = D3D12_CULL_MODE_NONE
     };
 
 }
+
+namespace Materials {
+
+    inline  MaterialDesc UIMaterialDesc = {
+    .shaderTag = "UI",
+
+    .enableAlphaBlend = true,
+    .doubleSided = false,
+    .depthWrite = false
+    };
+}
+
 
 namespace UI {
 
@@ -124,10 +134,9 @@ namespace UI {
     //bug fix: make sure 256 byte aligned
     struct alignas(256) UISettingsCB
     {
-        int useTexture = 0;
-        float padding[63];
+        int useTexture = 0; 
     };
-    static_assert(sizeof(UISettingsCB) % 256 == 0, "CB must be 256-byte aligned");
+    //static_assert(sizeof(UISettingsCB) % 256 == 0, "CB must be 256-byte aligned");
 
 
     struct UIPassContext {

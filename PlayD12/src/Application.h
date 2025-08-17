@@ -97,7 +97,7 @@ public:
 	//PhysicsScene* GetPhysicalScene() { return owningWorld->physicsScene; }
 	D3D12HelloRenderer* GetRenderer() { return  m_renderer; }
 	InputSystem* GetInputSystem() { return  m_inputSystem; }
-	GameStateManager* GetGameStateManager() { return m_gameManager; }
+	//GameStateManager* GetGameStateManager() { return m_gameManager; }
 	UIManager* GetUIManager() { return m_uiManager; }
 	System::TimeSystem& GetTimeSystem() { return gTime; }
 private:
@@ -132,7 +132,7 @@ private:
 	D3D12HelloRenderer* m_renderer{ nullptr };
 	//PhysicsScene* owningWorld->physicsScene{ nullptr };
 	InputSystem* m_inputSystem{ nullptr };
-	GameStateManager* m_gameManager{ nullptr };
+	//GameStateManager* m_gameManager{ nullptr };
 
 	UIManager* m_uiManager{ nullptr };
 

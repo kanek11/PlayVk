@@ -45,11 +45,12 @@ namespace Gameplay
         }
     }
 
+	//bug fix: avoid using getworld on constructor;
     UWorld* AActor::GetWorld() const
     {
+		assert(level!=nullptr );  //we can hardly justify cases where actor can't find its owner;
+		assert(level->owningWorld != nullptr);
         return level ? level->owningWorld : nullptr;
-    }
-
-
+    } 
 
 } 

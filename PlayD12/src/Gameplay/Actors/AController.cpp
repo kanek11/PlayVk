@@ -20,6 +20,22 @@ namespace Gameplay
         //        world->AddPlayerController(this);
         //    }
         //}
+    }
+    void AController::OnTick(float delta)
+    {
+		AActor::OnTick(delta); 
+
+		ProcessPlayerInput(delta); 
+    }
+
+    void AController::ProcessPlayerInput(float delta)
+    {
+        if (currInputMode == EInputMode::UIOnly) return;
+	 
+		if (CurrInputComp)
+		{
+            CurrInputComp->TickComponent(delta);
+		}
     } 
      
     void AController::Possess(APawn* inPawn)

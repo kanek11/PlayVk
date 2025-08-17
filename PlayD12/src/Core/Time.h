@@ -45,7 +45,7 @@ struct FrameTimeInfo {
 };
 
 struct FixedStepPolicy {
-    double fixedDt = 1.0 / 60.0; 
+    double fixedDt = 1.0 / 144.0; 
     int    maxCatchupSteps = 4;   // prevent spiral-of-death
 }; 
 

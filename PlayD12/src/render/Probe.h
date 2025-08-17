@@ -7,7 +7,7 @@
 #include "Loader.h"
 
 #include "Mesh.h"
-#include "PostPass.h"
+#include "ComputePass.h"
 
 namespace IBL {
 	constexpr UINT CUBE_FACE_SIZE = 2048;
@@ -36,9 +36,7 @@ namespace IBL {
 }
 
 namespace IBL {
-
-
-
+	 
 	struct alignas(256) PrefilterCB {
 		UINT Resolution; 
 		UINT NumSamples; // 1024-2048
@@ -73,12 +71,11 @@ private:
 	Compute::ComputeContext rect2CubeCtx;
 	Compute::ComputeContext brdfLUTCtx;
 	Compute::ComputeContext irradianceCtx;
-	Compute::ComputeContext prefilterCtx;
-
+	Compute::ComputeContext prefilterCtx; 
 
 	//
 	SharedPtr<FD3D12Buffer> sharedCB;
-	// 
+	
 	//per mipmap;
 	SharedPtr<FRingBufferAllocator<IBL::PrefilterCB>> prefilterCBAllocator; 
 };

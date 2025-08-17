@@ -54,10 +54,9 @@ InputSystem::InputSystem() {
 
 void InputSystem::OnUpdate()
 { 
-    m_gamepad.Update(); //update gamepad state
+    m_gamepad.Update(); //update gamepad state 
 
-
-    auto events = EventQueue::Get().Drain();
+    auto events = InputEventQueue::Get().Drain();
     //std::cout << "input sys: cached event number:" << events.size() << '\n';
 
 
@@ -67,7 +66,7 @@ void InputSystem::OnUpdate()
        [this](const FKeyUp& e) { OnKeyUp(e.key); },
        [this](const FMouseButtonDown& e) { OnMouseButtonDown(e); },
        [this](const FMouseButtonUp& e) { OnMouseButtonUp(e); },
-              [this](const FMouseMove& e) { OnMouseMove(e); },
+       [this](const FMouseMove& e) { OnMouseMove(e); }, 
             }, event);
     }
 
@@ -94,7 +93,7 @@ void InputSystem::OnUpdate()
 			} 
 			if (bind.gamepadAxis != GamepadAxis::COUNT) {
 				m_axisState[(size_t)axis] += m_gamepad.GetAxis(bind.gamepadAxis);
-			}  
+			}   
             //clamp the value to [-1, 1]
             m_axisState[(size_t)axis] = std::clamp(m_axisState[(size_t)axis], -1.f, 1.f);
         }
@@ -109,8 +108,7 @@ void InputSystem::OnKeyDown(KeyCode key)
 
 void InputSystem::OnKeyUp(KeyCode key)
 {
-    keyStateRaw[static_cast<size_t>(key)] = false;
-
+    keyStateRaw[static_cast<size_t>(key)] = false; 
 }
 
 bool InputSystem::IsKeyJustPressed(KeyCode key) const
@@ -190,7 +188,7 @@ void WindowsInputSource::OnKeyUp(int key)
         //inputSystem->OnKeyUp(WindowsKeyMap.at(key)); 
 
         InputEvent event = FKeyUp{ .key = WindowsKeyMap.at(key) };
-        EventQueue::Get().Push(event);
+        InputEventQueue::Get().Push(event);
     }
     else
     {
@@ -203,7 +201,7 @@ void WindowsInputSource::OnKeyDown(int key)
     if (WindowsKeyMap.contains(key)) {
         //inputSystem->OnKeyDown(WindowsKeyMap.at(key)); 
         InputEvent event = FKeyDown{ .key = WindowsKeyMap.at(key) };
-        EventQueue::Get().Push(event);
+        InputEventQueue::Get().Push(event);
     }
     else
     {

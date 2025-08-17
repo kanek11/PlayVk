@@ -32,7 +32,7 @@ void PhysicsScene::Tick(float delta)
 
 	}
 
-	VelocityPass(delta);
+	//VelocityPass(delta);
 
 	PostSimulation();
 }
@@ -59,6 +59,7 @@ void PhysicsScene::PreSimulation()
 	//for (auto& [actor, rb] : m_bodies) {
 	//	rb->position = rb->owner->position; 
 	//}
+    DebugDraw::ClearFrame(); 
 
 	//new: consume the cmd buffer: 
 	m_commandBuffer.SwapBuffers();
@@ -67,6 +68,18 @@ void PhysicsScene::PreSimulation()
 	auto events = PhysicsEventQueue::Get().Drain(); 
 	if(events.size()>0)
 	std::cout << "unhandled collision: " << events.size() << '\n';
+
+	//add damping:
+	//for (auto& [actor, rb] : m_bodies) {
+	//	if (!rb->simulatePhysics) continue;
+	//	rb->linearVelocity *= 0.99f;
+	//	rb->angularVelocity *= 0.99f;  
+	//}
+
+
+	//DebugDraw::AddLine(Float3{ 0, 0, 0 }, Float3{ 5, 0, 0 }, Float4{ 1, 0, 0, 1 });
+	//DebugDraw::AddLine(Float3{ 0, 0, 0 }, Float3{ 0, 5, 0 }, Float4{ 0, 1, 0, 1 });
+	//DebugDraw::AddLine(Float3{ 0, 0, 0 }, Float3{ 0, 0, 5 }, Float4{ 0, 0, 1, 1 });
 }
 
 void PhysicsScene::ApplyExternalForce(float delta)
@@ -169,7 +182,7 @@ void PhysicsScene::DetectCollisions()
 				}, A.shape, B.shape);
 		}
 
-	//std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
+	std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
 
 }
 
@@ -196,6 +209,7 @@ void PhysicsScene::SolveConstraints(float delta)
 
 	for (Contact& contact : m_contacts) {
 
+		DebugDraw::AddCube(contact.point, 0.05f); 
 		//new:
 		if (contact.a->bIsTrigger || contact.b->bIsTrigger) {
 			FCollisionEvent event = {
@@ -205,8 +219,7 @@ void PhysicsScene::SolveConstraints(float delta)
 			};
 			PhysicsEventQueue::Get().Push(event);
 			continue;
-		}
-
+		} 
 
 		RigidBody* A = contact.a->body;
 		RigidBody* B = contact.b->body;
@@ -251,8 +264,7 @@ void PhysicsScene::SolveConstraints(float delta)
 		Float3 corr = dLambda * N;
 		//apply correction to predicted positions:
 		if (A) A->predPos += corr * wA;
-		if (B) B->predPos -= corr * wB;
-
+		if (B) B->predPos -= corr * wB; 
 
 		auto applyRot = [&](RigidBody* rb, const Float3& r, const Float3& dir, float lambda, float sign)
 			{
@@ -358,8 +370,7 @@ void PhysicsScene::VelocityPass(float delta)
 		//--------------------------------- 
 		Float3 vA = A ? (A->linearVelocity + Vector3Cross(A->angularVelocity, ra)) : Float3{};
 		Float3 vB = B ? (B->linearVelocity + Vector3Cross(B->angularVelocity, rb)) : Float3{};
-		Float3 vRel = vA - vB;
-
+		Float3 vRel = vA - vB; 
 
 		float vn = Dot(vRel, c.normal);
 		//already separating:
@@ -378,22 +389,24 @@ void PhysicsScene::VelocityPass(float delta)
 			//std::cerr << "two unsimulated objects?" << '\n';
 			continue;
 		}
-
-
+		 
+		//DebugRay::AddRay(A->position, ra, Color::Pink);
 		//DebugDraw::Get().AddRay( A->position, ra, Color::Pink);
 		//DebugDraw::Get().AddRay(c.point, vA, Color::Pink);
 
 		////DebugDraw::Get().AddRay( B->position, rb, Color::Pink);
-		//DebugDraw::Get().AddRay(c.point, vB, Color::Pink);
+		//DebugDraw::Get().AddRay(c.point, vB, Color::Pink); 
 
-
+		/*DebugRay::AddRay(c.point, vRel, Color::Orange);*/
 		//DebugDraw::Get().AddRay(c.point, vRel, Color::Orange);
 		//std::cout << "rel vel:" << ToString(vRel) << '\n'; 
 
 		//restore the jn by lambda:  f = lambuda * normal / dt ^2;
 		float jn = c.lambda / delta;
 		Float3 mimicF = jn * c.normal / delta;
-		DebugDraw::Get().AddRay(c.point, mimicF, Color::Cyan);
+
+		//DebugDraw::AddRay(c.point, mimicF, Color::Cyan);
+		//DebugDraw::Get().AddRay(c.point, mimicF, Color::Cyan);
 
 
 		//---------------------------------
@@ -448,7 +461,7 @@ void PhysicsScene::VelocityPass(float delta)
 		// composed impulse 
 		//Float3 impulse = jn * c.normal + -jt * vT; // impulse vector
 		Float3 impulse = -jt * vT; // impulse vector
-		DebugDraw::Get().AddRay(c.point, impulse * 2.0f, Color::Brown);
+		//DebugDraw::Get().AddRay(c.point, impulse * 2.0f, Color::Brown);
 
 		auto applyImpulse = [&](RigidBody* r,
 			const Float3& rVec,
@@ -496,10 +509,14 @@ void PhysicsScene::PostSimulation()
 
 	//write to transform buffer:
 	auto& writeBuffer = m_transformBuffer.GetWriteBuffer();
-	for (auto& [actor, rb] : m_bodies) {
+	for (auto& [actor, rb] : m_bodies) { 
+
 		auto& transform = writeBuffer[actor];
 		transform.position = rb->position;
-		transform.rotation = rb->rotation;
+		transform.rotation = rb->rotation;  
+
+		//DebugDraw::AddRay(rb->position, rb->linearVelocity, Color::Purple);
+		//DebugDraw::AddRay(rb->position, rb->angularVelocity, Color::Yellow);
 	}
 
 	m_transformBuffer.SwapBuffers();

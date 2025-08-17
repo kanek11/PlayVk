@@ -18,6 +18,7 @@ namespace Gameplay {
         //virtual Float4 GetShapeColor() const;
 
         //void SetDrawDebug(bool bDraw);
+		void DrawDebugShape(const Float4& color = { 0,1,0,1.0f });
 
         //physical volume for advanced simulation;
         //virtual float GetVolume() const = 0; 

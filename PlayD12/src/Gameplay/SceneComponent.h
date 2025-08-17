@@ -60,7 +60,7 @@ namespace Gameplay {
 		void DetachFromParent();
 
 		USceneComponent* GetParent() const { return m_parent; }
-		const std::vector<USceneComponent*>& GetChildren() const { return m_children; }
+		const std::span<USceneComponent* const > GetChildren() const { return m_children; }
 
 	protected:
 		FTransform m_relativeTransform;

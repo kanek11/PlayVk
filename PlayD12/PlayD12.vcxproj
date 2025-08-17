@@ -190,7 +190,7 @@
     <ClInclude Include="src\Gameplay\World.h" />
     <ClInclude Include="src\Game\DemoLevels.h" />
     <ClInclude Include="src\Game\GameState.h" />
-    <ClInclude Include="src\Game\HUD.h" />
+    <ClInclude Include="src\Game\GameUI.h" />
     <ClInclude Include="src\Game\Item.h" />
     <ClInclude Include="src\Game\Player.h" />
     <ClInclude Include="src\InputSystem.h" />
@@ -199,10 +199,12 @@
     <ClInclude Include="src\Math\MMath.h" />
     <ClInclude Include="src\Math\MathUtility.h" />
     <ClInclude Include="src\physics\Collision.h" />
+    <ClInclude Include="src\physics\CollisionUtils.h" />
     <ClInclude Include="src\physics\PhysicsEvent.h" />
     <ClInclude Include="src\physics\PhysicsScene.h" />
     <ClInclude Include="src\physics\PhysicsSync.h" />
     <ClInclude Include="src\physics\Shape.h" />
+    <ClInclude Include="src\render\ComputePass.h" />
     <ClInclude Include="src\render\DebugRay.h" />
     <ClInclude Include="src\render\GeometryPass.h" />
     <ClInclude Include="src\render\Heap.h" />
@@ -250,11 +252,13 @@
     <ClCompile Include="src\Gameplay\SceneComponent.cpp" />
     <ClCompile Include="src\Gameplay\World.cpp" />
     <ClCompile Include="src\Game\DemoLevels.cpp" />
-    <ClCompile Include="src\Game\HUD.cpp" />
+    <ClCompile Include="src\Game\GameState.cpp" />
+    <ClCompile Include="src\Game\GameUI.cpp" />
     <ClCompile Include="src\Game\Item.cpp" />
     <ClCompile Include="src\Game\Player.cpp" />
     <ClCompile Include="src\InputSystem.cpp" />
     <ClCompile Include="src\physics\PhysicsScene.cpp" />
+    <ClCompile Include="src\render\ComputePass.cpp" />
     <ClCompile Include="src\render\DebugRay.cpp" />
     <ClCompile Include="src\render\GeometryPass.cpp" />
     <ClCompile Include="src\render\Loader.cpp" />
@@ -284,6 +288,7 @@
     <Text Include="legacy\legacyImpulse.txt" />
     <Text Include="legacy\legacyPSO.txt" />
     <Text Include="legacy\OBBVSAABB.txt" />
+    <Text Include="legacy\VSPlane.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

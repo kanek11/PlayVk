@@ -55,3 +55,21 @@ constexpr WeakPtr<T> CreateWeak(std::shared_ptr<T> sharedPtr)
 {
     return WeakPtr<T>(sharedPtr);
 }
+
+
+
+template <typename T, typename Base>
+concept DerivedFrom = std::is_base_of_v<Base, T>;
+
+template <typename Base>
+struct TSubclassOf {
+    template <DerivedFrom<Base> T>
+    constexpr explicit TSubclassOf(std::type_identity<T>) noexcept
+        : m_type(&typeid(T)) {
+    }
+
+    const std::type_info& type() const noexcept { return *m_type; }
+
+private:
+    const std::type_info* m_type;
+};

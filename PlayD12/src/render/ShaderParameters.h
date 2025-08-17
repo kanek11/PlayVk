@@ -59,8 +59,7 @@ struct alignas(256) SceneCB
 //static_assert((sizeof(SceneCB) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
 
 namespace Mesh {
-
-
+     
 
     struct alignas(256) ObjectCB
     {

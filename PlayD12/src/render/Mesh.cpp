@@ -2,6 +2,58 @@
 #include "Mesh.h" 
 
 
+void FD3D12MeshResource::CreateResources()
+{
+
+    //m_vertexBuffer = CreateShared<FD3D12Buffer>(m_device, FBufferDesc{
+    //    m_meshData.vertices.size() * sizeof(StaticMeshVertex),
+    //    DXGI_FORMAT_UNKNOWN, // Not used for vertex buffers
+    //    sizeof(StaticMeshVertex),
+    //    EBufferUsage::Upload | EBufferUsage::Vertex
+    //    });
+
+
+	m_vertexBuffer = Buffer::CreateStructured<StaticMeshVertex>(m_device, Buffer::FStructuredDesc{
+		.count = m_meshData.vertices.size(),
+		.Usage = EBufferUsage::Upload | EBufferUsage::Vertex
+		});
+
+    m_vertexBufferView = Buffer::CreateBVStructured<StaticMeshVertex>(
+        m_vertexBuffer 
+    );
+
+    m_vertexBuffer->UploadDataStructured(m_meshData.vertices.data(), m_meshData.vertices.size());
+
+
+    // Create index buffer
+    //m_indexBuffer = CreateShared<FD3D12Buffer>(m_device, FBufferDesc{
+    //    m_meshData.indices.size() * sizeof(INDEX_FORMAT),
+    //    DXGI_FORMAT_R16_UINT, // 16-bit indices
+    //    sizeof(INDEX_FORMAT),
+    //    EBufferUsage::Upload | EBufferUsage::Index
+    //    });
+
+	m_indexBuffer = Buffer::CreateStructured<INDEX_FORMAT>(m_device, Buffer::FStructuredDesc{
+		.count = m_meshData.indices.size(),
+		.Usage = EBufferUsage::Upload | EBufferUsage::Index
+		});
+
+	m_indexBufferView = Buffer::CreateBVStructured<INDEX_FORMAT>(
+		m_indexBuffer, INDEX_FORMAT_DX
+	);
+
+    m_indexBuffer->UploadDataStructured(m_meshData.indices.data(), m_meshData.indices.size());
+
+}
+
+void UStaticMesh::CreateGPUResource(ID3D12Device* device)
+{
+    m_GPUResource = CreateShared<FD3D12MeshResource>(device, m_meshData);
+
+    uploaded = true; // Mark as uploaded  
+}
+
+
 CubeMesh::CubeMesh()
 {
     CreateMeshData();
@@ -98,36 +150,7 @@ void CubeMesh::CreateMeshData()
     m_meshData.vertices = m_meshData.ConsolidateVertexData();
 }
 
-void FD3D12MeshResource::CreateResources()
-{
 
-    m_vertexBuffer = CreateShared<FD3D12Buffer>(m_device, FBufferDesc{
-        m_meshData.vertices.size() * sizeof(StaticMeshVertex),
-        DXGI_FORMAT_UNKNOWN, // Not used for vertex buffers
-        sizeof(StaticMeshVertex),
-        EBufferUsage::Upload | EBufferUsage::Vertex
-        });
-
-    m_vertexBuffer->UploadData(m_meshData.vertices.data(), m_meshData.vertices.size() * sizeof(StaticMeshVertex));
-
-
-    // Create index buffer
-    m_indexBuffer = CreateShared<FD3D12Buffer>(m_device, FBufferDesc{
-        m_meshData.indices.size() * sizeof(INDEX_FORMAT),
-        DXGI_FORMAT_R16_UINT, // 16-bit indices
-        sizeof(INDEX_FORMAT),
-        EBufferUsage::Upload | EBufferUsage::Index
-        });
-    m_indexBuffer->UploadData(m_meshData.indices.data(), m_meshData.indices.size() * sizeof(INDEX_FORMAT));
-
-}
-
-void UStaticMesh::CreateGPUResource(ID3D12Device* device)
-{
-    m_GPUResource = CreateShared<FD3D12MeshResource>(device, m_meshData);
-
-    uploaded = true; // Mark as uploaded 
-}
 
 PlaneMesh::PlaneMesh(uint32_t subdivisionX, uint32_t subdivisionZ) :
     subdivisionX(subdivisionX), subdivisionZ(subdivisionZ)

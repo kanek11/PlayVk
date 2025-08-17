@@ -76,11 +76,11 @@ namespace Gameplay
     };
 
     // factory function for derived classes
-    template <typename T, typename... Args>
+    template <DerivedFrom<AActor> T, typename... Args>
     SharedPtr<T> CreateActor(Args&&... args)
     {
-        // abstract class cannot be instantiated
-        static_assert(std::is_base_of<AActor, T>::value, "T must be derived from AActor");
+        //// abstract class cannot be instantiated
+        //static_assert(std::is_base_of<AActor, T>::value, "T must be derived from AActor");
 
         auto _actor = CreateShared<T>(std::forward<Args>(args)...);
 

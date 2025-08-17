@@ -40,11 +40,11 @@ namespace Gameplay
 
     // factory function for derived classes
     // decision: register is separated from the factory function
-    template <typename T>
+    template <DerivedFrom<UActorComponent> T>
     SharedPtr<T> CreateActorComponent()
     {
         // abstract class cannot be instantiated
-        static_assert(std::is_base_of<UActorComponent, T>::value, "T must be derived from UActorComponent");
+        //static_assert(std::is_base_of<UActorComponent, T>::value, "T must be derived from UActorComponent");
 
         return CreateShared<T>();
     }

@@ -7,6 +7,8 @@
 
 #include "Loader.h"
 
+using namespace Buffer;
+
 namespace UI {
 
     void Init(const RendererContext* ctx, UIPassContext& passCtx)
@@ -34,24 +36,26 @@ namespace UI {
         // Create vertex buffer for debug lines
         passCtx.res.batchVB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
             sizeof(Vertex) * MaxVertices,
-            DXGI_FORMAT_UNKNOWN,
-            sizeof(Vertex),
             EBufferUsage::Upload | EBufferUsage::Vertex
             });
 
+		passCtx.res.batchVBV = Buffer::CreateBVStructured<Vertex>(passCtx.res.batchVB );
 
         passCtx.res.batchIB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
         sizeof(INDEX_FORMAT) * MaxIndices,
-        DXGI_FORMAT_R16_UINT,
-        sizeof(INDEX_FORMAT),
         EBufferUsage::Upload | EBufferUsage::Index
             });
 
+		passCtx.res.batchIBV = Buffer::CreateBVStructured<INDEX_FORMAT>(
+			passCtx.res.batchIB, INDEX_FORMAT_DX
+		);
+
+	
 
         //shader perm:
         ShaderPermutationKey key = {
-            .shaderTag = "UI",
-            .passTag = "UI",
+           Materials::UIMaterialDesc.shaderTag,
+           Passes::UIPassDesc.passTag,
         };
 
         auto& shader = passCtx.res.shader;
@@ -96,6 +100,7 @@ namespace UI {
         //auto& baseColorTex = graphCtx->loadedTextures["A"]
         auto& batchData = passCtx.data;
 
+		uint32_t currIndex{ 0 };
         for (auto& proxy : passCtx.data.pendings) {
             Float2 tl = ScreenToNDC(proxy.rect.x, proxy.rect.y, screenWidth, screenHeight);
             Float2 tr = ScreenToNDC(proxy.rect.x + proxy.rect.w, proxy.rect.y, screenWidth, screenHeight);
@@ -120,12 +125,11 @@ namespace UI {
                 .useTexture = static_cast<int>(proxy.useAtlas),
             };
 
-            auto currIndex = batchData.cmds.size();
             auto objectHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
 
 
             auto bufferView = cbAllocator->Upload(&uiSettings);
-            shader->SetCBV("UISettingsCB", GetCBVDesc(bufferView), objectHeapOffset);
+            shader->SetCBV("UISettingsCB", Buffer::MakeCBVDesc(bufferView), objectHeapOffset);
 
             shader->SetSRV("baseColorMap", baseColorTex->GetRawResource(), baseColorTex->GetSRVDesc(), objectHeapOffset);
 
@@ -137,6 +141,7 @@ namespace UI {
             };
 
             batchData.cmds.push_back(cmd);
+			currIndex++;
         }
 
 
@@ -144,7 +149,7 @@ namespace UI {
 
     void EndFrame(UIPassContext& passCtx) noexcept
     {
-        passCtx.data.Clear();
+        passCtx.data.ResetFrame();
 
         //reset the allocator:
         passCtx.cbAllocator->Reset();
@@ -153,44 +158,46 @@ namespace UI {
 
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const UIPassContext& passCtx) noexcept
     {
-        auto& batchData = passCtx.data;
-        if (batchData.cmds.empty()) return;
+       auto& batchData = passCtx.data;
+       if (batchData.cmds.empty()) return;
 
-        passCtx.res.batchVB->UploadData(passCtx.data.vertices.data(), passCtx.data.vertices.size() * sizeof(Vertex));
-        passCtx.res.batchIB->UploadData(passCtx.data.indices.data(), passCtx.data.indices.size() * sizeof(INDEX_FORMAT));
+       passCtx.res.batchVB->UploadData(passCtx.data.vertices.data(), passCtx.data.vertices.size() * sizeof(Vertex));
+       passCtx.res.batchIB->UploadData(passCtx.data.indices.data(), passCtx.data.indices.size() * sizeof(INDEX_FORMAT));
 
 
-        //std::cout << "flush UI draw cmd: " << m_data.cmds.size()  << '\n';
+       //std::cout << "flush UI draw cmd: " << m_data.cmds.size()  << '\n';
 
-        //auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(1280), static_cast<float>(720));
-        //auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(1280), static_cast<LONG>(720));
+       //auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(1280), static_cast<float>(720));
+       //auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(1280), static_cast<LONG>(720));
 
-        //
-        cmdList->SetPipelineState(passCtx.res.pso.Get());
-        cmdList->SetGraphicsRootSignature(passCtx.res.shader->GetRootSignature().Get());
+       //
+       cmdList->SetPipelineState(passCtx.res.pso.Get());
+       cmdList->SetGraphicsRootSignature(passCtx.res.shader->GetRootSignature().Get());
 
-        //cmdList->RSSetViewports(1, &viewport);
-        //cmdList->RSSetScissorRects(1, &scissorRect); 
+       //cmdList->RSSetViewports(1, &viewport);
+       //cmdList->RSSetScissorRects(1, &scissorRect); 
 
-        // Set the descriptor heap for the command list
-        passCtx.res.shader->SetDescriptorHeap(cmdList);
+       // Set the descriptor heap for the command list
+       passCtx.res.shader->SetDescriptorHeap(cmdList);
 
-        cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+       cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        cmdList->IASetVertexBuffers(0, 1, &passCtx.res.batchVB->GetVertexBufferView());
-        cmdList->IASetIndexBuffer(&passCtx.res.batchIB->GetIndexBufferView());
+	   cmdList->IASetVertexBuffers(0, 1, &MakeVBV(passCtx.res.batchVBV));
+	   cmdList->IASetIndexBuffer(&MakeIBV(passCtx.res.batchIBV));
 
-        for (auto& cmd : batchData.cmds) {
+       for (auto& cmd : batchData.cmds) {
 
-            passCtx.res.shader->SetDescriptorTables(cmdList, cmd.heapOffset);
+           passCtx.res.shader->SetDescriptorTables(cmdList, cmd.heapOffset);
 
-            auto indexCount = cmd.indexCount;
-            auto indexOffset = cmd.indexOffset;
-            cmdList->DrawIndexedInstanced((UINT)indexCount, 1, (UINT)indexOffset, 0, 0);
-        }
-
-        //batchData.Clear();\
+           auto indexCount = cmd.indexCount;
+           auto indexOffset = cmd.indexOffset;
+           cmdList->DrawIndexedInstanced((UINT)indexCount, 1, (UINT)indexOffset, 0, 0);
+       } 
 
     }
 
 }
+
+//void SS::Init(const RendererContext* ctx, GPUResources& res)
+//{
+//}

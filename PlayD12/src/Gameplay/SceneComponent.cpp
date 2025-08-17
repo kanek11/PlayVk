@@ -135,11 +135,7 @@ void Gameplay::USceneComponent::AttachTo(USceneComponent* newParent)
     }
 
     m_parent = newParent;
-
-    if (m_parent)
-    {
-        m_parent->m_children.push_back(this);
-    }
+    m_parent->m_children.push_back(this); 
 
     MarkDirty();
 }

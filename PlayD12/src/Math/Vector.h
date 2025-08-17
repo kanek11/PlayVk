@@ -387,5 +387,7 @@ namespace Color {
 	static Float4 Brown = Float4(0.6f, 0.3f, 0.1f, 1.0f);
 	static Float4 Olive = Float4(0.5f, 0.5f, 0.0f, 1.0f);
 	static Float4 Teal = Float4(0.0f, 0.5f, 0.5f, 1.0f);
+
+	static Float3 Iron  = Float3(0.56, 0.57, 0.58);
 };
 

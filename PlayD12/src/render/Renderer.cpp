@@ -67,8 +67,9 @@ void D3D12HelloRenderer::OnUpdate(float delta)
     sceneCBData.OnTick();
     sceneCBData.deltaTime = delta;
     sceneCBData.viewportSize = { (float)m_width, (float)m_height };
-    this->sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
-
+    //this->sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
+    
+    this->sceneCB->UploadDataStructured(&sceneCBData);
 
     auto frameData = Render::frameContext;
 
@@ -111,8 +112,7 @@ void D3D12HelloRenderer::OnInit()
         .rtvHeapAllocator = this->m_rtvHeapAllocator,
 
     };
-
-
+     
 
     //after system;
     LoadSystemResources();
@@ -124,7 +124,21 @@ void D3D12HelloRenderer::OnInit()
 
     InitGBuffers();
 
-    OverlayMesh::Init(Render::rendererContext, overlayMeshCtx);
+    Render::frameContext = m_frame;
+     
+    Render::graphContext = m_graph;
+
+    m_graph->shadowMapWidth = m_shadowMapWidth;
+    m_graph->shadowMapHeight = m_shadowMapHeight;
+    m_graph->shadowMap = m_shadowMap;
+    m_graph->loadedTextures = this->loadTextures; 
+
+    //for valid atlas
+    UI::Init(Render::rendererContext, uiPassCtx);
+
+
+
+    DebugMesh::Init(Render::rendererContext, debugMeshCtx);
 
     Shadow::Init(Render::rendererContext, shadowPassCtx);
 
@@ -132,21 +146,8 @@ void D3D12HelloRenderer::OnInit()
 
     PBR::Init(Render::rendererContext, pbrShadingCtx);
 
+    DebugDraw::Init(Render::rendererContext, debugRayCtx);
     //DebugDraw::Get().Init(Render::rendererContext);   
-
-    Render::frameContext = m_frame;
-
-
-    Render::graphContext = m_graph;
-
-    m_graph->shadowMapWidth = m_shadowMapWidth;
-    m_graph->shadowMapHeight = m_shadowMapHeight;
-    m_graph->shadowMap = m_shadowMap;
-    m_graph->loadedTextures = this->loadTextures;
-
-
-    //for valid atlas
-    UI::Init(Render::rendererContext, uiPassCtx);
 
     InitEnvMap();
 
@@ -163,17 +164,21 @@ void D3D12HelloRenderer::OnRender()
     BeginFrame();
 
     //CPU-side
+    //before the transparent pass
+    DebugDraw::BeginFrame(debugRayCtx);
+    DebugMesh::BeginFrame(debugMeshCtx);
+
     UI::BeginFrame(uiPassCtx);
     Shadow::BeginFrame(shadowPassCtx);
     GBuffer::BeginFrame(gbufferPassCtx);
     PBR::BeginFrame(pbrShadingCtx); 
-    OverlayMesh::BeginFrame(overlayMeshCtx); 
-
 
 
     //rg->Execute(m_commandList.Get());
 
+    //
     BeginShadowPass(m_commandList.Get());
+
     Shadow::FlushAndRender(m_commandList.Get(), shadowPassCtx);
 
     EndShadowPass(m_commandList.Get());
@@ -184,22 +189,24 @@ void D3D12HelloRenderer::OnRender()
     GBuffer::FlushAndRender(m_commandList.Get(), gbufferPassCtx);
 
     EndGBufferPass(m_commandList.Get());
-
-    BeginPresentPass(m_commandList.Get()); 
+    
 
     //
+    BeginPresentPass(m_commandList.Get()); 
+     
     PBR::FlushAndRender(m_commandList.Get(), pbrShadingCtx);
 
     UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
 
-    OverlayMesh::FlushAndRender(m_commandList.Get(), overlayMeshCtx);
+    DebugMesh::FlushAndRender(m_commandList.Get(), debugMeshCtx);
 
-
+	DebugDraw::FlushAndRender(m_commandList.Get(), debugRayCtx);
     //DebugDraw::Get().FlushAndRender(m_commandList.Get());  
 
     EndPresentPass(m_commandList.Get());
 
 
+    //
     EndFrame();
 
     // 
@@ -208,7 +215,8 @@ void D3D12HelloRenderer::OnRender()
     GBuffer::EndFrame(gbufferPassCtx);
     PBR::EndFrame(pbrShadingCtx);
 
-    OverlayMesh::EndFrame(overlayMeshCtx);
+    DebugMesh::EndFrame(debugMeshCtx);
+	DebugDraw::EndFrame(debugRayCtx);
 }
 
 
@@ -386,11 +394,17 @@ void D3D12HelloRenderer::LoadSystemResources()
 {
 
     {
+        //this->sceneCB = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
+        //    .SizeInBytes = sizeof(SceneCB),
+        //    .Format = DXGI_FORMAT_UNKNOWN, // Not used for constant buffers 
+        //    .StrideInBytes = sizeof(SceneCB),
+        //    .Usage = EBufferUsage::Upload | EBufferUsage::Constant
+        //    });
+
+
         this->sceneCB = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
-            .SizeInBytes = sizeof(SceneCB),
-            .Format = DXGI_FORMAT_UNKNOWN, // Not used for constant buffers 
-            .StrideInBytes = sizeof(SceneCB),
-            .Usage = EBufferUsage::Upload | EBufferUsage::Constant
+    .SizeInBytes = sizeof(SceneCB), 
+    .Usage = EBufferUsage::Upload | EBufferUsage::Constant
             });
 
     }
@@ -413,7 +427,7 @@ void D3D12HelloRenderer::LoadSystemResources()
         // from the upload heap to the Texture2D.
         this->checkerBoardData = GenerateCheckerboardData();
 
-        UploadTask task = [=](ID3D12GraphicsCommandList* cmdList) {
+        FUploadJob task = [=](ID3D12GraphicsCommandList* cmdList) {
             tex->UploadFromCPU(
                 cmdList,
                 this->checkerBoardData.data(),
@@ -431,7 +445,7 @@ void D3D12HelloRenderer::LoadSystemResources()
     auto& assets = assetMgr.textures;
 
     //bug fix: make sure the lambda context is valid, or just copy it.
-    std::vector<UploadTask> tasks;
+    std::vector<FUploadJob> tasks;
     for (auto& [name, texData] : assets) {
 
         auto metaInfo = texData.metaInfo;
@@ -446,7 +460,7 @@ void D3D12HelloRenderer::LoadSystemResources()
         auto& tex = CreateShared<FD3D12Texture>(m_device.Get(), desc);
         this->loadTextures[name] = tex;
 
-        UploadTask task = [=](ID3D12GraphicsCommandList* cmdList) {
+        FUploadJob task = [=](ID3D12GraphicsCommandList* cmdList) {
             tex->UploadFromCPU(
                 cmdList,
                 texData.data,
@@ -849,7 +863,7 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateCheckerboardData()
     //litPassCtx.data.mainCamera = camera;
 //}
 
-void D3D12HelloRenderer::SubmitMesh(FStaticMeshProxy proxy)
+void D3D12HelloRenderer::SubmitMesh(const FStaticMeshProxy& proxy)
 {
     cmdBuffer.Enqueue([=] {
         if(!proxy.material->transparent)
@@ -1055,7 +1069,7 @@ void D3D12HelloRenderer::EndGBufferPass(ID3D12GraphicsCommandList* commandList)
 
 
 
-void D3D12HelloRenderer::UploadTexture(std::vector<UploadTask> tasks)
+void D3D12HelloRenderer::UploadTexture(std::vector<FUploadJob> tasks)
 {
     //teturing:
 // Note: ComPtr's are CPU objects but this resource needs to stay in scope until
@@ -1089,6 +1103,16 @@ void D3D12HelloRenderer::UploadTexture(std::vector<UploadTask> tasks)
         // complete before continuing.
         WaitForPreviousFrame();
     }
+}
+
+
+
+void D3D12HelloRenderer::AddLine(const DebugDraw::Vertex& vert0, const DebugDraw::Vertex& vert1)
+{
+	cmdBuffer.Enqueue([=] {
+		debugRayCtx.data.vertices.push_back(vert0);
+		debugRayCtx.data.vertices.push_back(vert1);
+		});
 }
 
 

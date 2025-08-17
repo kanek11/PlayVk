@@ -4,26 +4,29 @@
 
 using namespace Gameplay;
 
+class GlobalLevel : public ULevel {
+public:
+	virtual ~GlobalLevel() = default;
+	virtual void OnLoad() override;
+	virtual void OnUnload() override;
+	virtual void OnTick(float delta) override; 
+};
+
 class GamePlayLevel : public ULevel {
 public:
 	virtual ~GamePlayLevel() = default;
 	virtual void OnLoad() override;
-	virtual void OnUnload()override;
+	virtual void OnUnload() override;
 	virtual void OnTick(float delta) override;
 
+	void LoadPlayer();
 	void LoadUI();
 	void LoadActors();
-
-	//void LoadLegacy();
-
-private:
-	//std::vector<SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
-	//std::unordered_map<ActorId, SharedPtr<StaticMeshActorProxy>> m_staticMeshActors;
-
+	 
 public:
 	//void GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount);
-	float roadWidth = 10;
-	float goalLength = 100;
+	float roadWidth = 20;
+	float goalLength = 20;
 
 	float timeCount{}; 
 public:

@@ -51,17 +51,27 @@ ATriggerVolume::ATriggerVolume() :AStaticMeshActor()
 	Mesh::SetBox(this, Float3{ 1.0f,1.0f,1.0f });
 
 	this->staticMeshComponent->SetMaterial(Materials::GetTransparentMesh());
+
 }
 
 void ATriggerVolume::BeginPlay()
 {
 	AStaticMeshActor::BeginPlay();
+	 
+
+	auto gameState = GetWorld()->GetGameState<AGameState>();
+	this->shapeComponent->onOverlap.Add([=](AActor* other) {
+		if (other->tag == "player") {
+			gameState->onGoal.BlockingBroadCast(); 
+		}  
+		});
 }
 
 void ATriggerVolume::OnTick(float delta)
 {
 	AStaticMeshActor::OnTick(delta);
 
-	auto gameState = GetWorld()->GetGameState<AGameState>(); 
+	//auto gameState = GetWorld()->GetGameState<AGameState>(); 
+	//gameState->onGoal.BlockingBroadCast();
 
 }

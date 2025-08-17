@@ -1,10 +1,5 @@
+#include "Common/Scene.hlsli" 
 
-cbuffer MVPConstantBuffer : register(b0)
-{
-    float4x4 modelMatrix;
-    float4x4 pvMatrix;
-    float4 padding[6];
-};
 struct VSInput
 {
     float3 position : POSITION;
@@ -20,7 +15,7 @@ struct PSInput
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.position = mul(pvMatrix, float4(input.position, 1.0f));
+    output.position = mul(gPVMatrix, float4(input.position, 1.0f));
     output.color = input.color;
     return output;
 }

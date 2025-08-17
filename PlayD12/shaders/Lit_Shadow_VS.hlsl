@@ -4,8 +4,15 @@
 
 struct VSInput
 {
-    float3 position : POSITION;
+    float3 Position : POSITION;
+    float3 Normal : NORMAL;
+    float3 Tangent : TANGENT;
+    float TangentSign : TANGENT_SIGN;
+    float2 TexCoord : TEXCOORD0;
+    float4 Color : COLOR;
+    float3 Offset : INSTANCE_OFFSET;
 };
+
 
 struct VSOutput
 {
@@ -15,7 +22,7 @@ struct VSOutput
 VSOutput VSMain(VSInput input)
 {
     VSOutput output;
-    float4 worldPos = mul(gModelMatrix, float4(input.position, 1.0f));
+    float4 worldPos = mul(gModelMatrix, float4(input.Position, 1.0f));
     output.position = mul(gLightPVMatrix, worldPos);
     return output;
 }

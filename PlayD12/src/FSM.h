@@ -3,11 +3,7 @@
 #include "Base.h"
 
 #include "Delegate.h"
-
-#include <vector>
-#include <memory>
-#include <functional>
-#include <string>
+  
 
 template<typename TStateEnum, typename TStateObject>
 class IFSMController {
@@ -44,6 +40,7 @@ enum class GameStateId
 	Loading,
 	Playing,
 	Paused,
+	Goaling,
 	GameOver,
 };
 
@@ -58,7 +55,7 @@ template<GameStateId typeID>
 class GameStateImpl : public GameState {
 public:
 	static constexpr GameStateId Id = typeID; 
-	constexpr GameStateId GetId() { return Id; }
+	static constexpr GameStateId GetId() { return Id; }
 };
 
 
@@ -111,6 +108,7 @@ public:
 	}
 
 private:
+	//or just array;
 	std::unordered_map<GameStateId, SharedPtr<GameState>> states;
 	GameStateId current = GameStateId::MainMenu;
 
@@ -125,3 +123,10 @@ class MainMenuState : public GameStateImpl<GameStateId::MainMenu> {
 class PlayingState : public GameStateImpl<GameStateId::Playing> {
 
 };
+
+class PausedState : public GameStateImpl<GameStateId::Paused> {
+};
+
+class GoalingState : public GameStateImpl<GameStateId::Goaling> {
+};
+

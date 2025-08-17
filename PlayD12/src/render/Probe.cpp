@@ -3,18 +3,18 @@
 
 #include "Renderer.h"
 
+using namespace Buffer;
+
 void FProbe::Init()
 {
     auto& ctx = Render::rendererContext;
 
     sharedCB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
       .SizeInBytes = sizeof(IBL::SharedCB),
-      .Format = DXGI_FORMAT_UNKNOWN, // Not used for constant buffers 
-      .StrideInBytes = sizeof(IBL::SharedCB),
       .Usage = EBufferUsage::Upload | EBufferUsage::Constant });
 
     IBL::SharedCB cb;
-    sharedCB->UploadData(&cb, sizeof(IBL::SharedCB));
+    sharedCB->UploadDataStructured(&cb);
 
 }
 
@@ -49,7 +49,7 @@ void FProbe::CreateFromHDRI(SharedPtr<FD3D12Texture> equiRect)
 
 
     shader->SetCBV("IBL_CB",
-        sharedCB->GetCBVDesc(),
+        MakeCBVDesc(CreateBVWhole(sharedCB)),
         heapOffset.value() 
     );
 
@@ -104,7 +104,7 @@ void FProbe::GenerateBRDFLUT()
     auto& heapOffset = brdfLUTCtx.res.baseHeapOffset;
 
     shader->SetCBV("IBL_CB",
-        sharedCB->GetCBVDesc(),
+        MakeCBVDesc(CreateBVWhole(sharedCB)),
         heapOffset.value()
     );
 
@@ -143,7 +143,7 @@ void FProbe::GenerateIrradiance()
     auto& heapOffset = passCtx.res.baseHeapOffset; 
 
     shader->SetCBV("IBL_CB",
-        sharedCB->GetCBVDesc(),
+        MakeCBVDesc(CreateBVWhole(sharedCB)),
         heapOffset.value()
     );
 
@@ -208,10 +208,10 @@ void FProbe::GeneratePrefilter()
         };
 
         auto cbView = prefilterCBAllocator->Upload(&cb);  
-        shader->SetCBV("prefilterCB", GetCBVDesc(cbView), localHeapOffset); 
+        shader->SetCBV("prefilterCB", Buffer::MakeCBVDesc(cbView), localHeapOffset); 
 
         shader->SetCBV("IBL_CB", 
-            sharedCB->GetCBVDesc(),
+            MakeCBVDesc(CreateBVWhole(sharedCB)),
             localHeapOffset
         );
          

@@ -9,23 +9,41 @@
 #include "GameState.h"
 
 #include "Item.h" 
-#include "HUD.h"
+//#include "HUD.h"
+
+
 
 
 using namespace DirectX;
 
+void GlobalLevel::OnLoad()
+{
+	ULevel::OnLoad();
+    //new: 
+    owningWorld->CreateGameState<AGameState>(this);
+    //auto gameState = owningWorld->GetGameState<AGameState>(); 
+     
+}
+
+void GlobalLevel::OnUnload()
+{ 
+}
+
+void GlobalLevel::OnTick(float delta)
+{
+    ULevel::OnTick(delta);
+}
+
+
+
 void GamePlayLevel::OnLoad()
 {
     ULevel::OnLoad();
-
+     
     assert(owningWorld->physicsScene != nullptr);
-
-    //new:
-    //auto gameState = CreateShared<AGameState>(); 
-    owningWorld->CreateGameState<AGameState>(); 
-    auto gameState = owningWorld->GetGameState<AGameState>(); 
-
+     
     //this->Load1();
+    this->LoadPlayer();
     this->LoadActors();
     this->LoadUI();
 }
@@ -36,9 +54,8 @@ void GamePlayLevel::LoadActors()
     //plane:
     auto planeActor = Mesh::CreatePlaneActor((uint32_t)roadWidth, (uint32_t)goalLength,
         Float3{ 0.0f, 0.0f, 0.0f }); 
-    planeActor->staticMeshComponent->SetMaterial(Materials::GetSnowSurface());
-
-
+    //planeActor->staticMeshComponent->SetMaterial(Materials::GetSnowSurface());
+     
     // 
     //auto sphereActor = Mesh::CreateSphereActor( 1.0f, Float3{ 2.0f, 2.0f, 0.0f });
 
@@ -63,13 +80,94 @@ void GamePlayLevel::LoadActors()
     this->AddActor(planeActor);
     this->AddActor(itemActor);
     this->AddActor(checkPt);
+     
+
+    //new:
+    auto& gridPattern = MMath::GenerateGrid3D({ 1,3,1 }, 1.1);
+    for (const auto& pos : gridPattern) {
+    	auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
+    	actor->RootComponent->SetRelativePosition(pos);
+    
+        //rotate 30 degree:
+        //generate random x y z rotation:
+		//auto x = XMConvertToRadians(90.0f) * Random::Uniform01();  
+		//auto y = XMConvertToRadians(90.0f) * Random::Uniform01();  
+		//auto z = XMConvertToRadians(90.0f) * Random::Uniform01();  
+		 
+		//auto rotation = XMQuaternionRotationRollPitchYaw(x, y, z);
+  //      actor->RootComponent->SetRelativeRotation(rotation);  
+       
+        actor->RootComponent->UpdateWorldTransform();
+       
+        auto& rb = actor->shapeComponent->rigidBody; 
+        rb->simulatePhysics = true;
+        rb->simulateRotation = true;
+        //actor->shapeComponent->SetIsTrigger(true); 
+        //actor->staticMeshComponent->SetMaterial(Materials::GetIron()); 
+    
+    	this->AddActor(actor);
+    }
+
+     
+  //  {
+
+		//Float3 pos{ 0.0f, 2.0f, 0.0f };
+  //      auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
+  //       
+  //      auto rotation = XMQuaternionRotationRollPitchYaw(0.0f,0.0f, XMConvertToRadians(30.0f));
+  //      actor->RootComponent->SetRelativeRotation(rotation);  
+  //      actor->RootComponent->UpdateWorldTransform();
+
+  //      auto& rb = actor->shapeComponent->rigidBody; 
+  //      rb->simulatePhysics = true;
+  //      rb->simulateRotation = false;  
+  //      this->AddActor(actor);
+  //  }
+
+  //  {
+  //      Float3 pos{ 0.0f, 4.0f, 0.0f };
+  //      auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
+
+  //      auto rotation = XMQuaternionRotationRollPitchYaw(0.0f, XMConvertToRadians(90.0f), XMConvertToRadians(45.0f));
+  //      actor->RootComponent->SetRelativeRotation(rotation);
+  //      actor->RootComponent->UpdateWorldTransform();
+
+  //      auto& rb = actor->shapeComponent->rigidBody;
+  //      rb->simulatePhysics = true;
+  //      rb->simulateRotation = false;   
+  //      this->AddActor(actor);
+  //  }
+
+
+ 
+ 
 }
  
 
+void GamePlayLevel::LoadPlayer()
+{ 
+    //auto dftPlayer = CreateActor<APawn>(); 
+    auto dftPlayer = CreateActor<APlayer>();
+
+    dftPlayer->RootComponent->SetRelativePosition({ 0.0f, 2.0f, -8.0f });
+    dftPlayer->RootComponent->UpdateWorldTransform();
+
+    dftPlayer->staticMeshComponent->SetVisible(false);
+
+    //auto possess the default player 
+    if (auto controller = this->owningWorld->GetFirstPlayerController(); controller != nullptr) {
+        std::cout << "level: default controller possess default default player\n";
+        controller->Possess(dftPlayer.get());
+    } 
+
+    this->AddActor(dftPlayer);
+}
+
+
 void GamePlayLevel::LoadUI()
 {
-    auto playeHUD = CreateActor<APlayerHUD>();
-    this->AddActor(playeHUD);
+    //auto playeHUD = CreateActor<APlayerHUD>();
+    //this->AddActor(playeHUD);
 
     //auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
@@ -183,53 +281,53 @@ void GamePlayLevel::SyncGameToPhysics()
 
 void MainMenuLevel::OnLoad()
 {
-    std::cout << "load main menu world" << '\n';
+    //std::cout << "load main menu world" << '\n';
 
-    auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
-    auto uiManager = GameApplication::GetInstance()->GetUIManager();
+    //auto gameManager = GameApplication::GetInstance()->GetGameStateManager();
+    //auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
-    int screenWidth = GameApplication::GetInstance()->GetWidth();
-    int screenHeight = GameApplication::GetInstance()->GetHeight();
+    //int screenWidth = GameApplication::GetInstance()->GetWidth();
+    //int screenHeight = GameApplication::GetInstance()->GetHeight();
 
-    //FRect buttonRect = { 0, 0, 500, 300 }; // Width and height of button
-    FRect buttonRect = { 0, 0, 500, 50 }; // Width and height of button
-    FRect centeredRect = CenterRect(screenWidth, screenHeight, buttonRect);
+    ////FRect buttonRect = { 0, 0, 500, 300 }; // Width and height of button
+    //FRect buttonRect = { 0, 0, 500, 50 }; // Width and height of button
+    //FRect centeredRect = CenterRect(screenWidth, screenHeight, buttonRect);
 
-    auto entryButton = CreateShared<UIButton>(centeredRect);
-    entryButton->text = "Press to Enter";
+    //auto entryButton = CreateShared<UIButton>(centeredRect);
+    //entryButton->text = "Press to Enter";
 
-    auto click_cb = [=] {
-        gameManager->RequestTransitState(GameStateId::Playing);
-        };
+    //auto click_cb = [=] {
+    //    gameManager->RequestTransitState(GameStateId::Playing);
+    //    };
 
-    entryButton->OnClick.Add(click_cb);
-    //debugButton->OnHover.Add(hover_cb); 
+    //entryButton->OnClick.Add(click_cb);
+    ////debugButton->OnHover.Add(hover_cb); 
 
-    FRect timeHUDRect = { centeredRect.x, centeredRect.y + 100, 500, 20 };
-    auto timeHUD = CreateShared<UIButton>(timeHUDRect);
-    timeHUD->text = std::format("Record :{:.2f}", Global::lastUsedTime);
+    //FRect timeHUDRect = { centeredRect.x, centeredRect.y + 100, 500, 20 };
+    //auto timeHUD = CreateShared<UIButton>(timeHUDRect);
+    //timeHUD->text = std::format("Record :{:.2f}", Global::lastUsedTime);
 
-    //todo:  manually submit
-    //debugButton->Render(); 
-    m_buttons.push_back(entryButton);
-    m_buttons.push_back(timeHUD);
-    uiManager->RegisterRootElement(entryButton.get());
-    uiManager->RegisterRootElement(timeHUD.get());
+    ////todo:  manually submit
+    ////debugButton->Render(); 
+    //m_buttons.push_back(entryButton);
+    //m_buttons.push_back(timeHUD);
+    //uiManager->RegisterRootElement(entryButton.get());
+    //uiManager->RegisterRootElement(timeHUD.get());
 }
 
 void MainMenuLevel::OnUnload()
 {
     std::cout << "unload main menu world" << '\n';
 
-    auto uiManager = GameApplication::GetInstance()->GetUIManager();
-    auto renderer = GameApplication::GetInstance()->GetRenderer();
-    assert(renderer != nullptr);
+    //auto uiManager = GameApplication::GetInstance()->GetUIManager();
+    //auto renderer = GameApplication::GetInstance()->GetRenderer();
+    //assert(renderer != nullptr);
 
-    renderer->ClearUI();
+    //renderer->ClearUI();
 
-    uiManager->ClearRoot();
+    //uiManager->ClearRoot();
 
-    m_buttons.clear();
+    //m_buttons.clear();
 }
 
 void MainMenuLevel::OnTick(float delta)
@@ -314,3 +412,4 @@ void GamePlayWorld::GenerateObstacles(float roadWidth, float roadLength, uint32_
     }
 }
 */
+

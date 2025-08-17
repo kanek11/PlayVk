@@ -36,6 +36,14 @@ namespace Gameplay {
 			level->owningWorld = this;
 		}
 
+		void SetPersistentLevel(SharedPtr<ULevel> level) {
+			persistentLevel = level;
+			if (persistentLevel) {
+				persistentLevel->owningWorld = this;
+			}
+			 
+		}
+
 		//todo: level loading could be async or more complex;
 		void TransitLevel(std::string name) {
 			if (currentLevel) {
@@ -53,7 +61,7 @@ namespace Gameplay {
 
 			if (currentLevel) {
 				currentLevel->OnLoad();
-				currentLevel->BeginPlay();
+				currentLevel->RouteActorBeginPlay();
 			}
 		}
 
@@ -71,6 +79,9 @@ namespace Gameplay {
 	private:
 		SharedPtr<ULevel> currentLevel;
 		std::unordered_map<std::string, SharedPtr<ULevel>> levels;
+
+		SharedPtr<ULevel> persistentLevel;  
+
 
 	public:
 		PhysicsScene* physicsScene{ nullptr };
@@ -101,8 +112,7 @@ namespace Gameplay {
 		AController* GetFirstPlayerController() const {
 			return playerControllers.empty() ? nullptr : playerControllers[0].get();
 		}
-
-
+		 
 
 	private:
 		void ConstructSceneView();
@@ -115,15 +125,25 @@ namespace Gameplay {
 		SharedPtr<AGameStateBase> m_gameState;
 
 	public: 
-		template<typename T>
-		void CreateGameState() {
+		template<DerivedFrom<AGameStateBase> T>
+		void CreateGameState(ULevel* level) {
 			//static_assert(std::is_base_of<AGameStateBase, T>::value, "Must be a GameStateBase");
 			m_gameState = CreateShared<T>();
+			level->AddActor(m_gameState);
 		}
 
-		template<typename T>
+		template<DerivedFrom<AGameStateBase> T>
 		T* GetGameState() const {
 			return dynamic_cast<T*>(m_gameState.get());
+		}
+
+	public:
+		//only register behavior for now
+		template<DerivedFrom<AActor> T>
+		T* SpawnActor(ULevel* level) { 
+			auto actor = CreateActor<T>();
+			level->AddActor(actor);
+			return actor.get();
 		}
 
 	};

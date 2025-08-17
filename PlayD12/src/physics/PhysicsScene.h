@@ -73,6 +73,9 @@ struct RigidBody {
 		this->rotation = rotation;
 		this->predRot = rotation;
 		this->prevRot = rotation;
+
+		//update rotation matrix:
+		this->RotationMatrix = MMath::QuaternionToRotationMatrix(rotation);
 	}
 
 	void ClearRotation() {
@@ -171,10 +174,10 @@ public:
 		const Float3& position = Float3{ 0.0f, 0.0f, 0.0f },
 		const DirectX::XMVECTOR& rotation = DirectX::XMQuaternionIdentity()
 	);
+
 	void SetCollider(Collider* collider, ActorId owner) {
 		collider->actorId = owner;
-		m_colliders[owner] = collider;
-		
+		m_colliders[owner] = collider; 
 	}
 
 	void ClearRigidBody() {

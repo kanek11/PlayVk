@@ -34,22 +34,21 @@ namespace Gameplay {
 		virtual void OnUnload() = 0;
 		virtual void OnTick(float delta);
 
-		void BeginPlay();
+		void RouteActorBeginPlay();
 		void EndPlay();
 
 		virtual void SyncGameToPhysics() {};
 
 	public:
-		//new:
-		std::vector<SharedPtr<AActor>> m_actors;
+		//new: public because level is basically container of actors
+		std::vector<SharedPtr<AActor>> actors;
 
 		void AddActor(SharedPtr<AActor> actor);
 
 		void UpdateTransforms();
 
 		void ForEachComponent(const sceneIterFn& fn);
-		void TraverseTree(USceneComponent* comp, const sceneIterFn& fn);
-
+		void TraverseTree(USceneComponent* comp, const sceneIterFn& fn); 
 
 	public:
 		//UIs are managed separately with actors

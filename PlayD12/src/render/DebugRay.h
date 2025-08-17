@@ -17,98 +17,115 @@
 
 #include "Mesh.h" 
 
+#include "StaticMeshProxy.h"
+
 
 struct RendererContext; 
 
-struct MVPConstantBuffer
-{
-    //XMFLOAT4X4 modelMatrix; // 64 bytes  
-    //XMFLOAT4X4 viewProjectionMatrix; // 64 bytes 
-    Float4x4 modelMatrix; // 64 bytes 
-    Float4x4 projectionViewMatrix; // 64 bytes
 
-    //padding:
-    float padding[32];
-};
+namespace Materials {
+	inline MaterialDesc DebugRayMaterialDesc = {
+		.shaderTag = "Debug",
+		.enableAlphaBlend = true,
+		.doubleSided = true,
+		.depthWrite = false
+	};
+}
 
+namespace Passes {
+	inline RenderPassDesc DebugRayPassDesc = {
+		.passTag = "Line",
+		.colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM },
+		.depthFormat = DXGI_FORMAT_UNKNOWN,
+		.enableDepth = false,
+		.cullMode = D3D12_CULL_MODE_NONE,
+		.topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE,
+	};
+}
 
-static_assert((sizeof(MVPConstantBuffer) % 256) == 0, "Constant Buffer size must be 256-byte aligned");
+namespace DebugDraw {
 
-
-//struct DebugLine {
+    //struct DebugLine {
 //    Float3 start;
 //    Float4 color0;
 //    Float3 end;
 //    Float4 color1;
 //};
 
-struct DebugLineVertex {
-    Float3 position;
-    Float4 color;
-};
+    struct Vertex {
+        Float3 position;
+        Float4 color;
+    };
+     
+    template<>
+    struct VertexLayoutTraits<Vertex> {
+        static constexpr bool is_specialized = true;
+        static constexpr auto attributes = std::to_array<VertexAttribute>({
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(Vertex, position) },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(Vertex, color) }
+            });
+    };
 
-//
-template<>
-struct VertexLayoutTraits<DebugLineVertex> {
-    static constexpr bool is_specialized = true;
-    static constexpr auto attributes = std::to_array<VertexAttribute>({
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, offsetof(DebugLineVertex, position) },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, offsetof(DebugLineVertex, color) }
-        });
-};
+
+	struct GPUResources {
+		SharedPtr<FD3D12ShaderPermutation> shader;
+		ComPtr<ID3D12PipelineState> pso;
+		std::optional<uint32_t> baseHeapOffset = 0;
+
+		SharedPtr<FD3D12Buffer> batchVB; 
+		FBufferView batchVBV;
+	};
+
+	struct BuildData { 
+        std::vector<Vertex> vertices; 
+
+		virtual void ResetFrame()
+		{ 
+			vertices.clear();
+		}
+	};
+
+	struct PassContext {
+		BuildData data;
+		GPUResources res; 
+		 
+		SharedPtr<UMaterial> debugCubeMat = CreateShared<UMaterial>();
+		SharedPtr<UStaticMesh> debugCubMesh = CreateShared<CubeMesh>();
+		std::vector<InstanceData> debugCubeInstances = {
+			{ Float3(0, 0, 0) }
+		};
+
+		std::vector<FStaticMeshProxy> debugMeshes;
+
+		void ResetFrame() noexcept
+		{
+			data.ResetFrame();
+			debugMeshes.clear(); 
+		}
+	};
 
 
-class DebugDraw {
-public:
-    static DebugDraw& Get();
+    void Init(const RendererContext* ctx, PassContext& passCtx);
 
-    void Init(const RendererContext* ctx);
+    void BeginFrame(PassContext& passCtx) noexcept;
+	void EndFrame(PassContext& passCtx) noexcept;
 
-    void OnUpdate(float delta, const Float4x4& pv);
+	void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
+}
 
-    void AddRay(const Float3& origin, const Float3& direction,
-        const Float4& color0 = Float4(1.0f, 1.0f, 1.0f, 1.0f),
-        const Float4& color1 = Float4(1.0f, 1.0f, 1.0f, 1.0f)
-    );
+namespace DebugDraw {
+ 
     void AddLine(const Float3& start, const Float3& end,
         const Float4& color = Float4(1.0f, 0.0f, 0.0f, 1.0f),
-        const Float4& color1 = Float4(1.0f, 1.0f, 1.0f, 1.0f));
+		std::optional<Float4> color1 = std::nullopt
+	);
+  
+    void AddRay(const Float3& origin, const Float3& direction,
+        const Float4& color0 = Float4(1.0f, 1.0f, 1.0f, 1.0f),
+		std::optional<Float4> color1 = std::nullopt
+    );
 
-    void FlushAndRender(ID3D12GraphicsCommandList* cmdList);
+	void ClearFrame(); 
 
-    //static_assert(sizeof(DebugLineVertex) == sizeof(float) * 7, "unexpected vertex size?");
-private:
-    void Clear()
-    {
-        m_lineData.clear();
-    }
-private:
-    std::vector<DebugLineVertex> m_lineData;
-    SharedPtr<FD3D12Buffer> m_vertexBuffer;
-    SharedPtr<FD3D12ShaderPermutation> m_shader;
-    ComPtr<ID3D12PipelineState> m_PSO;
-
-    //MVP buffer:
-    SharedPtr<FD3D12Buffer> m_CB;
-    uint32_t heapOffset;
-
-
-    MaterialDesc m_materialDesc = {
-        .shaderTag = "Debug",
-
-        .enableAlphaBlend = true,
-        .doubleSided = true,
-        .depthWrite = false
-    };
-
-    RenderPassDesc m_renderPassDesc = {
-        .passTag = "Line",
-        .colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM },
-        .depthFormat = DXGI_FORMAT_UNKNOWN,
-        .enableDepth = false,
-        .cullMode = D3D12_CULL_MODE_NONE,
-		.topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE,
-    };
-
-};
-
+	void AddCube(const Float3& center, float size, std::optional<Float4> color = std::nullopt);
+}

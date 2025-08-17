@@ -7,27 +7,42 @@
 #include "Render/Renderer.h"
 #include "Render/Text.h"
 
+UIElement::UIElement()
+{
+	baseColor[3] = 0.5f; // Set default alpha to 0.5f
+}
+
+
+UIButton::UIButton() : UIElement()
+{
+	OnHoverEnter.Add([this]() {
+		baseColor = Color::Cyan;
+		baseColor[3] = 0.5f;
+		});
+
+	OnHoverExit.Add([this]() {
+		baseColor = { 1.0f, 1.0f, 1.0f, 0.5f };
+		}); 
+}
 
 void UIButton::RenderBack()
 {
+	UIElement::RenderBack();
+
 	auto renderer = GameApplication::GetInstance()->GetRenderer();
-	assert(renderer != nullptr);
+	assert(renderer != nullptr); 
+	assert(layout.has_value());
 
-	Float4 color = { 1.0f, 1.0f, 1.0f, 0.5f };
-	if (state == UIState::Hovered)
-	{
-		OnHover.BlockingBroadCast();
-		color = Color::Cyan;
-		color[3] = 0.5f;
-	}
-
-	renderer->AddQuad(layout, color);
+	renderer->AddQuad(layout.value(), baseColor);
 }
 
 void UIButton::RenderText()
 {
 	auto renderer = GameApplication::GetInstance()->GetRenderer();
 	assert(renderer != nullptr);
+
+	assert(layout.has_value());
+	auto layout = this->layout.value();
 
 	SharedPtr<FontAtlas> font = renderer->GetFontAtlas();
 	if (!font) {
@@ -67,6 +82,8 @@ void UIButton::RenderText()
 
 void UIButton::Tick(float delta)
 {
+	UIElement::Tick(delta);
+
 	this->RenderBack();
 	this->RenderText();
 
@@ -84,4 +101,15 @@ void UIButton::Tick(float delta)
 	//	}
 	//}
 
+}
+
+void UICanvasPanel::Tick(float delta)
+{
+	UIElement::Tick(delta);
+
+	//auto renderer = GameApplication::GetInstance()->GetRenderer();
+	//assert(renderer != nullptr);
+	//assert(layout.has_value());
+
+	//renderer->AddQuad(layout.value(), baseColor);
 }

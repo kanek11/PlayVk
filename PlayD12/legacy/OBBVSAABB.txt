@@ -90,3 +90,121 @@ bool Collide(const AABB& a, const OBB& b, Contact& out) {
 
     return true;
 }
+
+
+    //[[nodiscard]] 
+    //bool Collide(const AABB& a, const OBB& b, Contact& out) {
+
+    //    //delegate to OBB vs OBB:
+    //    OBB mimicOBB;
+    //    mimicOBB.center = (a.min + a.max) * 0.5f;
+    //    mimicOBB.halfExtents = (a.max - a.min) * 0.5f;
+    //    mimicOBB.axis[0] = Float3{ 1, 0, 0 };
+    //    mimicOBB.axis[1] = Float3{ 0, 1, 0 };
+    //    mimicOBB.axis[2] = Float3{ 0, 0, 1 };
+    //    return Collide(mimicOBB, b, out);
+    //}
+
+
+    ////AABB vs OBB
+    //[[nodiscard]] 
+    //bool Collide(const AABB& a, const OBB& b, Contact& out) {
+    //    // convert the AABB
+    //    Float3 aCenter = (a.min + a.max) * 0.5f;
+    //    Float3 aExtent = (a.max - a.min) * 0.5f;
+    //
+    //    // constant axis;
+    //    const Float3 aAxes[3] = {
+    //        Float3{1,0,0}, Float3{0,1,0}, Float3{0,0,1}
+    //    };
+    //
+    //    float   minOverlap = FLT_MAX;
+    //    Float3  bestAxis = Float3{ 0,0,0 };
+    //     
+    //	//capture by reference
+    //    auto testAxis = [&](const Float3& axis) {
+    //
+    //        Interval aProj = AABBProject(a, axis);
+    //        Interval bProj = OBBProject(b, axis);
+    //
+    //        float overlap = 0.0f;
+    //        if (!IntervalOverlap(aProj, bProj, overlap)) {
+    //            return false;  
+    //
+    //        }
+    //        if (overlap < minOverlap) {
+    //            minOverlap = overlap;
+    //           
+    //            //point B to A
+    //			if (Dot(axis, aCenter - b.center) > 0) {
+    //				bestAxis = axis;  
+    //			}
+    //			else {
+    //				bestAxis = -axis; 
+    //			} 
+    //
+    //        };
+    //        return true;
+    //        };
+    // 
+    //    for (int i = 0; i < 3; i++)
+    //        if (!testAxis(aAxes[i]))
+    //            return false;
+    // 
+    //    for (int i = 0; i < 3; i++)
+    //        if (!testAxis(b.axis[i]))
+    //            return false;
+    // 
+    //    for (int i = 0; i < 3; i++) {
+    //        for (int j = 0; j < 3; j++) {
+    //            Float3 axis = Vector3Cross(aAxes[i], b.axis[j]);
+    //            float len2 = Dot(axis, axis);
+    //            if (len2 < 1e-6f)
+    //                continue;   // 共线，跳过
+    //			axis = Normalize(axis); // 归一化
+    //            if (!testAxis(axis))
+    //                return false;
+    //        }
+    //    }
+    // 
+    //    out.penetration = minOverlap; 
+    //    std::cout << "Collide AABB with OBB: penetration = " << out.penetration << std::endl;
+    //
+    //	std::cout << "Best axis: " << bestAxis.x() << ", " << bestAxis.y() << ", " << bestAxis.z() << std::endl;
+    //
+    //	//make sure the normal is pointing from B to A
+    //    out.normal = bestAxis;
+    //
+    //
+    //    // 6. 近似计算接触点（在 A 与 B 表面之间做中点）
+    //    {
+    //		Float3 contactPointA = aCenter - bestAxis * (
+    //            aExtent.x() * std::abs(bestAxis.x()) +
+    //			aExtent.y() * std::abs(bestAxis.y()) +
+    //			aExtent.z() * std::abs(bestAxis.z())
+    //            );
+    //		Float3 contactPointB = b.center + bestAxis * (
+    //            b.halfExtents.x() * std::abs(Dot(b.axis[0], bestAxis)) +
+    //			b.halfExtents.y() * std::abs(Dot(b.axis[1], bestAxis)) +
+    //			b.halfExtents.z() * std::abs(Dot(b.axis[2], bestAxis))
+    //            );
+    //		out.point = (contactPointA + contactPointB) * 0.5f; 
+    //        std::cout << "Contact point: " << out.point.x() << ", " << out.point.y() << ", " << out.point.z() << std::endl;
+    //    }
+    //
+    //    return true;
+    //}
+    //
+    //// AABB vs OBB
+    //[[nodiscard]]
+    //bool Collide(const OBB& obb, const AABB& aabb, Contact& out)
+    //{
+    //	//std::cout << "Collide OBB with AABB" << std::endl;
+    //	if (!Collide(aabb, obb, out)) return false;
+    //	out.normal *= -1.0f; 
+    //	//std::swap(out.a, out.b); 
+    //
+    //	//std::cout << "Collide OBB with AABB: true normal = " << out.normal.x() << ", " << out.normal.y() << ", " << out.normal.z() << std::endl;
+    //     
+    //	return true;
+    //} 

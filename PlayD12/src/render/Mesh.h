@@ -11,13 +11,11 @@
 
 //using Float3 = XMFLOAT3;
 //using Float2 = XMFLOAT2;
-//using Float4 = XMFLOAT4; 
+//using Float4 = XMFLOAT4;  
 
+using INDEX_FORMAT = uint16_t;  
 
-using INDEX_FORMAT = uint16_t;
-
-
-
+inline DXGI_FORMAT INDEX_FORMAT_DX = DXGI_FORMAT_R16_UINT; 
 
 //the desc of a vertex attribute 
 struct VertexAttribute {
@@ -143,8 +141,11 @@ public:
 
 public:
 	const StaticMeshData& m_meshData; // Reference to the mesh data
+
 	SharedPtr<FD3D12Buffer> m_vertexBuffer{ nullptr };
+	FBufferView m_vertexBufferView;  
 	SharedPtr<FD3D12Buffer> m_indexBuffer{ nullptr };
+	FBufferView m_indexBufferView; // Index buffer view
 
 private:
 	ID3D12Device* m_device = nullptr; // Device for resource creation
@@ -184,13 +185,28 @@ public:
 
 	SharedPtr<FD3D12Buffer> GetVertexBuffer() const
 	{
-		return m_GPUResource ? m_GPUResource->m_vertexBuffer : nullptr;
+		assert(m_GPUResource != nullptr);
+		return m_GPUResource->m_vertexBuffer;
 	}
 
 	SharedPtr<FD3D12Buffer> GetIndexBuffer() const
 	{
-		return m_GPUResource ? m_GPUResource->m_indexBuffer : nullptr;
+		assert(m_GPUResource != nullptr);
+		return m_GPUResource->m_indexBuffer;
 	}
+
+	FBufferView GetVertexBufferView() const
+	{
+		assert(m_GPUResource != nullptr);
+		return m_GPUResource->m_vertexBufferView;
+	}
+
+	FBufferView GetIndexBufferView() const
+	{
+		assert(m_GPUResource != nullptr);
+		return m_GPUResource->m_indexBufferView;
+	}
+
 
 	D3D_PRIMITIVE_TOPOLOGY GetTopology() const
 	{

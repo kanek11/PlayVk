@@ -6,6 +6,9 @@
 
 #include "Physics/PhysicsScene.h"
 
+#include "Gameplay/Actors/AController.h"
+
+using namespace Gameplay;
 
 struct FPlayerState {
 
@@ -22,6 +25,9 @@ struct FFormState {
 	SharedPtr<UMaterial> material;
 	ShapeType shape;
 	PhysicalMaterial physMaterial;
+
+	//
+	InputBehavior inputCb;
 };
 
 
@@ -33,7 +39,12 @@ public:
 	APlayer();
 	virtual void BeginPlay() override;
 
-	virtual void OnTick(float DeltaTime) override;
+	virtual void OnTick(float delta) override;
+
+	void UploadPlayerState();
+
+	void SphereStateBehavior(float delta);
+	void CubeStateBehavior(float delta);
 
 public:
 	SharedPtr<UStaticMeshComponent> staticMeshComponent;
@@ -43,5 +54,5 @@ public:
 	std::unordered_map<EPlayerForm, FFormState> playerForms;
 
 public:
-	FPlayerState playerState;
+	FPlayerState playerState{};
 };

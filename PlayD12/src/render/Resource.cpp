@@ -50,12 +50,54 @@ static inline D3D12_RESOURCE_FLAGS GetResourceFlags(const EBufferUsage& usage) {
 
 
 
-FD3D12Buffer::FD3D12Buffer(ID3D12Device* m_device, const FBufferDesc& desc) :
-	m_device(m_device), m_bufferDesc(desc)
+//FD3D12Buffer::FD3D12Buffer(ID3D12Device* m_device, const FBufferDesc& desc) :
+//	m_device(m_device), m_bufferDesc(desc)
+//{
+//	CreateResource();
+//}
+
+FD3D12Buffer::FD3D12Buffer(ID3D12Device* device, const FBufferDesc& desc) :
+	m_device(device), m_bufferDesc(desc)
 {
 	CreateResource();
 }
 
+//void FD3D12Buffer::CreateResource()
+//{
+//	auto heapType = GetHeapType(m_bufferDesc.Usage);
+//	auto initialState = GetInitialState(m_bufferDesc.Usage);
+//
+//	auto bufferSize = static_cast<UINT64>(m_bufferDesc.SizeInBytes);
+//
+//	ThrowIfFailed(m_device->CreateCommittedResource(
+//		&CD3DX12_HEAP_PROPERTIES(heapType),
+//		D3D12_HEAP_FLAG_NONE,
+//		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize, GetResourceFlags(m_bufferDesc.Usage)),
+//		initialState,
+//		nullptr,
+//		IID_PPV_ARGS(m_resource.GetAddressOf())));
+//
+//}
+
+
+
+void FD3D12Buffer::CreateResource()
+{
+	auto heapType = GetHeapType(m_bufferDesc.Usage);
+	auto initialState = GetInitialState(m_bufferDesc.Usage);
+
+	auto bufferSize = static_cast<UINT64>(m_bufferDesc.SizeInBytes);
+
+	ThrowIfFailed(m_device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(heapType),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize, GetResourceFlags(m_bufferDesc.Usage)),
+		initialState,
+		nullptr,
+		IID_PPV_ARGS(m_resource.GetAddressOf())));
+}
+
+/*
 D3D12_VERTEX_BUFFER_VIEW FD3D12Buffer::GetVertexBufferView() const
 {
 	return D3D12_VERTEX_BUFFER_VIEW{
@@ -116,23 +158,11 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC FD3D12Buffer::GetUAVDesc() const
 
 	return desc;
 }
+*/
 
-void FD3D12Buffer::CreateResource()
-{
-	auto heapType = GetHeapType(m_bufferDesc.Usage);
-	auto initialState = GetInitialState(m_bufferDesc.Usage);
 
-	auto bufferSize = static_cast<UINT64>(m_bufferDesc.SizeInBytes);
 
-	ThrowIfFailed(m_device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(heapType),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(bufferSize, GetResourceFlags(m_bufferDesc.Usage)),
-		initialState,
-		nullptr,
-		IID_PPV_ARGS(m_resource.GetAddressOf())));
 
-}
 
 void* FD3D12Buffer::Map()
 {

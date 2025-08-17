@@ -16,8 +16,7 @@ RenderPassBuilder& RenderGraph::AddPass(const std::string& name)
 
 	return passes.back();
 }
-
-
+ 
 
 void RenderGraph::Compile()
 {

@@ -62,7 +62,7 @@ struct UMaterial {
 
     //new:
     bool transparent{ false }; 
-
+	Float4 transparentColor{ 1.0f, 0.0f, 0.0f, 1.0f };   
 
     UMaterial(); 
     //void DeriveParameters();
@@ -71,6 +71,27 @@ struct UMaterial {
 
 
 namespace Materials {
+
+
+    inline SharedPtr<UMaterial> GetIron() {
+
+        auto Mat = CreateShared<UMaterial>(); 
+
+        Mat->materialCB.useBaseColorMap = false;
+		Mat->materialCB.baseColor = Color::Iron;
+
+        Mat->materialCB.useNormalMap = false;
+        Mat->materialCB.useMetallicMap = false;
+		Mat->materialCB.metallic = 1.0f;  
+
+        Mat->materialCB.useRoughnessMap = false;
+		Mat->materialCB.roughness = 0.0f;  
+
+        Mat->materialCB.useAOMap = false;
+
+        return Mat; 
+
+    }
 
 
     inline SharedPtr<UMaterial> GetRustyIron() {

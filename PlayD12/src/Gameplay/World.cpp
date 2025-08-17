@@ -17,18 +17,21 @@ namespace Gameplay {
 		//physics update is handled by time system;
 		gTime.RegisterFixedFrame([=](float delta) {
 			physicsScene->Tick(delta);
-			});
-
+			}); 
 
 		//new understanding:  controllers are managed by world itself; 
 		auto dftPlayerController = CreateActor<AController>();
 		this->AddPlayerController(dftPlayerController);
+
+
+		this->persistentLevel->OnLoad();
+		this->persistentLevel->RouteActorBeginPlay();
 	}
 
 	void UWorld::BeginPlay()
 	{
 		if (currentLevel) {
-			currentLevel->BeginPlay();
+			currentLevel->RouteActorBeginPlay();
 		}
 
 		for (auto& controller : playerControllers) {
@@ -51,8 +54,7 @@ namespace Gameplay {
 		//if (currentLevel) {
 		//	currentLevel->SyncPhysicsToGame();
 		//}
-		this->DispatchPhysicsEvents();
-
+		this->DispatchPhysicsEvents(); 
 
 		auto& transformBuffer = physicsScene->GetTransformBuffer();
 		for (auto& [id, trans] : transformBuffer) {

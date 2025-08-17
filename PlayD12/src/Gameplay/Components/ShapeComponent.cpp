@@ -6,12 +6,14 @@
 
 //----------------
 namespace Gameplay {
-    UShapeComponent::UShapeComponent():UPrimitiveComponent()
-    { 
-        collider = CreateShared<Collider>(rigidBody);
-    }
+     
 
-    void UShapeComponent::OnRegister()
+UShapeComponent::UShapeComponent():UPrimitiveComponent()
+{ 
+    collider = CreateShared<Collider>(rigidBody);
+}
+
+void UShapeComponent::OnRegister()
 {
     UPrimitiveComponent::OnRegister(); 
 
@@ -28,6 +30,9 @@ namespace Gameplay {
     owningWorld->physicsScene->SetRigidBody(rb, id);
     owningWorld->physicsScene->SetCollider(collider.get(), id);
 }
+
+
+
 
 void UShapeComponent::SetShape(const ShapeType& shape)
 {

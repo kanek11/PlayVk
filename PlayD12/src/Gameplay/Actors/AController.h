@@ -7,6 +7,41 @@
 
 namespace Gameplay
 {
+
+	enum class EInputMode
+	{
+		None,
+		//GameOnly,  
+		UIOnly, 
+		//GameAndUI  //our game doesn't have that.
+	};
+
+
+
+	using InputBehavior = std::function<void(float)>;
+
+	class UInputComponent : public UActorComponent
+	{
+	public:
+		virtual void TickComponent(float delta) override
+		{
+			if(inputBehavior)
+			{
+				inputBehavior(delta);
+			}
+		}
+
+		//braindead ver of binding 
+		void BindBehavior(const InputBehavior& behavior)
+		{
+			inputBehavior = behavior;
+		} 
+
+		InputBehavior inputBehavior;
+	}; 
+
+
+
 	class APawn;
 
 	//<<abstract>>
@@ -14,6 +49,11 @@ namespace Gameplay
 	{
 	public:
 		virtual void BeginPlay() override;
+
+		virtual void OnTick(float delta);
+
+		virtual void ProcessPlayerInput(float delta);
+
 
 		//virtual void OnTick(float DeltaTime) override; 
 		virtual void Possess(APawn* Pawn);
@@ -24,6 +64,21 @@ namespace Gameplay
 		//usually returns possessed pawn,but open to customization;
 		AActor* GetViewTarget() const;
 
+
+		void SetInputComponent(UInputComponent* InInputComponent)
+		{
+			CurrInputComp = InInputComponent;
+		}
+
+		void SetInputMode(EInputMode mode)
+		{
+			currInputMode = mode;
+		}
+
+	public:
 		APawn* Pawn;
+		UInputComponent* CurrInputComp;
+
+		EInputMode currInputMode{ EInputMode::None };
 	};
 }

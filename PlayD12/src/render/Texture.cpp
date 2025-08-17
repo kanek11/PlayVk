@@ -76,6 +76,24 @@ FD3D12Texture::FD3D12Texture(ID3D12Device* device, const FTextureDesc& desc)
             pClearValue,
             IID_PPV_ARGS(m_resource.GetAddressOf()))
     );
+
+
+	//create upload buffer for CPU upload:
+    CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+
+    const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_resource.Get(), 0, 1);
+
+    auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+
+    ThrowIfFailed(
+        m_device->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &bufferDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            IID_PPV_ARGS(uploadBuffer.GetAddressOf()))
+    );
 }
  
 
@@ -168,13 +186,7 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC FD3D12Texture::GetUAVDesc(UINT mipLevel) const 
     return uavDesc;
 }
 
-
-//FD3D12Texture::FD3D12Texture(ID3D12Device* device, ComPtr<ID3D12Resource> resource, const FTextureDesc& desc) :
-//    m_device(device), m_desc(desc),
-//    m_resource(resource)
-//{
-//
-//}
+ 
 
 void FD3D12Texture::UploadFromCPU(ID3D12GraphicsCommandList* cmdList, 
     const void* data, 
@@ -188,21 +200,8 @@ void FD3D12Texture::UploadFromCPU(ID3D12GraphicsCommandList* cmdList,
     subresource.RowPitch = rowPitch;
     subresource.SlicePitch = slicePitch;
 
-    CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+	assert(uploadBuffer != nullptr && "Upload buffer is not initialized!");
 
-    const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_resource.Get(), 0, 1);
-
-    auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-
-    ThrowIfFailed(
-        m_device->CreateCommittedResource(
-            &heapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &bufferDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(uploadBuffer.GetAddressOf()))
-    );
 
     auto preBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
         m_resource.Get(),

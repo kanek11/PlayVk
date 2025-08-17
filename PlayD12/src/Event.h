@@ -108,10 +108,10 @@ struct UIMouseButtonUp : public UIEventBase
 using UIEvent = std::variant<UIMouseMove, UIMouseButtonDown, UIMouseButtonUp>;
 
 
-class EventQueue {
+class InputEventQueue {
 public:
-    static EventQueue& Get() {
-        static EventQueue instance;
+    static InputEventQueue& Get() {
+        static InputEventQueue instance;
         return instance;
     }
 

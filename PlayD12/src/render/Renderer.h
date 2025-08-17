@@ -67,13 +67,11 @@ private:
  
 
 constexpr size_t MaxUIBatch = 128;
-constexpr size_t MaxStaticMesh = 128;
-constexpr size_t MaxLines = 1024;
-constexpr uint32_t descriptorPoolSize = 4096;
+constexpr size_t MaxStaticMesh = 512;
+constexpr size_t MaxLines = 4096;
+constexpr uint32_t descriptorPoolSize = 8192;
 
-using UploadTask = std::function<void(ID3D12GraphicsCommandList* cmdList)>;
-
- 
+using FUploadJob = std::function<void(ID3D12GraphicsCommandList* cmdList)>;
 
 
 struct RendererContext {
@@ -125,6 +123,7 @@ struct RenderGraphContext {
 
 
 namespace Render {
+
     inline RendererContext* rendererContext = nullptr;
     inline FrameDataContext* frameContext = nullptr;
 
@@ -277,7 +276,7 @@ public:
 
     //todo:
     //void SubmitMesh(StaticMeshActorProxy* mesh);
-    void SubmitMesh(FStaticMeshProxy mesh);
+    void SubmitMesh(const FStaticMeshProxy& proxy);
     void SubmitMeshProxies(const std::vector<FStaticMeshProxy>& mesh);
     void ClearMesh();
 
@@ -330,18 +329,33 @@ public:
     void InitEnvMap();
 
 public:
-    void UploadTexture(std::vector<UploadTask> tasks);
 
-      
-public:
-    OverlayMesh::PassContext overlayMeshCtx;
-
-public:
-
-    std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;\
+    std::unordered_map<std::string, SharedPtr<FD3D12Texture>> loadTextures;
 
     FrameDataContext* m_frame = new FrameDataContext{};
     RenderGraphContext* m_graph = new RenderGraphContext();
+      
+public:
+    DebugMesh::PassContext debugMeshCtx; 
+
+public:
+	DebugDraw::PassContext debugRayCtx;
+	void AddLine(const DebugDraw::Vertex& vert0, const DebugDraw::Vertex& vert1);
+    void ClearDebugDraw()
+    {
+        cmdBuffer.Enqueue([=] {
+            debugRayCtx.ResetFrame();
+            });
+    }
+
+	void AddDebugMesh(const FStaticMeshProxy& proxy)
+	{
+		cmdBuffer.Enqueue([=] {
+			debugRayCtx.debugMeshes.push_back(proxy);
+			});
+	}
+
+private:
 
     //new:
     RenderCommandBuffer cmdBuffer;
@@ -349,4 +363,6 @@ public:
     void ConsumeCmdBuffer();
 
 
+public:
+    void UploadTexture(std::vector<FUploadJob> tasks); 
 };

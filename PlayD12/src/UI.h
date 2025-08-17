@@ -6,6 +6,8 @@
 #include "Delegate.h"
 #include "Event.h"
 
+#include "FSM.h"
+
 
 // geometry helpers
 struct FRect { int x{}, y{}, w{}, h{}; };
@@ -26,114 +28,214 @@ inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
 	return { ndcX, ndcY };
 }
 
-
-
-
+ 
 //classic four states 
 enum class UIState {
-	Normal,
+	Disabled,
+	Idle,
 	Hovered,
-	Pressed,
-	Disabled
-};
+	PressedInside,
+	PressedOutside,  
+};  
 
- 
 
 class UIElement {
 public:
+	UIElement();
 	virtual ~UIElement() = default;
 
-	virtual void RenderBack() = 0;
+	virtual void Tick(float delta) { 
 
+		for (auto* child : m_children)
+		{
+			child->Tick(delta);
+		}
+	};
+
+	virtual void RenderBack() {}; 
+
+public: 
+	UIState state = UIState::Idle; 
+
+	virtual bool HitTest(int x, int y) const { return false; };
+ 
+	void OnEvent(UIEvent& evt) {
+		std::visit([this](auto& e) {
+			//std::cerr << "UIEvent holds: " << typeid(e).name() << '\n';
+			if (HitTest(e.x, e.y)) e.handled = true; // mark as handled 
+			}, evt); 
+	 
+		std::visit(overloaded{
+			[this](UIMouseMove& e) { OnMouseMove(e); },
+			[this](UIMouseButtonDown& e) { OnMouseButtonDown(e); },
+			[this](UIMouseButtonUp& e) { OnMouseButtonUp(e); }
+			}, evt);
+	}
+	
 	virtual void OnMouseMove(const UIMouseMove& e) {
 
 		//std::cout << "UI: handle move, curr state:" << (int)state << '\n';
+		bool hit = HitTest(e.x, e.y);
 
-		if (HitTest(e.x, e.y)) {
-			//std::cout << "UI: mouse hovered at (" << e.x << ", " << e.y << ")" << '\n';
-			if (state != UIState::Pressed)
+		if (state == UIState::Idle) {
+			if (hit) { 
+				OnHoverEnter.BlockingBroadCast();
 				state = UIState::Hovered;
+				std::cout << "UI: button hover enter at (" << e.x << ", " << e.y << ")" << '\n';
+	 			} 
 		}
-		else {
-			state = UIState::Normal;
+		else if (state == UIState::Hovered) {
+			if (!hit) {
+
+				OnHoverExit.BlockingBroadCast();
+				state = UIState::Idle;
+				std::cout << "UI: button hover out" << '\n';
+			} 
 		}
+		else if (state == UIState::PressedInside) {
+			if (!hit) {
+				OnHoverExit.BlockingBroadCast();
+				state = UIState::Idle;
+				//std::cout << "UI: button pressed outside of area" << '\n';
+			}
+		}
+		 
+
 	}
 
 	virtual void OnMouseButtonDown(const UIMouseButtonDown& e) {
 		//std::cout << "UI: handle hit down, curr state:" << (int)state << '\n';
-		if (HitTest(e.x, e.y)) {
-			std::cout << "UI: button pressed at (" << e.x << ", " << e.y << ")" << '\n';
-			state = UIState::Pressed;
-		}
+		//if (HitTest(e.x, e.y)) {
+		//	std::cout << "UI: button pressed at (" << e.x << ", " << e.y << ")" << '\n';
+		//	state = UIStateId::Pressed;
+		//}
+		if (state == UIState::Hovered) {
+			state = UIState::PressedInside;
+			//std::cout << "UI: button pressed :" << name << '\n';
+		} 
 	}
 
 	virtual void OnMouseButtonUp(const UIMouseButtonUp& e) {
 		//std::cout << "UI: handle hit release, curr state:" << (int)state << '\n';
-		if (HitTest(e.x, e.y)) {
+		if (state == UIState::PressedInside) {
+			OnClick.BlockingBroadCast();
+			state = UIState::Hovered;  
+		} 
 
-			if (state == UIState::Pressed) {
-				std::cout << "UI: button clicked" << '\n';
-				OnClick.BlockingBroadCast();
-				state = UIState::Normal;
-			}
+	}
+public: 
+	//todo: implement the tree;
+	UIElement* GetParent() const { return m_parent; } 
+	virtual std::span<UIElement* const> GetChildren() const
+	{
+		return m_children;
+	}
+
+	UIElement* m_parent = nullptr;
+	std::vector<UIElement*> m_children;
+
+	void AttachTo(UIElement* newParent) {
+		if (newParent == nullptr) {
+			std::cerr << "UIElement: cannot attach to null parent!" << '\n';
+			return;
 		}
-		else {
-			state = UIState::Normal;
-			std::cout << "UI: button up outside of button area" << '\n';
+		if (m_parent) {
+			auto& siblings = m_parent->m_children;
+			siblings.erase(std::remove(siblings.begin(), siblings.end(), this), siblings.end());
+		}
+
+		m_parent = newParent; 
+		m_parent->m_children.push_back(this); 
+	}
+	void DetachFromParent()
+	{
+		if (m_parent) {
+			auto& siblings = m_parent->m_children;
+			siblings.erase(std::remove(siblings.begin(), siblings.end(), this), siblings.end());
+			m_parent = nullptr;
 		}
 	}
 
-	virtual bool HitTest(int x, int y) const = 0;
-
-	//todo: implement the tree;
-	virtual std::span<UIElement* const> GetChildren() const { return {}; }
-
-
-	UIState state = UIState::Normal;
-
+public:
 	Float4 baseColor = Color::White;
 
 	FDelegate<void()> OnClick;
-	FDelegate<void()> OnHover;
+	FDelegate<void()> OnHoverEnter;
+	FDelegate<void()> OnHoverExit;
+
+
+public:
+	void SetLayout(const FRect& rect) {
+		layout = rect;
+	}
+	std::optional<FRect> layout;
+
+
+	std::string name = "UIElement"; // for debugging
 };
  
 
 //todo: visible ,enable; blocking;
 class UIButton : public UIElement
 {
-public:
+public: 
+	UIButton();
 	virtual ~UIButton() = default;
-	UIButton(FRect rect) : layout(rect) {}
 
 	virtual void RenderBack() override;
 	void RenderText();
 
-	void Tick(float delta);
+	virtual void Tick(float delta) override;
 
 	virtual bool HitTest(int x, int y) const override {
-		return IsPointInRect(layout, x, y);
+		assert(layout.has_value());
+		return IsPointInRect(layout.value(), x, y);
 	}
 
-	FRect layout;
 	std::string text = "HELLO";
 };
  
+class UICanvasPanel : public UIElement {
+public:
+	virtual void Tick(float delta) override;
+ };
+
+
+
 
 class UIManager {
 public:
-	void ProcessEvents() {
+	void Tick(float delta) {
+
+		for (auto& root : rootElements) {
+			root->Tick(delta);  
+		} 
+	}
+
+	void RouteEvents() {
 
 		auto uiEvents = UIEventQueue::Get().Drain();
 		//std::cout << "UIManager: processing " << uiEvents.size() << " UI events" << '\n';
 
 		for (UIEvent& e : uiEvents) {
-			std::visit([&](auto& evt) { DispatchToUIRoots(evt); }, e);
+			//std::visit([&](auto& evt) { DispatchToRoots(evt); }, e);
+			DispatchToRoots(e);
 		}
 		uiEvents.clear();
 	}
 
+
+	template<DerivedFrom<UIElement> T>
+	SharedPtr<T> CreateUIAsRoot() {
+		SharedPtr<T> elem = CreateShared<T>();
+		rootElements.push_back(elem.get());
+		return elem;
+	}
+ 
 	void RegisterRootElement(UIElement* elem) {
-		rootElements.push_back(elem);
+		if (elem) {
+			rootElements.push_back(elem);
+		}
 	}
 
 	void ClearRoot() {
@@ -142,61 +244,43 @@ public:
 
 private:
 	std::vector<UIElement*> rootElements;
-	UIElement* mouseCaptured = nullptr;
+	UIElement* captured = nullptr;
 
-	// T must be a UIEvent variant member
-	template<typename T>
-	void DispatchToUIRoots(T& evt) {
-		if (mouseCaptured && !evt.handled) {
-			DispatchToElement(mouseCaptured, evt);
-			return;
-		}
+	void DispatchToRoots(UIEvent& evt) {
+		//if (captured) {
+		//	DispatchToElement(captured, evt);
+		//	return;
+		//}
 
 		for (UIElement* elem : rootElements) {
 			if (DispatchRecursive(elem, evt)) break;
 		}
 	}
 
-	//todo: dispatch within the element;
-	template<typename T>
-	void DispatchToElement(UIElement* elem, T& evt) {
-		if constexpr (std::is_same_v<T, UIMouseMove>) {
-			elem->OnMouseMove(evt);
-		}
-		else if constexpr (std::is_same_v<T, UIMouseButtonDown>) {
-			elem->OnMouseButtonDown(evt);
-			//capture mouse on down:
-			if (mouseCaptured == nullptr)
-				mouseCaptured = elem;
+	//DFS dispatch 
+	bool DispatchRecursive(UIElement* elem, UIEvent& evt) {
 
+		for (UIElement* child : elem->GetChildren()) {
+			//return on first child that handles the event
+			//std::cout << "UI: dispatching event to child: " << child->name << '\n';
+			if (DispatchRecursive(child, evt)) return true;
 		}
-		else if constexpr (std::is_same_v<T, UIMouseButtonUp>) {
-			elem->OnMouseButtonUp(evt);
-			//release capture on up:
-			if (mouseCaptured == elem)
-				mouseCaptured = nullptr;
-		}
-	}
 
-	//DFS dispatch
-	template<typename T>
-	bool DispatchRecursive(UIElement* elem, T& evt) {
-		//ignore if the element is handled, or not hit;
-		if (evt.handled)
-			return false;
-
-		//for (UIElement* child : elem->GetChildren()) {
-		//	if (DispatchRecursive(child, evt)) return true;
-		//}
-		//std::cout << "UIManager: dispatching event to element" << '\n'; 
+		//std::cout << "UI: dispatching event to: " << elem->name << '\n';
 
 		DispatchToElement(elem, evt);
+ 
+		return std::visit([](auto const& e) {
+			//return true if the event was handled
+			return e.handled;
+			}, evt);
+	} 
 
-		//todo: element-dependent propagation logic;
-		//evt.StopPropagation();
+	//todo: dispatch within the element; 
+	void DispatchToElement(UIElement* elem, UIEvent& evt) { 
+		elem->OnEvent(evt); 
+	} 
 
-		return true;
-	}
 
 };
 

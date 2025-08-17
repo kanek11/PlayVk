@@ -48,10 +48,7 @@ void GameApplication::onInit()
 
 	//-----------------------------
 	m_uiManager = new UIManager();
-
-
-	//----------------------------
-	m_gameManager = new GameStateManager();
+	 
 
 	//---------------------- 
 	m_world = new UWorld();
@@ -64,9 +61,7 @@ void GameApplication::onDestroy()
 }
 
 void GameApplication::run()
-{
-
-
+{ 
 	//gTime.RegisterFixedFrame([=](float delta) {
 	//	owningWorld->physicsScene->Tick(delta);
 	//	});
@@ -93,7 +88,10 @@ void GameApplication::run()
 
 		m_inputSystem->OnUpdate();
 
-		m_uiManager->ProcessEvents();
+		m_uiManager->RouteEvents();
+
+		m_uiManager->Tick(delta);
+
 
 		//owningWorld->physicsScene->Tick(0.016f);
 
@@ -132,7 +130,7 @@ void GameApplication::run()
 			}*/
 
 			//tick level transition;
-		m_gameManager->Update(delta);
+		//m_gameManager->Update(delta);
 
 
 		m_world->SyncPhysicsToGame();
@@ -178,72 +176,18 @@ void GameApplication::run()
 }
 
 void GameApplication::onBeginGame()
-{
+{ 
 	//new: world update should comes before
-	m_world->Init();
-	m_world->BeginPlay();
-
-
+	auto globalLevel = CreateShared<GlobalLevel>();
+	m_world->RegisterLevel("global", globalLevel);
+	m_world->SetPersistentLevel(globalLevel);
 	m_world->RegisterLevel("gameplay", CreateShared<GamePlayLevel>());
 	m_world->RegisterLevel("mainMenu", CreateShared<MainMenuLevel>());
 
 
-	if (auto mainMenuState = m_gameManager->Register<MainMenuState>()) {
-		mainMenuState->OnEnter.Add(
-			[&]() {
-				std::cout << " enter mainMenu state" << "\n";
-				m_world->TransitLevel("mainMenu");
-				//mainMenuWorld->OnLoad();
-			});
-
-		mainMenuState->OnUpdate.Add(
-			[&](float dt) {
-				//mainMenuWorld->OnUpdate(dt);
-				//std::cout << " tick mainMenu: " << dt << "\n";
-			});
-		mainMenuState->OnExit.Add(
-			[&]() {
-				//mainMenuWorld->OnUnload();
-				//std::cout << " tick mainMenu: " << dt << "\n";
-			});
-
-		//m_gameManager->SetInitialState(mainMenuState->GetId());
-	}
-
-
-
-	if (auto playingState = m_gameManager->Register<PlayingState>()) {
-
-		playingState->OnEnter.Add(
-			[&]() {
-				std::cout << " enter playing state" << "\n";
-				//gameWorld->OnLoad();
-
-				m_world->TransitLevel("gameplay");
-			});
-
-		playingState->OnUpdate.Add(
-			[&](float dt) {
-				//gameWorld->OnUpdate(dt);
-				//std::cout << " tick playing: " << dt << "\n";
-			});
-		playingState->OnExit.Add(
-			[&]() {
-				std::cout << " exit playing state" << "\n";
-				//gameWorld->OnUnload();
-			});
-
-		m_gameManager->SetInitialState(playingState->GetId());
-	}
-
-
-	//----------------------------
-
-	m_gameManager->Initialize();
-
-}
-
-
+	m_world->Init();
+	m_world->BeginPlay();
+} 
 
 
 bool GameApplication::initWorkingDirectory()

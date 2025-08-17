@@ -32,8 +32,7 @@ void GamepadInput::FillState(GamepadState& pad, const XINPUT_GAMEPAD& g)
     pad.buttons[(size_t)A] = (g.wButtons & XINPUT_GAMEPAD_A);
     pad.buttons[(size_t)B] = (g.wButtons & XINPUT_GAMEPAD_B);
     pad.buttons[(size_t)X] = (g.wButtons & XINPUT_GAMEPAD_X);
-    pad.buttons[(size_t)Y] = (g.wButtons & XINPUT_GAMEPAD_Y); 
-
+    pad.buttons[(size_t)Y] = (g.wButtons & XINPUT_GAMEPAD_Y);  
 
     pad.buttons[(size_t)DPadUp] = (g.wButtons & XINPUT_GAMEPAD_DPAD_UP);
     pad.buttons[(size_t)DPadDown] = (g.wButtons & XINPUT_GAMEPAD_DPAD_DOWN);

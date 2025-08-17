@@ -8,21 +8,26 @@
 #include "GameState.h"
 
 
-void TransitPlayerState(AActor* actor, const FFormState& state)
+void TransitPlayerState(APlayer* actor, const FFormState& targetState)
 {  
 	actor->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
  
 	if (auto meshComp = actor->GetComponent<UStaticMeshComponent>()) {
-		meshComp->SetMesh(state.mesh);
-		meshComp->SetMaterial(state.material);
+		meshComp->SetMesh(targetState.mesh);
+		meshComp->SetMaterial(targetState.material);
 	}
 
 	if (auto shapeComp = actor->GetComponent<UShapeComponent>()) {
 		shapeComp->rigidBody->ClearRotation();
-		shapeComp->rigidBody->SetPhysicalMaterial(state.physMaterial);
-		shapeComp->SetShape(state.shape);
-
+		shapeComp->rigidBody->SetPhysicalMaterial(targetState.physMaterial);
+		shapeComp->SetShape(targetState.shape); 
 	}
+
+	//new: input comp:
+	if (actor->InputComponent) {
+		actor->InputComponent->BindBehavior(targetState.inputCb);
+	}
+
 }
 
 APlayer::APlayer() : APawn()
@@ -52,6 +57,12 @@ APlayer::APlayer() : APawn()
 
 void APlayer::BeginPlay()
 {
+	//
+	this->InputComponent->BindBehavior([this](float delta) {
+		this->SphereStateBehavior(delta);
+		}); 
+
+	//
 	auto overlapCb = [=](AActor* other) {
 		std::cout << "player: overlap with tag: " << other->tag << '\n';
 		};
@@ -59,12 +70,18 @@ void APlayer::BeginPlay()
 	this->shapeComponent->onOverlap.Add(overlapCb); 
 
 
+	//
 	FFormState sphereForm = {
 	.mesh = CreateShared<SphereMesh>(),
 	.material = Materials::GetRustyIron(), //CreateShared<UMaterial>(),
 	.shape = Sphere{ 1.0f }, 
-	.physMaterial = PhysicalMaterial{ 0.0f, 0.8f }
+	.physMaterial = PhysicalMaterial{ 0.0f, 0.8f },
 	};
+
+	sphereForm.inputCb = [this](float delta) {
+		this->SphereStateBehavior(delta);
+		};
+
 	playerForms[EPlayerForm::Sphere] = sphereForm;
 
 
@@ -82,18 +99,33 @@ void APlayer::BeginPlay()
 void APlayer::OnTick(float delta)
 {
 	APawn::OnTick(delta);
+	  
+	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+	 
+	if (inputSystem->IsKeyJustPressed(KeyCode::Num1))
+	{
+		TransitPlayerState(this, playerForms.at(EPlayerForm::Sphere)); 
+	} 
+	else if (inputSystem->IsKeyJustPressed(KeyCode::Num2)) { 
+		TransitPlayerState(this, playerForms.at(EPlayerForm::Cube));
+	}
+	  
 
+	this->UploadPlayerState();
+
+}
+
+void APlayer::UploadPlayerState()
+{
 	playerState.speed = Length(this->shapeComponent->rigidBody->linearVelocity);
 
 	auto gameState = GetWorld()->GetGameState<AGameState>();
 	gameState->SetPlayerState(this->playerState);
 
+}
 
-	 
-
-
-
-
+void APlayer::SphereStateBehavior(float delta)
+{
 	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
 
 	float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
@@ -102,16 +134,8 @@ void APlayer::OnTick(float delta)
 	float axisX = inputSystem->GetAxis(EAxis::MoveX);
 	shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta);
 
-	
-	if (inputSystem->IsKeyJustPressed(KeyCode::Num1))
-	{
-		TransitPlayerState(this, playerForms.at(EPlayerForm::Sphere));
-		//Mesh::SetSphere(this,1.0f);
-	} 
-	else if (inputSystem->IsKeyJustPressed(KeyCode::Num2)) {
-		//Mesh::SetBox(this, Float3(1.0f,1.0f,1.0));
-		TransitPlayerState(this, playerForms.at(EPlayerForm::Cube));
-	}
-	 
+}
 
+void APlayer::CubeStateBehavior(float delta)
+{
 }
