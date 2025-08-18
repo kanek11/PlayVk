@@ -23,6 +23,9 @@ struct Box {
 	Float3 halfExtents;
 };
 
+
+struct AABB { Float3 min, max; };
+
 struct Capsule {
 	float radius;
 	float height;

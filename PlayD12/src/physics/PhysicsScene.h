@@ -125,6 +125,7 @@ struct RigidBody {
 
 struct Collider {
 	ShapeType type;
+	AABB aabb; //for broadphase
 
 	RigidBody* body{ nullptr };
 
@@ -156,30 +157,34 @@ struct Contact {
 	Collider* b{};
 
 	float lambda = 0.f;   // to restore , eg: force;
+
+
 };
 
 
-//using ColliderPair = std::pair<const Collider* , const Collider* >;
-//class BroadPhaseCollision {
+struct WorldShapeProxy;
+using ColliderPair = std::pair<Collider* , Collider*>;
+class BroadPhase{
+public:
+	void ComputePairs(std::vector<WorldShapeProxy>& ws, std::vector<ColliderPair>& out);
+	 
+};
+
+
+//class NarrowPhaseCollision {
 //public:
-//	 
+//	void DetectCollisions();
 //};
 
-
-class NarrowPhaseCollision {
-public:
-	void DetectCollisions();
-};
-
-class ContactSolver {
-public:
-	void ResolveContacts(std::span<Contact> contacts, float deltaTime);
-};
-
-class Integrator {
-public:
-	void Integrate();
-};
+//class ContactSolver {
+//public:
+//	void ResolveContacts(std::span<Contact> contacts, float deltaTime);
+//};
+//
+//class Integrator {
+//public:
+//	void Integrate();
+//};
 
 
 
@@ -245,8 +250,9 @@ private:
 	std::vector<Contact>  m_contacts;
 	//std::vector<Constraints* > m_constraints;
 
-	ContactSolver m_contactSolver;
-	Integrator m_integrator;
+	BroadPhase m_broadPhase;
+	//ContactSolver m_contactSolver;
+	//Integrator m_integrator;
 
 
 public:

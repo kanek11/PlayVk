@@ -23,7 +23,7 @@ struct WorldShapeProxy
     Collider* owner;
 };
 
-WorldShape MakeWorldShape(const Collider& c)
+WorldShape MakeWorldShape(Collider& c)
 {
     return std::visit([&](auto const& s) -> WorldShape {
 
@@ -32,8 +32,10 @@ WorldShape MakeWorldShape(const Collider& c)
         if constexpr (std::is_same_v<Shape, Sphere>)
         { 
             assert(s.radius > 1e-6f);
-            const Float3 center = c.body->predPos; 
+            Float3 center = c.body->predPos; 
 			SphereWS sphereWS{ center, s.radius };
+
+			c.aabb = MakeAABB(center, s.radius);
 			//DrawDebugSphere(sphereWS);  
 			return sphereWS;  
         }
@@ -58,6 +60,7 @@ WorldShape MakeWorldShape(const Collider& c)
             obb.axis[2] = R[2]; //forward 
 
             //new:
+			c.aabb = MakeAABB(obb.center, R, obb.halfExtents); 
 			DrawDebugOBB(obb); //draw debug OBB
 
             return obb;
@@ -92,6 +95,7 @@ WorldShape MakeWorldShape(const Collider& c)
 			obb.axis[1] = R[1]; //up
 			obb.axis[2] = R[2]; //forward 
 
+			c.aabb = MakeAABB(obb.center, R, obb.halfExtents); //update AABB
 			DrawDebugOBB(obb); 
 
 			return obb; 

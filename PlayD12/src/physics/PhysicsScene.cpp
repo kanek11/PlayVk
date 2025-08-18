@@ -156,11 +156,20 @@ void PhysicsScene::DetectCollisions()
 		ws.push_back(proxy);
 	}
 
-	for (size_t i = 0; i < ws.size(); ++i)
-		for (size_t j = i + 1; j < ws.size(); ++j)
-		{
-			auto& A = ws[i];
-			auto& B = ws[j];
+
+	std::vector<ColliderPair> pairs;
+	m_broadPhase.ComputePairs(ws, pairs);
+
+
+	//for (size_t i = 0; i < ws.size(); ++i)
+	//	for (size_t j = i + 1; j < ws.size(); ++j)
+	//	{
+	//		auto& A = ws[i];
+	//		auto& B = ws[j];
+
+	for (auto& pr : pairs) { 
+		WorldShapeProxy A{ MakeWorldShape(*pr.first), pr.first };
+		WorldShapeProxy B{ MakeWorldShape(*pr.second), pr.second };
 
 			std::visit([&, this](auto const& sa, auto const& sb)
 				{
@@ -313,7 +322,7 @@ void PhysicsScene::PostPBD(float delta)
 		Float3 v = { dq.m128_f32[0], dq.m128_f32[1], dq.m128_f32[2] };
 		float  w = dq.m128_f32[3];
 		if (w < 0.f) v = -v;
-		if (body->bFastStable && LengthSq(v) < 1e-7f / body->mass) {
+		if (body->bFastStable && LengthSq(v) < 1e-10f / body->mass) {
 			v = Float3{}; 
 		}
 		body->angularVelocity = (2.f / delta) * v;
@@ -451,12 +460,12 @@ void PhysicsScene::VelocityPass(float delta)
 		if (desiredJt < maxStatic)
 		{
 			jt = desiredJt;
-			std::cout << "no slip detected";
+			//std::cout << "no slip detected";
 		}
 		else
-		{
+		{ 
 			jt = mu_k * jn;
-			std::cout << "slip detected, mu_k: " << mu_k << " jn: " << jn << '\n';
+			//std::cout << "slip detected, mu_k: " << mu_k << " jn: " << jn << '\n';
 		}
 
 		//------------------------------ 
@@ -465,7 +474,7 @@ void PhysicsScene::VelocityPass(float delta)
 		Float3 impulse = -jt * vT; // impulse vector
 		DebugDraw::AddRay(c.point, vT, Color::Brown);
 		//DebugDraw::AddRay(c.point, impulse / delta, Color::Brown);
-		std::cout << "Impulse: " << ToString(impulse) << '\n';
+		//std::cout << "Impulse: " << ToString(impulse) << '\n';
 
 		auto applyImpulse = [&](RigidBody* r,
 			const Float3& rVec,
@@ -629,4 +638,33 @@ RigidBody::RigidBody(StaticMeshActorProxy* owner, ShapeType type)
 RigidBody::RigidBody()
 {
 	//localInertia = MakeInertiaTensor(type, mass);
+}
+
+ 
+
+void BroadPhase::ComputePairs(std::vector<WorldShapeProxy>& ws, std::vector<ColliderPair>& out)
+{
+	out.clear();
+	out.reserve(ws.size() * ws.size());
+
+	//std::vector<AABB> aabbs;
+	//aabbs.reserve(inWS.size()); 
+ 
+	for (size_t i = 0; i < ws.size(); ++i)
+	  for (size_t j = i + 1; j < ws.size(); ++j)
+	{
+		  auto& AABB0 = ws[i].owner->aabb;
+		  auto& AABB1 = ws[j].owner->aabb;
+  
+		  float pad = 0.02f;  
+		  AABB fat0 = ExpandFatAABB(AABB0, pad);
+		  AABB fat1 = ExpandFatAABB(AABB1, pad);
+
+		  Contact c;
+		  if (Collide(fat0, fat1, c)) {
+			  //std::cout << "BroadPhase: AABB overlap detected: " << i << " vs " << j << '\n';
+			  out.emplace_back(ws[i].owner, ws[j].owner);
+		  }
+	}
+ 
 }

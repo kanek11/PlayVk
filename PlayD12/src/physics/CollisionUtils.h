@@ -4,7 +4,6 @@
 
 struct EmptyWS {}; //for empty collider, no shape
 
-struct AABB { Float3 min, max; };
 
 struct OBB {
     Float3 center;
@@ -28,8 +27,8 @@ struct PlaneWS {
 
 using WorldShape = std::variant<EmptyWS, SphereWS, AABB, PlaneWS, OBB>; 
 
-
-void DrawDebugSphere(const SphereWS& sphere)
+ 
+inline void DrawDebugSphere(const SphereWS& sphere)
 {
 	uint32_t segment = 6;
 
@@ -61,7 +60,7 @@ void DrawDebugSphere(const SphereWS& sphere)
  
 
 
-void DrawDebugOBB(const OBB& box)
+inline void DrawDebugOBB(const OBB& box)
 {
     Float3 corners[8]; 
 
@@ -121,6 +120,26 @@ void DrawDebugOBB(const OBB& box)
 	} 
 
 }
+
+
+inline AABB MakeAABB(const Float3& c, float r) {
+	return { c - Float3{r,r,r}, c + Float3{r,r,r} };
+}
+
+inline AABB MakeAABB(const Float3& center, const Float3x3& R, const Float3& he) {
+	// |R| * he  
+	Float3 rx = { std::abs(R[0].x()), std::abs(R[1].x()), std::abs(R[2].x()) };
+	Float3 ry = { std::abs(R[0].y()), std::abs(R[1].y()), std::abs(R[2].y()) };
+	Float3 rz = { std::abs(R[0].z()), std::abs(R[1].z()), std::abs(R[2].z()) };
+	Float3 radius = rx * he.x() + ry * he.y() + rz * he.z();
+	return { center - radius, center + radius };
+}
+
+inline AABB ExpandFatAABB(const AABB& box, float pad) {
+	return { box.min - Float3{pad,pad,pad}, box.max + Float3{pad,pad,pad} };
+}
+
+
 
 
 OBB MakeOBB(const AABB& box)
