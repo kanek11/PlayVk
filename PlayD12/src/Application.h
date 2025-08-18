@@ -99,7 +99,7 @@ public:
 	InputSystem* GetInputSystem() { return  m_inputSystem; }
 	//GameStateManager* GetGameStateManager() { return m_gameManager; }
 	UIManager* GetUIManager() { return m_uiManager; }
-	System::TimeSystem& GetTimeSystem() { return gTime; }
+	System::TimeSystem* GetTimeSystem() { return gTime.get(); }
 private:
 	[[nodiscard]] bool initWorkingDirectory();
 	[[nodiscard]] bool initWindow();
@@ -138,7 +138,7 @@ private:
 
 	UWorld* m_world{ nullptr };
 
-private:
-	System::TimeSystem gTime;
+public:
+	UniquePtr<System::TimeSystem> gTime = CreateUnique<System::TimeSystem>();
 	System::FTaskSystem m_taskSystem{};
 };

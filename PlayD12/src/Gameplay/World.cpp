@@ -10,26 +10,24 @@ namespace Gameplay {
 
 	void UWorld::Init()
 	{
-		auto& gTime = GameApplication::GetInstance()->GetTimeSystem();
-		physicsScene = new PhysicsScene();
+		auto gTime = GameApplication::GetInstance()->GetTimeSystem(); 
 		physicsScene->OnInit();
 
 		//physics update is handled by time system;
-		gTime.RegisterFixedFrame([=](float delta) {
+		gTime->RegisterFixedFrame([=](float delta) {
 			physicsScene->Tick(delta);
-			}); 
+			});
 
 		//new understanding:  controllers are managed by world itself; 
 		auto dftPlayerController = CreateActor<AController>();
-		this->AddPlayerController(dftPlayerController);
-
-
-		this->persistentLevel->OnLoad();
-		this->persistentLevel->RouteActorBeginPlay();
+		this->AddPlayerController(dftPlayerController); 
 	}
 
 	void UWorld::BeginPlay()
-	{
+	{ 
+		this->persistentLevel->OnLoad();
+		this->persistentLevel->RouteActorBeginPlay();
+
 		if (currentLevel) {
 			currentLevel->RouteActorBeginPlay();
 		}
@@ -40,8 +38,11 @@ namespace Gameplay {
 	}
 	void UWorld::EndPlay()
 	{
+		this->persistentLevel->OnUnload();
+		this->persistentLevel->RouteActorEndPlay();
+
 		if (currentLevel) {
-			currentLevel->EndPlay();
+			currentLevel->RouteActorEndPlay();
 		}
 
 		for (auto& controller : playerControllers) {
@@ -54,12 +55,12 @@ namespace Gameplay {
 		//if (currentLevel) {
 		//	currentLevel->SyncPhysicsToGame();
 		//}
-		this->DispatchPhysicsEvents(); 
+		this->DispatchPhysicsEvents();
 
 		auto& transformBuffer = physicsScene->GetTransformBuffer();
 		for (auto& [id, trans] : transformBuffer) {
 
-			if (!this->m_primtiveMap.contains(id)) continue; 
+			if (!this->m_primtiveMap.contains(id)) continue;
 			auto& primitive = this->m_primtiveMap.at(id);
 
 			if (!primitive->IsSimulatingPhysics()) continue;
@@ -68,6 +69,15 @@ namespace Gameplay {
 			primitive->SetRelativeRotation(trans.rotation);
 
 			//std::cout << "update physics pos:" << ToString(trans.position) << " for id:" << id << '\n'; 
+		}
+	}
+
+	void UWorld::SyncGameToPhysics() {
+
+		for (auto& [id, primitive] : this->m_primtiveMap) { 
+			physicsScene->SetPosition(id, primitive->GetWorldPosition()); 
+            physicsScene->SetRotation(id, primitive->GetWorldRotation()); 
+			//std::cout << "primitive component on register, id:" << id << " position: " << ToString(this->GetWorldPosition()) << '\n';
 		}
 	}
 
@@ -130,6 +140,12 @@ namespace Gameplay {
 
 	void UWorld::OnTick(float delta)
 	{
+
+		if (m_gameState) {
+			m_gameState->OnTick(delta);
+		}
+
+
 		if (currentLevel) {
 			//std::cout << "tick current world: " << currentWorld << '\n';
 			currentLevel->OnTick(delta);

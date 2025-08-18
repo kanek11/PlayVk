@@ -48,7 +48,7 @@ void GameApplication::onInit()
 
 	//-----------------------------
 	m_uiManager = new UIManager();
-	 
+
 
 	//---------------------- 
 	m_world = new UWorld();
@@ -61,7 +61,7 @@ void GameApplication::onDestroy()
 }
 
 void GameApplication::run()
-{ 
+{
 	//gTime.RegisterFixedFrame([=](float delta) {
 	//	owningWorld->physicsScene->Tick(delta);
 	//	});
@@ -70,9 +70,9 @@ void GameApplication::run()
 	while (!m_mainWindow->shouldClose()) {
 		//std::cout << "tick main loop" << '\n';
 
-		gTime.BeginFrame();
+		gTime->BeginFrame();
 
-		auto& timeInfo = gTime.GetTimeInfo();
+		auto& timeInfo = gTime->GetTimeInfo();
 		float delta = (float)timeInfo.engineDelta;
 		float FPS = 1.0f / delta;
 		std::string text =
@@ -96,15 +96,15 @@ void GameApplication::run()
 		//owningWorld->physicsScene->Tick(0.016f);
 
 
-		if (m_inputSystem->IsKeyJustPressed(KeyCode::Space)) {
-			//std::cout << "app: A is pressed" << '\n';
-			gTime.TogglePaused();
-		}
-		else if (m_inputSystem->IsKeyJustReleased(KeyCode::L)) {
-			//std::cout << "app: A is released" << '\n';
-			gTime.AdvanceFixedSteps();
-			gTime.AdvanceFrames();
-		}
+		//if (m_inputSystem->IsKeyJustPressed(KeyCode::Space)) {
+		//	//std::cout << "app: A is pressed" << '\n';
+		//	gTime.TogglePaused();
+		//}
+		//else if (m_inputSystem->IsKeyJustReleased(KeyCode::L)) {
+		//	//std::cout << "app: A is released" << '\n';
+		//	gTime.AdvanceFixedSteps();
+		//	gTime.AdvanceFrames();
+		//}
 
 		//if (m_inputSystem->IsKeyJustPressed(KeyCode::A)) {
 		//	std::cout << "app: A is pressed" << '\n';
@@ -133,15 +133,19 @@ void GameApplication::run()
 		//m_gameManager->Update(delta);
 
 
-		m_world->SyncPhysicsToGame();
 
 		//todo: physics interpolation; 
 		//tick level>actor> component
+
+		m_world->SyncPhysicsToGame();
+
 		m_world->OnTick(delta);
 
 		m_world->SyncGameToPhysics();
 
-		gTime.PumpFixedSteps();
+		gTime->PumpFixedSteps();
+
+
 
 		m_renderer->OnUpdate(delta);
 		m_renderer->OnRender();
@@ -176,18 +180,16 @@ void GameApplication::run()
 }
 
 void GameApplication::onBeginGame()
-{ 
-	//new: world update should comes before
-	auto globalLevel = CreateShared<GlobalLevel>();
-	m_world->RegisterLevel("global", globalLevel);
+{
+	//new: world update should comes before 
+	auto globalLevel = m_world->CreateAndRegisterLevel<GlobalLevel>("global");
 	m_world->SetPersistentLevel(globalLevel);
-	m_world->RegisterLevel("gameplay", CreateShared<GamePlayLevel>());
-	m_world->RegisterLevel("mainMenu", CreateShared<MainMenuLevel>());
-
+	//
+	m_world->CreateAndRegisterLevel<GamePlayLevel>("gameplay"); 
 
 	m_world->Init();
 	m_world->BeginPlay();
-} 
+}
 
 
 bool GameApplication::initWorkingDirectory()

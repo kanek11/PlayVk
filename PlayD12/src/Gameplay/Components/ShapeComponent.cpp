@@ -6,125 +6,137 @@
 
 //----------------
 namespace Gameplay {
-     
-
-UShapeComponent::UShapeComponent():UPrimitiveComponent()
-{ 
-    collider = CreateShared<Collider>(rigidBody);
-}
-
-void UShapeComponent::OnRegister()
-{
-    UPrimitiveComponent::OnRegister(); 
-
-    std::cout << " sphere shape on register\n";
-
-    auto owningWorld = this->GetWorld();
-    auto id = this->id;
-    auto rb = this->rigidBody;  
-    rb->SetShape(shape);
-
-    collider->SetShape(shape);
-    collider->SetIsTrigger(this->bIsTrigger);
-
-    owningWorld->physicsScene->SetRigidBody(rb, id);
-    owningWorld->physicsScene->SetCollider(collider.get(), id);
-}
 
 
+    UShapeComponent::UShapeComponent() :UPrimitiveComponent()
+    {
+        assert(rigidBody != nullptr);
+        collider = CreateShared<Collider>(rigidBody.get());
+    }
 
+    void UShapeComponent::OnRegister()
+    {
+        UPrimitiveComponent::OnRegister();
 
-void UShapeComponent::SetShape(const ShapeType& shape)
-{
-    this->shape = shape; 
+        std::cout << " sphere shape on register\n";
 
-    //for now, this means the setshape is called before registery which is not wrong;
-    //if invoke after registry, then it set back to physics scene auto;
-    auto owningWorld = this->GetWorld();
-    if (!owningWorld) return;
-    auto id = this->id;
-    auto rb = this->rigidBody;
-    rb->SetShape(shape);
+        auto owningWorld = this->GetWorld();
+        auto id = this->id;
+        auto rb = this->rigidBody.get();
+        rb->SetShape(shape);
 
-    collider->SetShape(shape);
+        collider->SetShape(shape);
+        collider->SetIsTrigger(this->bIsTrigger);
 
-    owningWorld->physicsScene->SetRigidBody(rb, id);
-    owningWorld->physicsScene->SetCollider(collider.get(), id);
+        owningWorld->physicsScene->AddRigidBody(rb, id);
+        owningWorld->physicsScene->AddCollider(collider.get(), id);
+    }
 
-}
+    void UShapeComponent::EndPlay()
+    {
+        UPrimitiveComponent::EndPlay(); 
+
+        auto owningWorld = this->GetWorld();
+        auto id = this->id; 
+
+        owningWorld->physicsScene->RemoveRigidBody(id);
+        owningWorld->physicsScene->RemoveCollider(id);
+    }
 
 
 
-/*
-void Gameplay::USphereComponent::OnRegister()
-{
-    UShapeComponent::OnRegister();
 
-    std::cout << " sphere shape on register\n";
+    void UShapeComponent::SetShape(const ShapeType& shape)
+    {
+        this->shape = shape;
 
-    auto owningWorld = this->GetWorld();
-    auto id = this->id;
-    auto rb = this->rigidBody;
+        //for now, this means the setshape is called before registery which is not wrong;
+        //if invoke after registry, then it set back to physics scene auto;
+        auto owningWorld = this->GetWorld();
+        if (!owningWorld) return;
+        auto id = this->id;
+        auto rb = this->rigidBody.get();
+        rb->SetShape(shape);
 
-    shape = Sphere{ this->radius }; 
+        collider->SetShape(shape);
 
-    collider = CreateShared<Collider>(shape, rb);
-    rb->SetShape(shape); 
+        owningWorld->physicsScene->AddRigidBody(rb, id);
+        owningWorld->physicsScene->AddCollider(collider.get(), id);
 
-    collider->SetIsTrigger(this->bIsTrigger);
-
-    owningWorld->physicsScene->AddRigidBody(rb, id);
-    owningWorld->physicsScene->AddCollider(collider.get(), id);
-
-}
-
-//----------------
+    }
 
 
-void Gameplay::UPlaneComponent::OnRegister()
-{
-    UShapeComponent::OnRegister();
 
-    std::cout << " plane shape on register\n";
+    /*
+    void Gameplay::USphereComponent::OnRegister()
+    {
+        UShapeComponent::OnRegister();
 
-    auto owningWorld = this->GetWorld();
-    auto id = this->id;
-    auto rb = this->rigidBody;
+        std::cout << " sphere shape on register\n";
 
-    auto shape = Plane{ this->size.x(), this->size.y() };
+        auto owningWorld = this->GetWorld();
+        auto id = this->id;
+        auto rb = this->rigidBody;
 
-    auto collider = new Collider(shape, rb);
-    rb->SetShape(shape);
+        shape = Sphere{ this->radius };
 
-    collider->SetIsTrigger(this->bIsTrigger);
+        collider = CreateShared<Collider>(shape, rb);
+        rb->SetShape(shape);
 
-    owningWorld->physicsScene->AddRigidBody(rb, id);
-    owningWorld->physicsScene->AddCollider(collider, id);
-}
+        collider->SetIsTrigger(this->bIsTrigger);
+
+        owningWorld->physicsScene->AddRigidBody(rb, id);
+        owningWorld->physicsScene->AddCollider(collider.get(), id);
+
+    }
+
+    //----------------
 
 
-//------------
+    void Gameplay::UPlaneComponent::OnRegister()
+    {
+        UShapeComponent::OnRegister();
+
+        std::cout << " plane shape on register\n";
+
+        auto owningWorld = this->GetWorld();
+        auto id = this->id;
+        auto rb = this->rigidBody;
+
+        auto shape = Plane{ this->size.x(), this->size.y() };
+
+        auto collider = new Collider(shape, rb);
+        rb->SetShape(shape);
+
+        collider->SetIsTrigger(this->bIsTrigger);
+
+        owningWorld->physicsScene->AddRigidBody(rb, id);
+        owningWorld->physicsScene->AddCollider(collider, id);
+    }
 
 
-void Gameplay::UBoxComponent::OnRegister()
-{
-    //UShapeComponent::OnRegister();
+    //------------
 
-    //std::cout << " box shape on register\n";
-    //auto owningWorld = this->GetWorld();
-    //auto id = this->id;
-    //auto rb = this->rigidBody;
 
-    //auto shape = Box(Float3{ this->extents.x() * 0.5f, this->extents.y() * 0.5f, this->extents.z() * 0.5f });
-    //rb->SetShape(shape);
+    void Gameplay::UBoxComponent::OnRegister()
+    {
+        //UShapeComponent::OnRegister();
 
-    //auto collider = new Collider(shape, rb);
-    //collider->SetIsTrigger(this->bIsTrigger);
+        //std::cout << " box shape on register\n";
+        //auto owningWorld = this->GetWorld();
+        //auto id = this->id;
+        //auto rb = this->rigidBody;
 
-    //
-    //owningWorld->physicsScene->AddRigidBody(rb, id);
-    //owningWorld->physicsScene->AddCollider(collider, id);
-}
-*/
+        //auto shape = Box(Float3{ this->extents.x() * 0.5f, this->extents.y() * 0.5f, this->extents.z() * 0.5f });
+        //rb->SetShape(shape);
+
+        //auto collider = new Collider(shape, rb);
+        //collider->SetIsTrigger(this->bIsTrigger);
+
+        //
+        //owningWorld->physicsScene->AddRigidBody(rb, id);
+        //owningWorld->physicsScene->AddCollider(collider, id);
+    }
+    */
 
 }

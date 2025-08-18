@@ -21,20 +21,33 @@ public:
 
 private:
 	void SetupGameStates();
-	void SetupUI();
-	 
+	void InitUI();
+
 public:
-	void OnGoalReached();  
+	void OnGoalReached();
 	FDelegate<void()> onGoal;
+
+	void OnResetGameplay();
 
 public:
 	FPlayerState& PullPlayerState() { return currPlayerState; }
 	void SetPlayerState(const FPlayerState& state) { currPlayerState = state; }
-	FPlayerState currPlayerState{}; 
+	FPlayerState currPlayerState{};
 
-public: 
+public:
 	UniquePtr<GameStateManager> m_gameManager = CreateUnique<GameStateManager>(); 
+
+	void RequestTransitState(const GameStateId& targetState) {
+		m_gameManager->RequestTransitState(targetState);
+	}
 
 public:
 	SharedPtr<UPlayerHUD> playerHUD;
+
+	SharedPtr<UMainTitleUI> mainTitle;
+
+	SharedPtr<UPauseMenu> pauseMenu;
+
+public: 
+	float timeCount{ 0.0f };
 };

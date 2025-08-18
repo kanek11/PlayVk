@@ -1,5 +1,5 @@
 #pragma once
- 
+
 #include "Gameplay/Actors/APawn.h"
 #include "Gameplay/Components/MeshComponent.h"
 #include "Gameplay/Components/ShapeComponent.h"
@@ -16,8 +16,9 @@ struct FPlayerState {
 };
 
 enum class EPlayerForm {
-	Sphere,
-	Cube,
+	Normal,
+	MetalBall,
+	IceCube,
 };
 
 struct FFormState {
@@ -38,19 +39,21 @@ class APlayer : public APawn
 public:
 	APlayer();
 	virtual void BeginPlay() override;
+	virtual void EndPlay() override;
 
 	virtual void OnTick(float delta) override;
 
 	void UploadPlayerState();
 
-	void SphereStateBehavior(float delta);
-	void CubeStateBehavior(float delta);
+	void NormalStateBehavior(float delta);
+	void MetalStateBehavior(float delta);
+	void IceStateBehavior(float delta);
 
 public:
 	SharedPtr<UStaticMeshComponent> staticMeshComponent;
-	SharedPtr<UShapeComponent> shapeComponent; 
+	SharedPtr<UShapeComponent> shapeComponent;
 
-public: 
+public:
 	std::unordered_map<EPlayerForm, FFormState> playerForms;
 
 public:

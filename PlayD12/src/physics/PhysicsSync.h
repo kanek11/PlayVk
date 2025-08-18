@@ -3,7 +3,7 @@
 #include <functional>
 #include <vector>
 #include <mutex>
- 
+
 //#include "Gameplay/Components/PrimitiveComponent.h"
 
 //using ActorId = Gameplay::FPrimitiveComponentId;
@@ -57,6 +57,11 @@ using PhysicsTransformBuffer = std::unordered_map<ActorId, PhysicsTransform>;
 class PhysicsTransformSyncBuffer {
 public:
     PhysicsTransformSyncBuffer() : m_writeIndex(0), m_readIndex(1) {}
+      
+    void MarkToRemove(ActorId actor) { 
+        m_Buffers[m_writeIndex].erase(actor);
+        removeList.push_back(actor);
+    } 
 
     void Write(ActorId actor, const PhysicsTransform& transform) {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -66,6 +71,13 @@ public:
     void SwapBuffers() {
         std::lock_guard<std::mutex> lock(m_mutex);
         std::swap(m_writeIndex, m_readIndex);
+
+        if (!removeList.empty()) {
+            for (auto& id : removeList) {
+                m_Buffers[m_writeIndex].erase(id);
+                removeList.clear();
+            }  
+        }
     }
 
     PhysicsTransformBuffer& GetReadBuffer() {
@@ -79,9 +91,12 @@ public:
         m_Buffers[m_readIndex].clear();
         m_Buffers[m_writeIndex].clear();
     }
+
 private:
     PhysicsTransformBuffer m_Buffers[2];
     int m_writeIndex;
     int m_readIndex;
-    std::mutex m_mutex;
+    std::mutex m_mutex; 
+
+    std::vector<ActorId> removeList;
 };

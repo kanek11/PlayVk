@@ -31,13 +31,12 @@ namespace Gameplay {
 	public:
 		virtual ~ULevel() = default;
 		virtual void OnLoad();
-		virtual void OnUnload() = 0;
+		virtual void OnUnload();
 		virtual void OnTick(float delta);
 
 		void RouteActorBeginPlay();
-		void EndPlay();
-
-		virtual void SyncGameToPhysics() {};
+		void RouteActorEndPlay();
+		 
 
 	public:
 		//new: public because level is basically container of actors
@@ -48,16 +47,16 @@ namespace Gameplay {
 		void UpdateTransforms();
 
 		void ForEachComponent(const sceneIterFn& fn);
-		void TraverseTree(USceneComponent* comp, const sceneIterFn& fn); 
+		void TraverseTree(USceneComponent* comp, const sceneIterFn& fn);
 
 	public:
 		//UIs are managed separately with actors
-		std::vector<SharedPtr<UIButton>> m_buttons;
+		//std::vector<SharedPtr<UIButton>> m_buttons;
 
 		//dummy design: 
 		//FCameraProxy defaultCamera;
 		//APawn* defaultPlayer; 
 	public:
-		UWorld* owningWorld;
+		UWorld* owningWorld; 
 	};
 }

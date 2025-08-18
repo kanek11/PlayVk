@@ -31,9 +31,12 @@ namespace Gameplay {
 
 		void OnTick(float delta);
 
-		void RegisterLevel(std::string name, SharedPtr<ULevel> level) {
+		template<DerivedFrom<ULevel> T>
+		SharedPtr<T> CreateAndRegisterLevel(const std::string& name) {
+			auto level = CreateShared<T>();
 			levels[name] = level;
 			level->owningWorld = this;
+			return level;
 		}
 
 		void SetPersistentLevel(SharedPtr<ULevel> level) {
@@ -41,13 +44,21 @@ namespace Gameplay {
 			if (persistentLevel) {
 				persistentLevel->owningWorld = this;
 			}
-			 
+
 		}
 
 		//todo: level loading could be async or more complex;
-		void TransitLevel(std::string name) {
-			if (currentLevel) {
-				currentLevel->EndPlay();
+		void LoadOrResetLevel(const std::string& name) {
+
+			assert(levels.contains(name));
+
+			if (currentLevelName == name) {
+				std::cout << "reloading level:" << name << '\n';
+				//return;
+			} 
+
+			if (currentLevel) { 
+				currentLevel->RouteActorEndPlay();
 				currentLevel->OnUnload();
 			}
 
@@ -58,6 +69,7 @@ namespace Gameplay {
 
 			std::cout << "set current world: " << name << '\n';
 			currentLevel = levels[name];
+			currentLevelName = name;
 
 			if (currentLevel) {
 				currentLevel->OnLoad();
@@ -66,30 +78,29 @@ namespace Gameplay {
 		}
 
 	public:
-		void SyncGameToPhysics() {
-			if (currentLevel) {
-				currentLevel->SyncGameToPhysics();
-			}
-		}
-
+		void SyncGameToPhysics();
 		void SyncPhysicsToGame();
 
 		void DispatchPhysicsEvents();
 
 	private:
+		std::string currentLevelName;
 		SharedPtr<ULevel> currentLevel;
 		std::unordered_map<std::string, SharedPtr<ULevel>> levels;
 
-		SharedPtr<ULevel> persistentLevel;  
-
+		SharedPtr<ULevel> persistentLevel; 
 
 	public:
-		PhysicsScene* physicsScene{ nullptr };
+		PhysicsScene* physicsScene = new PhysicsScene();
 		std::unordered_map<FPrimitiveComponentId, UPrimitiveComponent*> m_primtiveMap;
 
 		void AddPrimitiveComponent(UPrimitiveComponent* comp) {
 			m_primtiveMap[comp->id] = comp;
 		}
+
+		void RemovePrimitiveComponent(UPrimitiveComponent* comp) {
+			m_primtiveMap.erase(comp->id);
+		} 
 
 		//todo: so verbose..
 		AActor* PrimitiveIdToActor(FPrimitiveComponentId id) {
@@ -110,9 +121,11 @@ namespace Gameplay {
 		}
 
 		AController* GetFirstPlayerController() const {
-			return playerControllers.empty() ? nullptr : playerControllers[0].get();
+			auto pc = playerControllers.empty() ? nullptr : playerControllers[0].get();
+			assert(pc != nullptr);
+			return pc;
 		}
-		 
+
 
 	private:
 		void ConstructSceneView();
@@ -124,7 +137,7 @@ namespace Gameplay {
 	private:
 		SharedPtr<AGameStateBase> m_gameState;
 
-	public: 
+	public:
 		template<DerivedFrom<AGameStateBase> T>
 		void CreateGameState(ULevel* level) {
 			//static_assert(std::is_base_of<AGameStateBase, T>::value, "Must be a GameStateBase");
@@ -134,13 +147,14 @@ namespace Gameplay {
 
 		template<DerivedFrom<AGameStateBase> T>
 		T* GetGameState() const {
+			assert(m_gameState != nullptr);
 			return dynamic_cast<T*>(m_gameState.get());
 		}
 
 	public:
 		//only register behavior for now
 		template<DerivedFrom<AActor> T>
-		T* SpawnActor(ULevel* level) { 
+		T* SpawnActor(ULevel* level) {
 			auto actor = CreateActor<T>();
 			level->AddActor(actor);
 			return actor.get();

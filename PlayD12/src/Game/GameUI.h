@@ -8,82 +8,111 @@
 
 #include "UI.h"
 
+/*
+* design decision:
+* don't bypass factory to construct gameplay ui;
+* 
+* usually we need a valid world for UI;
+* so we impose an "late construction" hook; 
+* 
+* realize constructor shouldn't do "behavior stuff" , only memory construction;
+
+*/
+
 using namespace Gameplay;
 
- 
-class UGamePlayUI : public UIElement {
+
+class UGameplayUI : public UIElement {
 public:
-	UWorld* GetWorld() const { return world; }
+	UGameplayUI();
+
+	UWorld* GetWorld() const { 
+		assert(world != nullptr);
+		return world; 
+	}
 	void SetWorld(UWorld* world) { this->world = world; }
-	 
-	virtual void Tick(float delta) {}; 
+
+	//for valid world;
+	virtual void LateConstruct() = 0;
+
+	virtual void Tick(float delta) {
+		UIElement::Tick(delta);
+	};
 
 private:
-	UWorld* world{ nullptr }; 
+	UWorld* world{ nullptr };
+
+protected:
+	//as feature, a full-screen, default canvas is given; but could be bypassed, resized, etc.
+	SharedPtr<UICanvasPanel> canvas;
 };
 
- 
-template <DerivedFrom<UGamePlayUI> T>
-SharedPtr<T> CreateGameplayUI(UWorld* world) 
+
+template <DerivedFrom<UGameplayUI> T>
+SharedPtr<T> CreateGameplayUI(UWorld* world)
 {
 	SharedPtr<T> ui = CreateShared<T>();
 	ui->SetWorld(world);
+	ui->LateConstruct();
 	return ui;
 }
 
 
-class UGameStatsUI : public UGamePlayUI
-{ 
+class UGameStatsUI : public UGameplayUI
+{
 public:
 	UGameStatsUI();
 	virtual void Tick(float delta) override;
-	SharedPtr<UICanvasPanel> canvas; 
+	virtual void LateConstruct() override;
+
+	SharedPtr<UICanvasPanel> canvas;
 };
- 
-class UMainTitle : public UGamePlayUI
+
+class UMainTitleUI : public UGameplayUI
 {
 public:
-	UMainTitle();
+	UMainTitleUI();
 	virtual void Tick(float delta) override;
-	SharedPtr<UICanvasPanel> canvas;
+	virtual void LateConstruct() override;
 	SharedPtr<UIButton> startButton;
 	SharedPtr<UIButton> quitButton;
 };
 
-class UPlayerHUD :public UGamePlayUI
+class UPlayerHUD :public UGameplayUI
 {
 public:
 	UPlayerHUD();
 
 	virtual void Tick(float delta) override;
-
-	SharedPtr<UICanvasPanel> canvas;
-	SharedPtr<UIButton> debugHUD1;
-	SharedPtr<UIButton> debugHUD2;
+	virtual void LateConstruct() override;
+	 
+	SharedPtr<UIButton> speedHUD;
+	SharedPtr<UIButton> timeHUD;
 	SharedPtr<UIButton> debugHUD3;
 };
 
 
-class UPauseMenu : public UGamePlayUI
+class UPauseMenu : public UGameplayUI
 {
 public:
 	UPauseMenu();
 	virtual void Tick(float delta) override;
-	SharedPtr<UICanvasPanel> canvas;
+	virtual void LateConstruct() override;
 	SharedPtr<UIButton> resumeButton;
-	SharedPtr<UIButton> quitButton;
+	SharedPtr<UIButton> retryButton;
+	SharedPtr<UIButton> returnButton;
 };
 
 
-class UGoalingUI : public UGamePlayUI
-{ 
+class UGoalingUI : public UGameplayUI
+{
 public:
 	UGoalingUI();
-	virtual void Tick(float delta) override;
-	SharedPtr<UICanvasPanel> canvas;
-	SharedPtr<UIButton> goalButton;
-	SharedPtr<UIButton> quitButton;
-	SharedPtr<UIButton> restartButton;
+	virtual void Tick(float delta) override; 
+	virtual void LateConstruct() override;
+
+	SharedPtr<UIButton> recordButton;
+	SharedPtr<UIButton> retryButton; 
+	SharedPtr<UIButton> returnButton;
 };
 
- 

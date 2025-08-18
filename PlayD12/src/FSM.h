@@ -3,14 +3,14 @@
 #include "Base.h"
 
 #include "Delegate.h"
-  
+
 
 template<typename TStateEnum, typename TStateObject>
 class IFSMController {
 public:
 	virtual ~IFSMController() = default;
 	virtual void Update(float delta) = 0;
-	virtual void TransitState(TStateEnum newState) = 0;
+	virtual void TransitState(const TStateEnum& newState) = 0;
 	virtual TStateEnum GetCurrentState() const = 0;
 };
 
@@ -36,7 +36,7 @@ public:
 
 enum class GameStateId
 {
-	MainMenu,
+	MainTitle,
 	Loading,
 	Playing,
 	Paused,
@@ -47,14 +47,14 @@ enum class GameStateId
 
 class GameState : public IState {
 public:
-	virtual ~GameState() = default; 
+	virtual ~GameState() = default;
 };
 
 
 template<GameStateId typeID>
 class GameStateImpl : public GameState {
 public:
-	static constexpr GameStateId Id = typeID; 
+	static constexpr GameStateId Id = typeID;
 	static constexpr GameStateId GetId() { return Id; }
 };
 
@@ -63,61 +63,61 @@ public:
 class GameStateManager : public IFSMController<GameStateId, GameState> {
 public:
 	template <typename State> [[nodiscard]]
-	SharedPtr<State> Register() {
-		static_assert(std::is_base_of_v<GameState, State>, "Must derive from GameStateImpl");
-		constexpr GameStateId id = State::Id;
-		auto statePtr = CreateShared<State>();
-		states[id] = statePtr;
-		return statePtr;
-	}
-
-	void RequestTransitState(GameStateId newState) {
-		if (newState == current) return; 
-		target = newState;
-	}
-
-
-	void TransitState(GameStateId newState) override {
-		if (newState == current) return;
-		assert(states.contains(current) && "Initial state must be registered before calling Initialize()");
-		if (states.contains(current)) states[current]->OnStateExit();
-		current = newState;
-		if (states.contains(current)) states[current]->OnStateEnter();
-	}
-
-	void SetInitialState(GameStateId state) {
-		current = state;
-		target = state;
-	}
-
-	void Initialize() { 
-		assert(states.contains(current) && "Initial state must be registered before calling Initialize()");
-		if (states.contains(current)) {
-			states[current]->OnStateEnter();
+		SharedPtr<State> Register() {
+			static_assert(std::is_base_of_v<GameState, State>, "Must derive from GameStateImpl");
+			constexpr GameStateId id = State::Id;
+			auto statePtr = CreateShared<State>();
+			states[id] = statePtr;
+			return statePtr;
 		}
-	}
 
-	void Update(float dt) override {
-		if (target != current) this->TransitState(target);
-		if (states.contains(current)) states[current]->OnStateUpdate(dt);
-	}
+		void RequestTransitState(const GameStateId& targetState) { 
+			assert(states.contains(targetState));
+			if (targetState == current) return;
+			target = targetState;
+		}
 
-	[[nodiscard]]
-	GameStateId GetCurrentState() const override {
-		return current;
-	}
+
+		void TransitState(const GameStateId& targetState) override {
+			if (targetState == current) return;
+			assert(states.contains(current) && "Initial state must be registered before calling Initialize()");
+			if (states.contains(current)) states[current]->OnStateExit();
+			current = targetState;
+			if (states.contains(current)) states[current]->OnStateEnter();
+		}
+
+		void SetInitialState(const GameStateId& targetState) {
+			current = targetState;
+			target = targetState;
+		}
+
+		void Initialize() {
+			assert(states.contains(current) && "Initial state must be registered before calling Initialize()");
+			if (states.contains(current)) {
+				states[current]->OnStateEnter();
+			}
+		}
+
+		void Update(float dt) override {
+			if (target != current) this->TransitState(target);
+			if (states.contains(current)) states[current]->OnStateUpdate(dt);
+		}
+
+		[[nodiscard]]
+		GameStateId GetCurrentState() const override {
+			return current;
+		}
 
 private:
 	//or just array;
 	std::unordered_map<GameStateId, SharedPtr<GameState>> states;
-	GameStateId current = GameStateId::MainMenu;
+	GameStateId current = GameStateId::MainTitle;
 
-	GameStateId target = GameStateId::MainMenu;  
+	GameStateId target = GameStateId::MainTitle;
 };
 
 
-class MainMenuState : public GameStateImpl<GameStateId::MainMenu> {
-	 
+class MainTitleState : public GameStateImpl<GameStateId::MainTitle> { 
 };
 
 class PlayingState : public GameStateImpl<GameStateId::Playing> {
@@ -129,4 +129,3 @@ class PausedState : public GameStateImpl<GameStateId::Paused> {
 
 class GoalingState : public GameStateImpl<GameStateId::Goaling> {
 };
-

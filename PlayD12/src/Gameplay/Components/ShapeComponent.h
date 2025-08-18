@@ -13,12 +13,14 @@ namespace Gameplay {
     public:
         UShapeComponent();
         virtual void OnRegister() override;
+
+        virtual void EndPlay();
         //for debug
         //virtual void SetShapeColor(const Float4& color);
         //virtual Float4 GetShapeColor() const;
 
         //void SetDrawDebug(bool bDraw);
-		void DrawDebugShape(const Float4& color = { 0,1,0,1.0f });
+        //void DrawDebugShape(const Float4& color = { 0,1,0,1.0f });
 
         //physical volume for advanced simulation;
         //virtual float GetVolume() const = 0; 
@@ -28,9 +30,9 @@ namespace Gameplay {
         //float GetDensity() const;
         void SetShape(const ShapeType& shape);
 
-        void SetIsTrigger(bool isTrigger) { this->bIsTrigger = isTrigger; } 
+        void SetIsTrigger(bool isTrigger) { this->bIsTrigger = isTrigger; }
 
-         
+
         void SetCollisionEnabled(bool bEnabled) { collider->bEnabled = bEnabled; }
         bool IsCollisionEnabled() const { return collider->bEnabled; }
 
@@ -42,7 +44,7 @@ namespace Gameplay {
         bool bIsTrigger{ false };
 
     public:
-        ShapeType shape;  
+        ShapeType shape;
         SharedPtr<Collider> collider;
     };
 

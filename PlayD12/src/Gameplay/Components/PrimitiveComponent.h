@@ -23,6 +23,7 @@ namespace Gameplay {
         UPrimitiveComponent();
 
         virtual void OnRegister() override;
+        virtual void EndPlay() override;
 
         //virtual void Draw() = 0;    
 
@@ -51,11 +52,11 @@ namespace Gameplay {
         //int  m_renderLayer = 0;
 
     public:
-        RigidBody* rigidBody = new RigidBody();
+        SharedPtr<RigidBody> rigidBody = CreateShared<RigidBody>();
 
         static std::atomic<uint32_t> GComponentIdGenerator;
     public:
-        FPrimitiveComponentId id;
+        FPrimitiveComponentId id{};
 
         OverlapEvent onOverlap;
     };

@@ -12,7 +12,7 @@ namespace Gameplay
 	{
 		None,
 		//GameOnly,  
-		UIOnly, 
+		UIOnly,
 		//GameAndUI  //our game doesn't have that.
 	};
 
@@ -25,7 +25,7 @@ namespace Gameplay
 	public:
 		virtual void TickComponent(float delta) override
 		{
-			if(inputBehavior)
+			if (inputBehavior)
 			{
 				inputBehavior(delta);
 			}
@@ -35,10 +35,10 @@ namespace Gameplay
 		void BindBehavior(const InputBehavior& behavior)
 		{
 			inputBehavior = behavior;
-		} 
+		}
 
 		InputBehavior inputBehavior;
-	}; 
+	};
 
 
 
@@ -56,7 +56,7 @@ namespace Gameplay
 
 
 		//virtual void OnTick(float DeltaTime) override; 
-		virtual void Possess(APawn* Pawn);
+		virtual void Possess(WeakPtr<APawn> Pawn);
 		virtual void UnPossess();
 
 		void GetPlayerViewPoint(Float3& OutLocation, DirectX::XMVECTOR& OutRotation) const;
@@ -70,13 +70,13 @@ namespace Gameplay
 			CurrInputComp = InInputComponent;
 		}
 
-		void SetInputMode(EInputMode mode)
+		void SetInputMode(const EInputMode& mode)
 		{
 			currInputMode = mode;
 		}
 
 	public:
-		APawn* Pawn;
+		WeakPtr<APawn> Pawn;
 		UInputComponent* CurrInputComp;
 
 		EInputMode currInputMode{ EInputMode::None };

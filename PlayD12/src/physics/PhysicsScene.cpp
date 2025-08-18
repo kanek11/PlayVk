@@ -45,29 +45,22 @@ void PhysicsScene::OnDestroy()
 {
 }
 
-void PhysicsScene::SetRigidBody(RigidBody* rb, ActorId owener,
-	const Float3& position,
-	const DirectX::XMVECTOR& rotation
-)
-{
-	//this->m_bodies.push_back(rb);
-	m_bodies[owener] = rb;
-}
+
 
 void PhysicsScene::PreSimulation()
 {
 	//for (auto& [actor, rb] : m_bodies) {
 	//	rb->position = rb->owner->position; 
 	//}
-    DebugDraw::ClearFrame(); 
+	DebugDraw::ClearFrame();
 
 	//new: consume the cmd buffer: 
 	m_commandBuffer.SwapBuffers();
-	m_commandBuffer.Execute(); 
+	m_commandBuffer.Execute();
 
-	auto events = PhysicsEventQueue::Get().Drain(); 
-	if(events.size()>0)
-	std::cout << "unhandled collision: " << events.size() << '\n';
+	auto events = PhysicsEventQueue::Get().Drain();
+	if (events.size() > 0)
+		std::cout << "unhandled collision: " << events.size() << '\n';
 
 	//add damping:
 	//for (auto& [actor, rb] : m_bodies) {
@@ -124,8 +117,8 @@ void PhysicsScene::Integrate(float delta)
 		/*	std::cout << "integrate for rb : " << rb->debugName << '\n';
 			std::cout << "dq: " << MMath::XMToString(dq) << '\n';*/
 
-		//update pose;
-		//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
+			//update pose;
+			//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
 		XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
 		XMMATRIX invR_ = XMMatrixTranspose(R_);
 
@@ -182,7 +175,7 @@ void PhysicsScene::DetectCollisions()
 				}, A.shape, B.shape);
 		}
 
-	std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
+	//std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
 
 }
 
@@ -209,17 +202,17 @@ void PhysicsScene::SolveConstraints(float delta)
 
 	for (Contact& contact : m_contacts) {
 
-		DebugDraw::AddCube(contact.point, 0.05f); 
+		DebugDraw::AddCube(contact.point, 0.05f);
 		//new:
 		if (contact.a->bIsTrigger || contact.b->bIsTrigger) {
 			FCollisionEvent event = {
-				.a_ID= contact.a->actorId,
+				.a_ID = contact.a->actorId,
 				.b_ID = contact.b->actorId,
 				.contact = contact,
 			};
 			PhysicsEventQueue::Get().Push(event);
 			continue;
-		} 
+		}
 
 		RigidBody* A = contact.a->body;
 		RigidBody* B = contact.b->body;
@@ -264,7 +257,7 @@ void PhysicsScene::SolveConstraints(float delta)
 		Float3 corr = dLambda * N;
 		//apply correction to predicted positions:
 		if (A) A->predPos += corr * wA;
-		if (B) B->predPos -= corr * wB; 
+		if (B) B->predPos -= corr * wB;
 
 		auto applyRot = [&](RigidBody* rb, const Float3& r, const Float3& dir, float lambda, float sign)
 			{
@@ -370,7 +363,7 @@ void PhysicsScene::VelocityPass(float delta)
 		//--------------------------------- 
 		Float3 vA = A ? (A->linearVelocity + Vector3Cross(A->angularVelocity, ra)) : Float3{};
 		Float3 vB = B ? (B->linearVelocity + Vector3Cross(B->angularVelocity, rb)) : Float3{};
-		Float3 vRel = vA - vB; 
+		Float3 vRel = vA - vB;
 
 		float vn = Dot(vRel, c.normal);
 		//already separating:
@@ -389,7 +382,7 @@ void PhysicsScene::VelocityPass(float delta)
 			//std::cerr << "two unsimulated objects?" << '\n';
 			continue;
 		}
-		 
+
 		//DebugRay::AddRay(A->position, ra, Color::Pink);
 		//DebugDraw::Get().AddRay( A->position, ra, Color::Pink);
 		//DebugDraw::Get().AddRay(c.point, vA, Color::Pink);
@@ -509,11 +502,12 @@ void PhysicsScene::PostSimulation()
 
 	//write to transform buffer:
 	auto& writeBuffer = m_transformBuffer.GetWriteBuffer();
-	for (auto& [actor, rb] : m_bodies) { 
+	//std::cout << "physics buffer size: " << writeBuffer.size() << '\n';
+	for (auto& [actor, rb] : m_bodies) {
 
 		auto& transform = writeBuffer[actor];
 		transform.position = rb->position;
-		transform.rotation = rb->rotation;  
+		transform.rotation = rb->rotation;
 
 		//DebugDraw::AddRay(rb->position, rb->linearVelocity, Color::Purple);
 		//DebugDraw::AddRay(rb->position, rb->angularVelocity, Color::Yellow);
@@ -530,7 +524,7 @@ void PhysicsScene::SetPosition(ActorId handle, const Float3& position)
 			it->second->SetPosition(position);
 		}
 		else {
-			std::cerr << "RigidBody with handle " << handle << " not found!" << std::endl;
+			//std::cerr << "RigidBody with handle " << handle << " not found!" << std::endl;
 		}
 		});
 
@@ -544,9 +538,51 @@ void PhysicsScene::SetRotation(ActorId handle, const DirectX::XMVECTOR& rotation
 			it->second->SetRotation(rotation);
 		}
 		else {
-			std::cerr << "RigidBody with handle " << handle << " not found!" << std::endl;
+			//std::cerr << "physics: RigidBody with handle: " << handle << " not found!" << std::endl;
 		}
 		});
+}
+
+void PhysicsScene::AddRigidBody(RigidBody* rb, ActorId owener,
+	const Float3& position,
+	const DirectX::XMVECTOR& rotation
+)
+{
+	m_commandBuffer.Enqueue([=]() {
+		m_bodies[owener] = rb;
+		});
+	//this->m_bodies.push_back(rb); 
+}
+
+void PhysicsScene::AddCollider(Collider* collider, ActorId owner)
+{
+	m_commandBuffer.Enqueue([=]() {
+		collider->actorId = owner;
+		m_colliders[owner] = collider;
+		});  
+}
+
+void PhysicsScene::RemoveRigidBody(ActorId owner)
+{
+	m_commandBuffer.Enqueue([=]() {
+		if (m_bodies.contains(owner))
+			m_bodies.erase(owner); 
+
+		m_transformBuffer.MarkToRemove(owner);
+
+		});
+
+	//assert(m_bodies.contains(owner));
+
+}
+
+void PhysicsScene::RemoveCollider(ActorId owner)
+{
+	m_commandBuffer.Enqueue([=]() {
+		if (m_colliders.contains(owner))
+			m_colliders.erase(owner);
+		});
+	//assert(m_colliders.contains(owner)); 
 }
 
 /*

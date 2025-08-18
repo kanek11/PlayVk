@@ -12,10 +12,18 @@
 using namespace DirectX;
 
 namespace Gameplay {
-     
+
     void ULevel::OnLoad()
     {
 
+    }
+
+    void ULevel::OnUnload()
+    {
+        for (auto& actor : actors) {
+            actor.reset();
+        }
+        actors.clear();
     }
 
     void ULevel::OnTick(float delta)
@@ -27,10 +35,12 @@ namespace Gameplay {
         for (auto& actor : actors) {
             actor->OnTick(delta);
         }
+
+        //std::cout << "curr actor num: " << actors.size() << '\n';
         //
-        for (auto& HUD : m_buttons) {
-            HUD->Tick(delta);
-        }
+        //for (auto& HUD : m_buttons) {
+        //    HUD->Tick(delta);
+        //}
 
         //defaultCamera.Tick(delta);
         //auto renderer = GameApplication::GetInstance()->GetRenderer();
@@ -44,7 +54,7 @@ namespace Gameplay {
         }
     }
 
-    void ULevel::EndPlay()
+    void ULevel::RouteActorEndPlay()
     {
         for (auto& actor : actors) {
             actor->EndPlay();

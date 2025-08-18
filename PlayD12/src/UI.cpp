@@ -7,9 +7,14 @@
 #include "Render/Renderer.h"
 #include "Render/Text.h"
 
+std::atomic<uint32_t> UIElement::GIdGenerator{ 0 };
+
 UIElement::UIElement()
 {
-	baseColor[3] = 0.5f; // Set default alpha to 0.5f
+	baseColor[3] = 0.5f;  
+
+	//set id:
+	id = ++GIdGenerator;
 }
 
 
@@ -22,7 +27,7 @@ UIButton::UIButton() : UIElement()
 
 	OnHoverExit.Add([this]() {
 		baseColor = { 1.0f, 1.0f, 1.0f, 0.5f };
-		}); 
+		});
 }
 
 void UIButton::RenderBack()
@@ -30,7 +35,7 @@ void UIButton::RenderBack()
 	UIElement::RenderBack();
 
 	auto renderer = GameApplication::GetInstance()->GetRenderer();
-	assert(renderer != nullptr); 
+	assert(renderer != nullptr);
 	assert(layout.has_value());
 
 	renderer->AddQuad(layout.value(), baseColor);
@@ -59,7 +64,7 @@ void UIButton::RenderText()
 	std::string text_ = this->text.substr(0, 20); // Limit to first 10 characters
 
 	for (char c : text_) {
-		if (!font->glyphs.contains(c)) continue; 
+		if (!font->glyphs.contains(c)) continue;
 
 		const Glyph& g = font->glyphs[c];
 
@@ -78,7 +83,7 @@ void UIButton::RenderText()
 		cursor = { cursor.x() + advance, cursor.y() };
 	}
 }
- 
+
 
 void UIButton::Tick(float delta)
 {
@@ -101,6 +106,10 @@ void UIButton::Tick(float delta)
 	//	}
 	//}
 
+}
+
+UICanvasPanel::UICanvasPanel() : UIElement()
+{
 }
 
 void UICanvasPanel::Tick(float delta)

@@ -4,7 +4,7 @@
 #include "Gameplay/Actors/APawn.h" 
 #include "Gameplay/Actors/AController.h"
 #include "Gameplay/World.h"
- 
+
 
 namespace Gameplay
 {
@@ -23,37 +23,37 @@ namespace Gameplay
     }
     void AController::OnTick(float delta)
     {
-		AActor::OnTick(delta); 
+        AActor::OnTick(delta);
 
-		ProcessPlayerInput(delta); 
+        ProcessPlayerInput(delta);
     }
 
     void AController::ProcessPlayerInput(float delta)
     {
         if (currInputMode == EInputMode::UIOnly) return;
-	 
-		if (CurrInputComp)
-		{
+
+        if (CurrInputComp)
+        {
             CurrInputComp->TickComponent(delta);
-		}
-    } 
-     
-    void AController::Possess(APawn* inPawn)
+        }
+    }
+
+    void AController::Possess(WeakPtr<APawn> inPawn)
     {
-        if (Pawn)
-            Pawn->UnPossessed();
+        if (!Pawn.expired())
+            Pawn.lock()->UnPossessed();
         Pawn = inPawn;
-        if (Pawn)
-            Pawn->PossessedBy(this);
+        if (!Pawn.expired())
+            Pawn.lock()->PossessedBy(this);
     }
 
     void AController::UnPossess()
     {
-        if (Pawn)
+        if (!Pawn.expired())
         {
-            Pawn->UnPossessed();
+            Pawn.lock()->UnPossessed();
         }
-        Pawn = nullptr;
+        Pawn.reset(); //reset weakptr ~ nullify;
     }
 
     void AController::GetPlayerViewPoint(Float3& OutLocation, DirectX::XMVECTOR& OutRotation) const
@@ -62,7 +62,14 @@ namespace Gameplay
 
     AActor* AController::GetViewTarget() const
     {
-        return Pawn;
+        if (!Pawn.expired())
+        {
+            return Pawn.lock().get();
+        }
+        else {
+            return nullptr;
+        }
+        
     }
 
 

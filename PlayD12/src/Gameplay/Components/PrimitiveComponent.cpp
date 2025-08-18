@@ -14,11 +14,13 @@ namespace Gameplay {
 	void UPrimitiveComponent::OnRegister()
 	{
 		auto owningWorld = this->GetWorld();
-		owningWorld->AddPrimitiveComponent(this);
+		owningWorld->AddPrimitiveComponent(this); 
+	}
 
-		this->rigidBody->SetPosition(this->GetWorldPosition());
-		this->rigidBody->SetRotation(this->GetWorldRotation());
 
-		std::cout << "primitive component on register, id:" << id << " position: " << ToString(this->GetWorldPosition()) << '\n';
+	void UPrimitiveComponent::EndPlay()
+	{
+		auto owningWorld = this->GetWorld();
+		owningWorld->RemovePrimitiveComponent(this);
 	}
 }

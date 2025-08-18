@@ -15,12 +15,12 @@ design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
 */
 
- 
+
 struct PhysicalMaterial {
 	float restitution;
 	float friction;
 };
- 
+
 struct RigidBody {
 
 	std::string debugName; //for debug purpose
@@ -55,7 +55,7 @@ struct RigidBody {
 
 
 	//bool isKenematic;  
-	void ApplyForceRate(Float3 forceRate) {
+	void ApplyForceRate(const Float3& forceRate) {
 		this->force += forceRate * 60.0f;
 	}
 
@@ -82,7 +82,7 @@ struct RigidBody {
 		this->rotation = DirectX::XMQuaternionIdentity();
 		this->predRot = DirectX::XMQuaternionIdentity();
 		this->prevRot = DirectX::XMQuaternionIdentity();
-		 
+
 		angularVelocity *= 0.5f;
 	}
 
@@ -104,7 +104,7 @@ struct Collider {
 	ShapeType type;
 
 	RigidBody* body{ nullptr };
-	 
+
 	void SetShape(ShapeType shape) {
 		this->type = shape;
 	}
@@ -123,7 +123,7 @@ struct Collider {
 	bool bIsTrigger{ false };
 	bool bEnabled{ true };
 };
- 
+
 struct Contact {
 	Float3 point;
 	Float3 normal;
@@ -132,7 +132,7 @@ struct Contact {
 	Collider* a{};
 	Collider* b{};
 
-	float  lambda = 0.f;   // to restore , eg: force;
+	float lambda = 0.f;   // to restore , eg: force;
 };
 
 
@@ -142,7 +142,7 @@ struct Contact {
 //	 
 //};
 
- 
+
 class NarrowPhaseCollision {
 public:
 	void DetectCollisions();
@@ -158,7 +158,7 @@ public:
 	void Integrate();
 };
 
- 
+
 
 class PhysicsScene {
 public:
@@ -169,16 +169,18 @@ public:
 
 
 public:
-	void SetRigidBody(RigidBody* rb,
+	void AddRigidBody(RigidBody* rb,
 		ActorId owner,
 		const Float3& position = Float3{ 0.0f, 0.0f, 0.0f },
 		const DirectX::XMVECTOR& rotation = DirectX::XMQuaternionIdentity()
 	);
 
-	void SetCollider(Collider* collider, ActorId owner) {
-		collider->actorId = owner;
-		m_colliders[owner] = collider; 
-	}
+	void AddCollider(Collider* collider, ActorId owner);
+
+	void RemoveRigidBody(ActorId owner);
+
+	void RemoveCollider(ActorId owner);
+
 
 	void ClearRigidBody() {
 		m_bodies.clear();
@@ -245,5 +247,5 @@ public:
 private:
 	PhysicsTransformSyncBuffer m_transformBuffer;
 	PhysicsCommandBuffer m_commandBuffer;
-	 
+
 };

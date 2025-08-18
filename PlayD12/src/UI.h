@@ -8,6 +8,11 @@
 
 #include "FSM.h"
 
+/*
+* design decision: UIManager is not responsible for the ownership;
+* make sure the UI is valid on calling side;
+*/
+
 
 // geometry helpers
 struct FRect { int x{}, y{}, w{}, h{}; };
@@ -21,6 +26,12 @@ inline FRect CenterRect(int screenWidth, int screenHeight, const FRect& rectSize
 	return FRect{ cornerX, cornerY, rectSize.w, rectSize.h };
 }
 
+inline FRect CenterRect(const FRect& parentRect, const FRect& childRect) {
+	int cornerX = (parentRect.w - childRect.w) / 2;
+	int cornerY = (parentRect.h - childRect.h) / 2;
+	return FRect{ cornerX, cornerY, childRect.w, childRect.h };
+}
+
 inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
 	float ndcX = (2.0f * static_cast<float>(x + 0.5f) / static_cast<float>(screenWidth)) - 1.0f;
 	float ndcY = 1.0f - (2.0f * static_cast<float>(y + 0.5f) / static_cast<float>(screenHeight)); // Invert Y for top-left 
@@ -28,23 +39,27 @@ inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
 	return { ndcX, ndcY };
 }
 
- 
+
 //classic four states 
 enum class UIState {
 	Disabled,
 	Idle,
 	Hovered,
 	PressedInside,
-	PressedOutside,  
-};  
+	PressedOutside,
+};
 
+
+using UIId = uint32_t;
 
 class UIElement {
 public:
 	UIElement();
 	virtual ~UIElement() = default;
 
-	virtual void Tick(float delta) { 
+	virtual void Tick(float delta) {
+		//a temp way to verify init:
+		assert(id != 0 && "ui id is not properly initialized");
 
 		for (auto* child : m_children)
 		{
@@ -52,37 +67,37 @@ public:
 		}
 	};
 
-	virtual void RenderBack() {}; 
+	virtual void RenderBack() {};
 
-public: 
-	UIState state = UIState::Idle; 
+public:
+	UIState state = UIState::Idle;
 
 	virtual bool HitTest(int x, int y) const { return false; };
- 
+
 	void OnEvent(UIEvent& evt) {
 		std::visit([this](auto& e) {
 			//std::cerr << "UIEvent holds: " << typeid(e).name() << '\n';
 			if (HitTest(e.x, e.y)) e.handled = true; // mark as handled 
-			}, evt); 
-	 
+			}, evt);
+
 		std::visit(overloaded{
 			[this](UIMouseMove& e) { OnMouseMove(e); },
 			[this](UIMouseButtonDown& e) { OnMouseButtonDown(e); },
 			[this](UIMouseButtonUp& e) { OnMouseButtonUp(e); }
 			}, evt);
 	}
-	
+
 	virtual void OnMouseMove(const UIMouseMove& e) {
 
 		//std::cout << "UI: handle move, curr state:" << (int)state << '\n';
 		bool hit = HitTest(e.x, e.y);
 
 		if (state == UIState::Idle) {
-			if (hit) { 
+			if (hit) {
 				OnHoverEnter.BlockingBroadCast();
 				state = UIState::Hovered;
 				std::cout << "UI: button hover enter at (" << e.x << ", " << e.y << ")" << '\n';
-	 			} 
+			}
 		}
 		else if (state == UIState::Hovered) {
 			if (!hit) {
@@ -90,7 +105,7 @@ public:
 				OnHoverExit.BlockingBroadCast();
 				state = UIState::Idle;
 				std::cout << "UI: button hover out" << '\n';
-			} 
+			}
 		}
 		else if (state == UIState::PressedInside) {
 			if (!hit) {
@@ -99,7 +114,7 @@ public:
 				//std::cout << "UI: button pressed outside of area" << '\n';
 			}
 		}
-		 
+
 
 	}
 
@@ -112,20 +127,20 @@ public:
 		if (state == UIState::Hovered) {
 			state = UIState::PressedInside;
 			//std::cout << "UI: button pressed :" << name << '\n';
-		} 
+		}
 	}
 
 	virtual void OnMouseButtonUp(const UIMouseButtonUp& e) {
 		//std::cout << "UI: handle hit release, curr state:" << (int)state << '\n';
 		if (state == UIState::PressedInside) {
 			OnClick.BlockingBroadCast();
-			state = UIState::Hovered;  
-		} 
+			state = UIState::Hovered;
+		}
 
 	}
-public: 
+public:
 	//todo: implement the tree;
-	UIElement* GetParent() const { return m_parent; } 
+	UIElement* GetParent() const { return m_parent; }
 	virtual std::span<UIElement* const> GetChildren() const
 	{
 		return m_children;
@@ -144,8 +159,8 @@ public:
 			siblings.erase(std::remove(siblings.begin(), siblings.end(), this), siblings.end());
 		}
 
-		m_parent = newParent; 
-		m_parent->m_children.push_back(this); 
+		m_parent = newParent;
+		m_parent->m_children.push_back(this);
 	}
 	void DetachFromParent()
 	{
@@ -168,17 +183,24 @@ public:
 	void SetLayout(const FRect& rect) {
 		layout = rect;
 	}
+
+	FRect GetLayout() {
+		assert(layout.has_value());
+		return layout.value();
+	}
 	std::optional<FRect> layout;
 
 
-	std::string name = "UIElement"; // for debugging
+	std::string name = "UIElement"; // for debugging 
+	UIId id{ 0 };
+	static std::atomic<uint32_t> GIdGenerator;
 };
- 
+
 
 //todo: visible ,enable; blocking;
 class UIButton : public UIElement
 {
-public: 
+public:
 	UIButton();
 	virtual ~UIButton() = default;
 
@@ -194,11 +216,15 @@ public:
 
 	std::string text = "HELLO";
 };
- 
+
 class UICanvasPanel : public UIElement {
 public:
+	UICanvasPanel();
 	virtual void Tick(float delta) override;
- };
+
+
+
+};
 
 
 
@@ -207,9 +233,9 @@ class UIManager {
 public:
 	void Tick(float delta) {
 
-		for (auto& root : rootElements) {
-			root->Tick(delta);  
-		} 
+		for (auto& [id, ui] : rootElements) {
+			ui->Tick(delta);
+		}
 	}
 
 	void RouteEvents() {
@@ -228,13 +254,19 @@ public:
 	template<DerivedFrom<UIElement> T>
 	SharedPtr<T> CreateUIAsRoot() {
 		SharedPtr<T> elem = CreateShared<T>();
-		rootElements.push_back(elem.get());
+		this->RegisterRootElement(elem.get());
 		return elem;
 	}
- 
+
 	void RegisterRootElement(UIElement* elem) {
 		if (elem) {
-			rootElements.push_back(elem);
+			rootElements[elem->id] = elem;
+		}
+	}
+
+	void UnregisterRootElement(UIElement* elem) {
+		if (elem) {
+			rootElements.erase(elem->id);
 		}
 	}
 
@@ -243,7 +275,7 @@ public:
 	}
 
 private:
-	std::vector<UIElement*> rootElements;
+	std::unordered_map<UIId, UIElement*> rootElements;
 	UIElement* captured = nullptr;
 
 	void DispatchToRoots(UIEvent& evt) {
@@ -252,7 +284,7 @@ private:
 		//	return;
 		//}
 
-		for (UIElement* elem : rootElements) {
+		for (auto& [id, elem] : rootElements) {
 			if (DispatchRecursive(elem, evt)) break;
 		}
 	}
@@ -269,19 +301,18 @@ private:
 		//std::cout << "UI: dispatching event to: " << elem->name << '\n';
 
 		DispatchToElement(elem, evt);
- 
+
 		return std::visit([](auto const& e) {
 			//return true if the event was handled
 			return e.handled;
 			}, evt);
-	} 
+	}
 
 	//todo: dispatch within the element; 
-	void DispatchToElement(UIElement* elem, UIEvent& evt) { 
-		elem->OnEvent(evt); 
-	} 
+	void DispatchToElement(UIElement* elem, UIEvent& evt) {
+		elem->OnEvent(evt);
+	}
 
 
 };
-
 
