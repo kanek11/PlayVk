@@ -111,6 +111,8 @@ public:
 	virtual void Tick(float delta) override; 
 	virtual void LateConstruct() override;
 
+	virtual void OnRegister() override;
+
 	SharedPtr<UIButton> recordButton;
 	SharedPtr<UIButton> retryButton; 
 	SharedPtr<UIButton> returnButton;

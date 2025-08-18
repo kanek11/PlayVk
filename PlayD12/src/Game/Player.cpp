@@ -18,7 +18,10 @@ void TransitPlayerState(APlayer* actor, const FFormState& targetState)
 	}
 
 	if (auto shapeComp = actor->GetComponent<UShapeComponent>()) {
-		shapeComp->rigidBody->ClearRotation();
+		actor->RootComponent->SetRelativePosition(shapeComp->GetRelativePosition() + Float3{ 0.0f, 0.1f, 0.0f });
+		actor->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+		actor->RootComponent->UpdateWorldTransform();
+		//shapeComp->rigidBody->ClearRotation();
 		shapeComp->rigidBody->SetPhysicalMaterial(targetState.physMaterial);
 		shapeComp->SetShape(targetState.shape);
 	}
@@ -42,6 +45,10 @@ APlayer::APlayer() : APawn()
 	auto& rb = shapeComponent->rigidBody;
 	rb->simulatePhysics = true;
 	rb->simulateRotation = true;
+
+	rb->bFastStable = false;
+	rb->linearDamping = 1.0f;
+	rb->angularDamping = 1.0f;
 
 	this->RootComponent = this->shapeComponent;
 	//this->shapeComponent->AttachTo(RootComponent.get());
@@ -110,8 +117,7 @@ void APlayer::BeginPlay()
 	.shape = Box({ 1.0f ,1.0f, 1.0f }),
 	.physMaterial = PhysicalMaterial{ 0.0f, 0.0f }
 		};
-
-
+		 
 		cubeForm.inputCb = [this](float delta) {
 			this->IceStateBehavior(delta);
 			};
@@ -120,7 +126,7 @@ void APlayer::BeginPlay()
 	}
 
 
-	TransitPlayerState(this, playerForms.at(EPlayerForm::Normal));
+	TransitPlayerState(this, playerForms.at(EPlayerForm::MetalBall));
 
 }
 

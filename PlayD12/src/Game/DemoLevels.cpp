@@ -80,7 +80,7 @@ void GamePlayLevel::LoadActors()
 
 
     //new:
-    auto& gridPattern = MMath::GenerateGrid3D({ 1,1,1 }, 1.1f);
+    auto& gridPattern = MMath::GenerateGrid3D({ 2,2,2 }, 1.1f);
     for (const auto& pos : gridPattern) {
         auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
         actor->RootComponent->SetRelativePosition(pos);
@@ -98,7 +98,7 @@ void GamePlayLevel::LoadActors()
 
         auto& rb = actor->shapeComponent->rigidBody;
         rb->simulatePhysics = true;
-        rb->simulateRotation = false;
+        rb->simulateRotation = true;
         //actor->shapeComponent->SetIsTrigger(true); 
         //actor->staticMeshComponent->SetMaterial(Materials::GetIron()); 
 
@@ -143,7 +143,7 @@ void GamePlayLevel::LoadPlayer()
     //auto dftPlayer = CreateActor<APawn>(); 
     auto dftPlayer = CreateActor<APlayer>();
 
-    dftPlayer->RootComponent->SetRelativePosition({ 0.0f, 2.0f, -8.0f });
+    dftPlayer->RootComponent->SetRelativePosition({ 0.0f, 2.0f, -4.0f });
     dftPlayer->RootComponent->UpdateWorldTransform();
 
     //dftPlayer->staticMeshComponent->SetVisible(false);

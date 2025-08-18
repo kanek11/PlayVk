@@ -48,6 +48,8 @@ public:
 
 	SharedPtr<UPauseMenu> pauseMenu;
 
+	SharedPtr<UGoalingUI> goalUI;
+
 public: 
 	float timeCount{ 0.0f };
 };

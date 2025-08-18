@@ -41,7 +41,7 @@ void AGameState::SetupGameStates()
 		mainMenuState->OnEnter.Add(
 			[=]() {
 				std::cout << "state: enter mainMenu " << "\n";
-				uiManager->RegisterRootElement(mainTitle.get());
+				//uiManager->RegisterRootElement(mainTitle.get());
 
 				this->OnResetGameplay();
 				pc->SetInputMode(EInputMode::UIOnly);
@@ -50,10 +50,11 @@ void AGameState::SetupGameStates()
 		mainMenuState->OnUpdate.Add(
 			[=](float dt) {
 				//std::cout << " tick mainMenu: " << dt << "\n";
+		 
 			});
 		mainMenuState->OnExit.Add(
 			[=]() {
-				uiManager->UnregisterRootElement(mainTitle.get());
+				//uiManager->UnregisterRootElement(mainTitle.get());
 			});
 
 		//m_gameManager->SetInitialState(mainMenuState->GetId());
@@ -70,6 +71,7 @@ void AGameState::SetupGameStates()
 				std::cout << "state: enter playing" << "\n";
 				//world->TransitLevel("gameplay");
 				//world->LoadOrResetLevel("gameplay");
+				this->OnResetGameplay();
 				pc->SetInputMode(EInputMode::None);
 				uiManager->RegisterRootElement(playerHUD.get());
 			});
@@ -80,7 +82,14 @@ void AGameState::SetupGameStates()
 
 				//std::cout << " tick playing: " << dt << "\n";
 				if (inputSystem->IsKeyJustPressed(KeyCode::Escape)) {
-					this->RequestTransitState(GameStateId::Paused);
+					//this->RequestTransitState(GameStateId::Paused);
+					timeSystem->TogglePaused();
+				}
+
+				if (inputSystem->IsKeyJustPressed(KeyCode::L)) {
+					//this->RequestTransitState(GameStateId::Paused);
+					timeSystem->AdvanceFixedSteps();
+					timeSystem->AdvanceFrames();
 				}
 
 				if (inputSystem->IsKeyJustPressed(KeyCode::P)) {
@@ -112,7 +121,7 @@ void AGameState::SetupGameStates()
 			[=](float dt) {
 				//std::cout << " tick pause: " << dt << "\n";
 				if (inputSystem->IsKeyJustPressed(KeyCode::Escape)) {
-					this->RequestTransitState(GameStateId::Playing);
+					/*this->RequestTransitState(GameStateId::Playing);*/
 				}
 
 			});
@@ -127,13 +136,35 @@ void AGameState::SetupGameStates()
 	}
 
 
+	{
 
+		auto goalingState = m_gameManager->Register<GoalingState>();
+		goalingState->OnEnter.Add(
+			[=]() {
+				std::cout << "enter pause state" << "\n";
+				uiManager->RegisterRootElement(goalUI.get()); 
+				pc->SetInputMode(EInputMode::UIOnly);
+			});
 
+		goalingState->OnUpdate.Add(
+			[=](float dt) { 
+
+			});
+
+		goalingState->OnExit.Add(
+			[=]() {
+				std::cout << " exit pause state" << "\n";
+				uiManager->UnregisterRootElement(goalUI.get()); 
+			});
+
+	}
+
+	 
  
 	//----------------------------  
 
 	//m_gameManager->SetInitialState(playingState->GetId());
-	m_gameManager->SetInitialState(MainTitleState::GetId());
+	m_gameManager->SetInitialState(PlayingState::GetId());
 	m_gameManager->Initialize();
 
 }
@@ -152,6 +183,9 @@ void AGameState::InitUI()
 
 	this->pauseMenu = CreateGameplayUI<UPauseMenu>(this->GetWorld());
 	this->pauseMenu->name = "PauseMenuUI";
+
+	this->goalUI = CreateGameplayUI<UGoalingUI>(this->GetWorld());
+	this->goalUI->name = "GoalUI";
 
 	//uiManager->RegisterRootElement(playerHUD.get());
 	//uiManager->UnregisterRootElement(playerHUD.get());

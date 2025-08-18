@@ -14,6 +14,26 @@
 design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
 */
+struct SleepParams { 
+	float vLinearThreshold = 0.03f;   //  m/s
+	float vAngularThreshold = 2.0f;    //  deg/s 
+	 
+	//a bit higher
+	float wakeVLinear = 0.05f;
+	float wakeVAngular = 4.0f; 
+
+	int FramesRequired = 40; 
+
+	// optional
+	float wakeImpulseThreshold = 0.5f;  
+	float wakeForceThreshold = 5.0f;  
+
+	// RMS lowpass; smaller means smoother, but slower to respond
+	float emaBeta = 0.2f;   
+};
+
+
+
 
 
 struct PhysicalMaterial {
@@ -21,10 +41,9 @@ struct PhysicalMaterial {
 	float friction;
 };
 
-struct RigidBody {
-
-	std::string debugName; //for debug purpose
-
+struct RigidBody { 
+	RigidBody();
+ 
 	float mass = 1.0f;   //or inverseMass
 	float invMass = 1.0f; //inverse mass, 0 means infinite mass (static body)
 
@@ -79,9 +98,7 @@ struct RigidBody {
 	}
 
 	void ClearRotation() {
-		this->rotation = DirectX::XMQuaternionIdentity();
-		this->predRot = DirectX::XMQuaternionIdentity();
-		this->prevRot = DirectX::XMQuaternionIdentity();
+		this->SetRotation(DirectX::XMQuaternionIdentity());
 
 		angularVelocity *= 0.5f;
 	}
@@ -96,7 +113,13 @@ struct RigidBody {
 		localInertia = MakeInertiaTensor(shape, mass);
 	}
 
-	RigidBody();
+	bool bFastStable{ true };
+	float linearDamping = 0.999f;
+	float angularDamping = 0.98f; 
+
+	//SleepParams sleepParams{};
+	//bool   isSleeping = false;
+	//int    sleepCounter = 0; 
 };
 
 

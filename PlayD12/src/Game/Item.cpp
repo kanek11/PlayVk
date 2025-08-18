@@ -63,6 +63,8 @@ void ATriggerVolume::BeginPlay()
 	this->shapeComponent->onOverlap.Add([=](AActor* other) {
 		if (other->tag == "player") {
 			gameState->onGoal.BlockingBroadCast(); 
+			this->shapeComponent->SetCollisionEnabled(false); 
+
 		}  
 		});
 }

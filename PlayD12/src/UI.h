@@ -57,6 +57,9 @@ public:
 	UIElement();
 	virtual ~UIElement() = default;
 
+
+	virtual void OnRegister() {};
+
 	virtual void Tick(float delta) {
 		//a temp way to verify init:
 		assert(id != 0 && "ui id is not properly initialized");
@@ -261,6 +264,7 @@ public:
 	void RegisterRootElement(UIElement* elem) {
 		if (elem) {
 			rootElements[elem->id] = elem;
+			elem->OnRegister(); 
 		}
 	}
 

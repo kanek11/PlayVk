@@ -204,6 +204,9 @@ UGoalingUI::UGoalingUI() : UGameplayUI()
 
 void UGoalingUI::Tick(float delta)
 {
+	UGameplayUI::Tick(delta); 
+
+
 
 }
 
@@ -254,4 +257,12 @@ void UGoalingUI::LateConstruct()
     recordButton->AttachTo(canvas.get());
     retryButton->AttachTo(canvas.get());
     returnButton->AttachTo(canvas.get());
+}
+
+void UGoalingUI::OnRegister()
+{
+
+    auto gameState = GetWorld()->GetGameState<AGameState>();
+     
+    recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
 }
