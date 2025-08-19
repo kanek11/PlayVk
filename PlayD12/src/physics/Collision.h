@@ -8,6 +8,9 @@
 #include <algorithm>
 
 #include "CollisionUtils.h"
+
+
+#include "Application.h"
 /*
 * convention:
 * the contact normal is :  b to a;
@@ -55,13 +58,13 @@ WorldShape MakeWorldShape(Collider& c)
             OBB obb;
             obb.center = center;
             obb.halfExtents = s.halfExtents;
-            obb.axis[0] = R[0]; //right
-            obb.axis[1] = R[1]; //up
-            obb.axis[2] = R[2]; //forward 
+            obb.axis[0] = Normalize(R[0]); //right
+            obb.axis[1] = Normalize(R[1]); //up
+            obb.axis[2] = Normalize(R[2]); //forward 
 
             //new:
 			c.aabb = MakeAABB(obb.center, R, obb.halfExtents); 
-			DrawDebugOBB(obb); //draw debug OBB
+			//DrawDebugOBB(obb); 
 
             return obb;
         }
@@ -90,13 +93,13 @@ WorldShape MakeWorldShape(Collider& c)
 			Float3x3 R = c.body->RotationMatrix; 
 			OBB obb;
 			obb.center = center;
-			obb.halfExtents = Float3{ s.width * 0.5f, 0.1f, s.height * 0.5f };  
-			obb.axis[0] = R[0]; //right
-			obb.axis[1] = R[1]; //up
-			obb.axis[2] = R[2]; //forward 
+			obb.halfExtents = Float3{ s.width * 0.5f, 0.2f, s.height * 0.5f };  
+            obb.axis[0] = Normalize(R[0]); //right
+            obb.axis[1] = Normalize(R[1]); //up
+            obb.axis[2] = Normalize(R[2]); //forward 
 
 			c.aabb = MakeAABB(obb.center, R, obb.halfExtents); //update AABB
-			DrawDebugOBB(obb); 
+			//DrawDebugOBB(obb); 
 
 			return obb; 
         } 
@@ -403,7 +406,7 @@ WorldShape MakeWorldShape(Collider& c)
             {
                 // degenerate case / almost parallel edges
                 if (LengthSq(axis) < kEps) return true;
-				axis = Normalize(axis); // normalize the axis
+				axis = Normalize(axis); 
 
                 auto intervalA = OBBProject(A, axis);
                 auto intervalB = OBBProject(B, axis);
@@ -466,7 +469,13 @@ WorldShape MakeWorldShape(Collider& c)
             bestAxis = -bestAxis;
 
         out.axisW = bestAxis;
-        out.depth = minOverlap; 
+        out.depth = minOverlap;  
+
+		//std::cout << "OBB vs OBB: min overlap: " << out.depth << '\n';
+  //      if (out.depth > 0.1f)
+  //      {
+  //          std::cout << "large correction: " << '\n';
+  //      }
 
         return true;
     }
@@ -624,11 +633,12 @@ WorldShape MakeWorldShape(Collider& c)
 
 		auto [pA, pB] = SegmentsClosest(edgeA, edgeB); 
 
-		DebugDraw::AddCube(pA, 0.05f, Color::Red);
+		DebugDraw::AddCube(pA, 0.05f, Color::Blue);
 		DebugDraw::AddCube(pB, 0.05f, Color::Blue); 
         
-        outM.points[outM.count] = (pA + pB) * 0.5f; 
-		outM.depths[outM.count] = penMin.depth;   
+        outM.points[outM.count] = (pA + pB) * 0.5f;  
+        /*outM.depths[outM.count] = penMin.depth;*/
+		outM.depths[outM.count] = Length(pA - pB) * 0.2f; 
         outM.count++;
 
 		return outM; 
@@ -675,6 +685,19 @@ WorldShape MakeWorldShape(Collider& c)
 		out.penetration = std::abs(avgDepth); 
 
 		//std::cout << "OBB vs OBB: avg depth: " << avgDepth << std::endl; 
+
+   //     if (out.penetration > 0.11f)
+   //     {
+   ////         auto timeSystem = GameApplication::GetInstance()->GetTimeSystem();
+			//////timeSystem->TogglePaused();
+			////auto IntervalA = OBBProject(A, penMin.axisW);
+			////auto IntervalB = OBBProject(B, penMin.axisW);
+
+			////float overlap = 0.0f;
+   ////         IntervalOverlap(IntervalA, IntervalB, overlap);
+
+   //         std::cout << "large correction: " << '\n';
+   //     }
  
         return true;  
     }

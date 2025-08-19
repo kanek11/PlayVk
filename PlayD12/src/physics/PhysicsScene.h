@@ -14,22 +14,22 @@
 design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
 */
-struct SleepParams { 
+struct SleepParams {
 	float vLinearThreshold = 0.03f;   //  m/s
 	float vAngularThreshold = 2.0f;    //  deg/s 
-	 
+
 	//a bit higher
 	float wakeVLinear = 0.05f;
-	float wakeVAngular = 4.0f; 
+	float wakeVAngular = 4.0f;
 
-	int FramesRequired = 40; 
+	int FramesRequired = 40;
 
 	// optional
-	float wakeImpulseThreshold = 0.5f;  
-	float wakeForceThreshold = 5.0f;  
+	float wakeImpulseThreshold = 0.5f;
+	float wakeForceThreshold = 5.0f;
 
 	// RMS lowpass; smaller means smoother, but slower to respond
-	float emaBeta = 0.2f;   
+	float emaBeta = 0.2f;
 };
 
 
@@ -41,9 +41,9 @@ struct PhysicalMaterial {
 	float friction;
 };
 
-struct RigidBody { 
+struct RigidBody {
 	RigidBody();
- 
+
 	float mass = 1.0f;   //or inverseMass
 	float invMass = 1.0f; //inverse mass, 0 means infinite mass (static body)
 
@@ -54,8 +54,12 @@ struct RigidBody {
 	Float3 linearVelocity;
 	Float3 force;  //accumulation in the frame; 
 
+
+	float prevLinearSpeed{ 0.0f };
+	float linearAccel; //approx;
+
 	bool simulatePhysics{ false };
-	PhysicalMaterial material{ 0.0f, 0.8f };
+	PhysicalMaterial material{ 0.0f, 0.0f };
 
 	bool simulateRotation{ false };
 	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity() };
@@ -78,9 +82,14 @@ struct RigidBody {
 		this->force += forceRate * 60.0f;
 	}
 
+	void ApplyImpulse(const Float3& impulseRate) {
+		this->linearVelocity += impulseRate * 60.0f;
+	}
+
 	void ApplyTorque(const Float3& torque) {
 		this->torque += torque;
 	}
+	 
 
 	void SetPosition(const Float3& position) {
 		this->position = position;
@@ -100,7 +109,7 @@ struct RigidBody {
 	void ClearRotation() {
 		this->SetRotation(DirectX::XMQuaternionIdentity());
 
-		angularVelocity *= 0.5f;
+		angularVelocity *= 0.0f;
 	}
 
 	void SetPhysicalMaterial(const PhysicalMaterial& material) {
@@ -112,10 +121,15 @@ struct RigidBody {
 		this->type = shape;
 		localInertia = MakeInertiaTensor(shape, mass);
 	}
+	//new: set mass before reset shape;  for correct inertia
+	void SetMass(float mass) {
+		this->mass = mass;
+		this->invMass = 1 / mass;
+	}
 
 	bool bFastStable{ true };
 	float linearDamping = 0.999f;
-	float angularDamping = 0.98f; 
+	float angularDamping = 0.98f;
 
 	//SleepParams sleepParams{};
 	//bool   isSleeping = false;
@@ -123,7 +137,7 @@ struct RigidBody {
 };
 
 
-struct Collider { 
+struct Collider {
 	Collider(RigidBody* body)
 		:body(body)
 	{
@@ -163,11 +177,11 @@ struct Contact {
 
 
 struct WorldShapeProxy;
-using ColliderPair = std::pair<Collider* , Collider*>;
-class BroadPhase{
+using ColliderPair = std::pair<Collider*, Collider*>;
+class BroadPhase {
 public:
 	void ComputePairs(std::vector<WorldShapeProxy>& ws, std::vector<ColliderPair>& out);
-	 
+
 };
 
 
@@ -209,6 +223,8 @@ public:
 
 	void RemoveCollider(ActorId owner);
 
+	void SetShape(ActorId owner, ShapeType shape);
+
 
 	void ClearRigidBody() {
 		m_bodies.clear();
@@ -241,7 +257,7 @@ private:
 	void VelocityPass(float delta);
 
 	//update again, signal events,  etc.
-	void PostSimulation();
+	void PostSimulation(float delta);
 
 private:
 	std::unordered_map<ActorId, RigidBody*> m_bodies;

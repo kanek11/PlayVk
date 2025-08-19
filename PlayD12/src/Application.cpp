@@ -137,14 +137,12 @@ void GameApplication::run()
 		//todo: physics interpolation; 
 		//tick level>actor> component
 
-		m_world->SyncPhysicsToGame();
 
 		m_world->OnTick(delta);
 
 		m_world->SyncGameToPhysics();
 
-		gTime->PumpFixedSteps();
-
+		gTime->PumpFixedSteps(); 
 
 
 		m_renderer->OnUpdate(delta);

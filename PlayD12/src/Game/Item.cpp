@@ -4,8 +4,8 @@
 #include "Gameplay/World.h"
 #include "GameState.h"
 
-ABoxItem::ABoxItem() :AStaticMeshActor()
-{ 
+AItem::AItem() :AStaticMeshActor()
+{
 	this->tag = "item";
 
 	this->shapeComponent->SetIsTrigger(true);
@@ -14,10 +14,10 @@ ABoxItem::ABoxItem() :AStaticMeshActor()
 	Mesh::SetBox(this, Float3{ 1.0f,1.0f,1.0f });
 }
 
-void ABoxItem::BeginPlay()
+void AItem::BeginPlay()
 {
 	AStaticMeshActor::BeginPlay();
-	 
+
 	//this->staticMeshComponent->SetMaterial(Materials::GetDebugMesh());
 
 	//
@@ -25,19 +25,22 @@ void ABoxItem::BeginPlay()
 		std::cout << "item: callback overlap\n";
 		this->shapeComponent->SetCollisionEnabled(false);
 		this->staticMeshComponent->SetVisible(false);
+
+		//game thread flag is more predictable than physics?
+		this->bConsumed = true;
 		};
 
 	this->shapeComponent->onOverlap.Add(overlapCb);
 }
 
-void ABoxItem::OnTick(float delta)
+void AItem::OnTick(float delta)
 {
-	AStaticMeshActor::OnTick(delta); 
+	AStaticMeshActor::OnTick(delta);
 
 	float angle = MMath::ToRadians(delta * 100);
-	
-	auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, angle,  0.0f));
-	RootComponent->SetRelativeRotation(targetRot); 
+
+	auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, angle, 0.0f));
+	RootComponent->SetRelativeRotation(targetRot);
 
 }
 
@@ -57,15 +60,15 @@ ATriggerVolume::ATriggerVolume() :AStaticMeshActor()
 void ATriggerVolume::BeginPlay()
 {
 	AStaticMeshActor::BeginPlay();
-	 
+
 
 	auto gameState = GetWorld()->GetGameState<AGameState>();
 	this->shapeComponent->onOverlap.Add([=](AActor* other) {
 		if (other->tag == "player") {
-			gameState->onGoal.BlockingBroadCast(); 
-			this->shapeComponent->SetCollisionEnabled(false); 
+			gameState->onGoal.BlockingBroadCast();
+			this->shapeComponent->SetCollisionEnabled(false);
 
-		}  
+		}
 		});
 }
 
@@ -76,4 +79,25 @@ void ATriggerVolume::OnTick(float delta)
 	//auto gameState = GetWorld()->GetGameState<AGameState>(); 
 	//gameState->onGoal.BlockingBroadCast();
 
+}
+
+//---------
+AIceItem::AIceItem() : AItem()
+{
+	this->staticMeshComponent->SetMaterial(Materials::GetIceSurface());
+
+
+	payload.formType = EPlayerForm::IceCube;
+	payload.duration = 1.0f;
+}
+
+
+//--------
+
+AMetalItem::AMetalItem()
+{
+	this->staticMeshComponent->SetMaterial(Materials::GetRustyIron());
+
+	payload.formType = EPlayerForm::MetalBall;
+	payload.duration = 1.0f;
 }

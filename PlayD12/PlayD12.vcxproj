@@ -188,6 +188,7 @@
     <ClInclude Include="src\Gameplay\SceneComponent.h" />
     <ClInclude Include="src\Gameplay\Object.h" />
     <ClInclude Include="src\Gameplay\World.h" />
+    <ClInclude Include="src\Game\Ability.h" />
     <ClInclude Include="src\Game\DemoLevels.h" />
     <ClInclude Include="src\Game\GameState.h" />
     <ClInclude Include="src\Game\GameUI.h" />

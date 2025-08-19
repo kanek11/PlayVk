@@ -8,31 +8,20 @@
 
 #include "Gameplay/Actors/AController.h"
 
+#include "Ability.h"
+
 using namespace Gameplay;
+
 
 struct FPlayerState {
 
 	float speed;
-};
+	float accel;
 
-enum class EPlayerForm {
-	Normal,
-	MetalBall,
-	IceCube,
-};
-
-struct FFormState {
-	SharedPtr<UStaticMesh> mesh;
-	SharedPtr<UMaterial> material;
-	ShapeType shape;
-	PhysicalMaterial physMaterial;
-
-	//
-	InputBehavior inputCb;
+	std::unordered_map<EPlayerForm, FAbilityRuntime> abilitiesRT;
 };
 
 
-using namespace Gameplay;
 
 class APlayer : public APawn
 {
@@ -43,19 +32,38 @@ public:
 
 	virtual void OnTick(float delta) override;
 
-	void UploadPlayerState();
+
+
+private: 
+	void RequestTransitForm(EPlayerForm form);
+
+
+	void TickPlayingPersistent(float delta);
 
 	void NormalStateBehavior(float delta);
 	void MetalStateBehavior(float delta);
 	void IceStateBehavior(float delta);
 
+private:
+	void OnOverlapItem(AActor* other);
+
+private:
+	void UploadPlayerState();
+
 public:
 	SharedPtr<UStaticMeshComponent> staticMeshComponent;
-	SharedPtr<UShapeComponent> shapeComponent;
+	SharedPtr<UShapeComponent> shapeComponent; 
 
 public:
+	FPlayerState playerState{}; 
+
+
+public:
+	void AddPayloadImmediate(const FAbilityPayload& payload); 
+
+	EPlayerForm currForm;
+	std::unordered_map<EPlayerForm, FAbilityRuntime> abilities; 
+
+	//todo : define elsewhere?
 	std::unordered_map<EPlayerForm, FFormState> playerForms;
-
-public:
-	FPlayerState playerState{};
 };

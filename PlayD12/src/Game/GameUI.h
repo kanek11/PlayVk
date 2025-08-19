@@ -11,10 +11,10 @@
 /*
 * design decision:
 * don't bypass factory to construct gameplay ui;
-* 
+*
 * usually we need a valid world for UI;
-* so we impose an "late construction" hook; 
-* 
+* so we impose an "late construction" hook;
+*
 * realize constructor shouldn't do "behavior stuff" , only memory construction;
 
 */
@@ -26,9 +26,9 @@ class UGameplayUI : public UIElement {
 public:
 	UGameplayUI();
 
-	UWorld* GetWorld() const { 
+	UWorld* GetWorld() const {
 		assert(world != nullptr);
-		return world; 
+		return world;
 	}
 	void SetWorld(UWorld* world) { this->world = world; }
 
@@ -58,15 +58,17 @@ SharedPtr<T> CreateGameplayUI(UWorld* world)
 }
 
 
-class UGameStatsUI : public UGameplayUI
+class UGameStatsHUD : public UGameplayUI
 {
 public:
-	UGameStatsUI();
+	UGameStatsHUD();
 	virtual void Tick(float delta) override;
 	virtual void LateConstruct() override;
-
-	SharedPtr<UICanvasPanel> canvas;
+	 
+	SharedPtr<UIButton> timeHUD;
 };
+
+
 
 class UMainTitleUI : public UGameplayUI
 {
@@ -85,10 +87,9 @@ public:
 
 	virtual void Tick(float delta) override;
 	virtual void LateConstruct() override;
-	 
+
 	SharedPtr<UIButton> speedHUD;
-	SharedPtr<UIButton> timeHUD;
-	SharedPtr<UIButton> debugHUD3;
+	SharedPtr<UIButton> accelHUD;
 };
 
 
@@ -108,13 +109,12 @@ class UGoalingUI : public UGameplayUI
 {
 public:
 	UGoalingUI();
-	virtual void Tick(float delta) override; 
+	virtual void Tick(float delta) override;
 	virtual void LateConstruct() override;
 
 	virtual void OnRegister() override;
 
 	SharedPtr<UIButton> recordButton;
-	SharedPtr<UIButton> retryButton; 
+	SharedPtr<UIButton> retryButton;
 	SharedPtr<UIButton> returnButton;
 };
-

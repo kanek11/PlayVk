@@ -11,15 +11,15 @@
 #include "FSM.h"
 
 //-------------------------
-UGameplayUI::UGameplayUI(): UIElement()
-{ 
+UGameplayUI::UGameplayUI() : UIElement()
+{
     auto width = GameApplication::GetInstance()->GetWidth();
     auto height = GameApplication::GetInstance()->GetHeight();
 
     canvas = CreateShared<UICanvasPanel>();
     FRect canvasRect = { 0, 0, static_cast<int>(width), static_cast<int>(height) };
     canvas->SetLayout(canvasRect);
-    canvas->name = "PlayerHUDCanvas"; 
+    canvas->name = "PlayerHUDCanvas";
 
     canvas->AttachTo(this);
 }
@@ -28,7 +28,7 @@ UGameplayUI::UGameplayUI(): UIElement()
 
 //-------------------------
 UPlayerHUD::UPlayerHUD() : UGameplayUI()
-{ 
+{
 }
 
 void UPlayerHUD::Tick(float delta)
@@ -44,13 +44,12 @@ void UPlayerHUD::Tick(float delta)
 
     {
         float currSpeed = playerState.speed;
-        speedHUD->text = std::format("vel:{:.2f}", currSpeed);
-    } 
-     
-    {
-        timeHUD->text = std::format("t:{:.2f}", gameState->timeCount);
+        speedHUD->text = std::format("vel:{:.1f}", currSpeed);
+
+        accelHUD->text = std::format("acc:{:.1f}", std::clamp(playerState.accel,0.0f, 200.0f));
     }
-    
+
+
 }
 
 void UPlayerHUD::LateConstruct()
@@ -68,20 +67,20 @@ void UPlayerHUD::LateConstruct()
 
 
     {
-        timeHUD = CreateShared<UIButton>();
+        //debugHUD1 = uiManager->CreateUIAsRoot<UIButton>();
+        accelHUD = CreateShared<UIButton>();
 
         FRect buttonRect = { 10, 20, 300, 50 };
         buttonRect.y += 60;
-        timeHUD->SetLayout(buttonRect);
-        timeHUD->name = "Current Time";
+        accelHUD->SetLayout(buttonRect);
+        accelHUD->name = "PlayerAccel";
     }
 
-
-    //hierarchy
-    speedHUD->AttachTo(canvas.get());
-    timeHUD->AttachTo(canvas.get());
  
 
+    //hierarchy
+    speedHUD->AttachTo(canvas.get()); 
+    accelHUD->AttachTo(canvas.get());
     //FRect buttonRect2 = { 10, 200, 300, 50 };
     //debugHUD3 = CreateShared<UIButton>(buttonRect2);
 }
@@ -89,7 +88,7 @@ void UPlayerHUD::LateConstruct()
 
 //-------------------------
 UMainTitleUI::UMainTitleUI() : UGameplayUI()
-{  
+{
 }
 
 void UMainTitleUI::Tick(float delta)
@@ -160,7 +159,7 @@ void UPauseMenu::LateConstruct()
             gameState->RequestTransitState(GameStateId::Playing);
             });
     }
-     
+
     {
         FRect buttonRect = { 0, 0, 500, 50 };
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
@@ -171,7 +170,7 @@ void UPauseMenu::LateConstruct()
         retryButton->text = "retry";
 
         retryButton->OnClick.Add([=]() {
-            gameState->OnResetGameplay(); 
+            gameState->OnResetGameplay();
             gameState->RequestTransitState(GameStateId::Playing);
             });
     }
@@ -204,7 +203,7 @@ UGoalingUI::UGoalingUI() : UGameplayUI()
 
 void UGoalingUI::Tick(float delta)
 {
-	UGameplayUI::Tick(delta); 
+    UGameplayUI::Tick(delta);
 
 
 
@@ -222,7 +221,7 @@ void UGoalingUI::LateConstruct()
         recordButton = CreateShared<UIButton>();
         recordButton->SetLayout(centeredRect);
         recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
- 
+
     }
 
     {
@@ -263,6 +262,39 @@ void UGoalingUI::OnRegister()
 {
 
     auto gameState = GetWorld()->GetGameState<AGameState>();
-     
+
     recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
+}
+
+
+//------------
+UGameStatsHUD::UGameStatsHUD():UGameplayUI()
+{
+}
+
+void UGameStatsHUD::Tick(float delta)
+{
+    UGameplayUI::Tick(delta);
+    auto gameState = GetWorld()->GetGameState<AGameState>();
+    {
+        timeHUD->text = std::format("t:{:.2f}", gameState->timeCount);
+    }
+
+}
+
+void UGameStatsHUD::LateConstruct()
+{
+
+    {
+        timeHUD = CreateShared<UIButton>();
+
+        FRect buttonRect = { 10, 20, 300, 50 };
+        buttonRect.y = 720 - 50;
+        timeHUD->SetLayout(buttonRect);
+        timeHUD->name = "Current Time";
+    }
+     
+    timeHUD->AttachTo(canvas.get());
+
+
 }

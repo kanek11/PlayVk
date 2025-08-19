@@ -161,8 +161,11 @@ struct Interval {
  
 inline bool IntervalOverlap(Interval a, Interval b, float& outOverlap) {
 
-	//if (a.max < b.min || a.min > b.max) return false;
-	outOverlap = std::min(a.max, b.max) - std::max(a.min, b.min);
+	//if (a.max < b.min || a.min > b.max) return false; 
+	auto max = std::min(a.max, b.max);
+	auto min = std::max(a.min, b.min);
+	outOverlap = max - min; //overlap length
+	//outOverlap = std::min(a.max, b.max) - std::max(a.min, b.min);
 
 	if (outOverlap < 0.0f) {
 		return false;
@@ -174,7 +177,7 @@ inline bool IntervalOverlap(Interval a, Interval b, float& outOverlap) {
 //OBB , axis is on world space, but result is local to OBB frame;
 inline Interval OBBProject(const OBB& obb, const Float3& axis) {
 	 
-	float center = Dot(obb.center, axis);
+	float center = Dot(obb.center, axis); 
 
 	float radius = 0.0f;
 	radius += obb.halfExtents.x() * std::abs(Dot(obb.axis[0], axis));

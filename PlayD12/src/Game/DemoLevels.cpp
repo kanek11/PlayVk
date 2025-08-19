@@ -64,26 +64,26 @@ void GamePlayLevel::LoadActors()
 
 
     //auto itemActor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, { 0.0f, 2.0f, 4.0f }); 
-    auto itemActor = CreateShared<ABoxItem>();
-    itemActor->RootComponent->SetRelativePosition({ 0.0f, 1.0f, 4.0f });
-    itemActor->RootComponent->UpdateWorldTransform();
+    //auto itemActor = CreateShared<ABoxItem>();
+    //itemActor->RootComponent->SetRelativePosition({ 0.0f, 1.0f, 4.0f });
+    //itemActor->RootComponent->UpdateWorldTransform();
 
-    auto checkPt = CreateShared<ATriggerVolume>();
-    checkPt->RootComponent->SetRelativePosition({ 0.0f, 1.0f, 2.0f });
-    checkPt->RootComponent->UpdateWorldTransform();
+    //auto checkPt = CreateShared<ATriggerVolume>();
+    //checkPt->RootComponent->SetRelativePosition({ 0.0f, 1.0f, 2.0f });
+    //checkPt->RootComponent->UpdateWorldTransform();
 
 
     //this->AddActor(sphereActor);
     this->AddActor(planeActor);
-    this->AddActor(itemActor);
-    this->AddActor(checkPt);
+    //this->AddActor(itemActor);
+    //this->AddActor(checkPt);
 
 
     //new:
-    auto& gridPattern = MMath::GenerateGrid3D({ 2,2,2 }, 1.1f);
+    auto& gridPattern = MMath::GenerateGrid3D({ 3,3,1 }, 1.1f);
     for (const auto& pos : gridPattern) {
-        //auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
-		auto actor = Mesh::CreateSphereActor(0.5f, pos);
+        auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
+		//auto actor = Mesh::CreateSphereActor(0.5f, pos);
         actor->RootComponent->SetRelativePosition(pos);
 
         //rotate 30 degree:
@@ -92,8 +92,12 @@ void GamePlayLevel::LoadActors()
         //auto y = XMConvertToRadians(90.0f) * Random::Uniform01();  
         //auto z = XMConvertToRadians(90.0f) * Random::Uniform01();  
 
-        //auto rotation = XMQuaternionRotationRollPitchYaw(x, y, z);
-        //actor->RootComponent->SetRelativeRotation(rotation);  
+        auto x = XMConvertToRadians(90.0f);  
+        auto y = XMConvertToRadians(0.0f);  
+        auto z = XMConvertToRadians(90.0f);  
+
+        auto rotation = XMQuaternionRotationRollPitchYaw(x, y, z);
+        actor->RootComponent->SetRelativeRotation(rotation);  
 
         actor->RootComponent->UpdateWorldTransform();
 
@@ -147,7 +151,7 @@ void GamePlayLevel::LoadPlayer()
     dftPlayer->RootComponent->SetRelativePosition({ 0.0f, 2.0f, -4.0f });
     dftPlayer->RootComponent->UpdateWorldTransform();
 
-    //dftPlayer->staticMeshComponent->SetVisible(false);
+    dftPlayer->staticMeshComponent->SetVisible(false);
 
     //auto possess the default player 
     if (auto controller = this->owningWorld->GetFirstPlayerController(); controller != nullptr) {

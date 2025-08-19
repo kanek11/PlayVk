@@ -34,7 +34,7 @@ void PhysicsScene::Tick(float delta)
 
 	VelocityPass(delta);
 
-	PostSimulation();
+	PostSimulation(delta);
 }
 
 void PhysicsScene::OnInit()
@@ -59,14 +59,16 @@ void PhysicsScene::PreSimulation()
 	m_commandBuffer.Execute();
 
 	auto events = PhysicsEventQueue::Get().Drain();
-	if (events.size() > 0)
-		std::cout << "unhandled collision: " << events.size() << '\n';
+	//if (events.size() > 0)
+	//	std::cout << "unhandled collision: " << events.size() << '\n';
 
-	//add damping:
-	for (auto& [actor, rb] : m_bodies) {
-		if (!rb->simulatePhysics) continue;
-		rb->linearVelocity *= rb->linearDamping;
-		rb->angularVelocity *= rb->angularDamping;
+	//update and add damping:
+	for (auto& [actor, body] : m_bodies) {
+		if (!body->simulatePhysics) continue;
+		body->linearVelocity *= body->linearDamping;
+		body->angularVelocity *= body->angularDamping;
+
+		body->invMass = 1 / body->mass;
 	}
 
 
@@ -86,8 +88,7 @@ void PhysicsScene::ApplyExternalForce(float delta)
 void PhysicsScene::Integrate(float delta)
 {
 	for (auto& [actor, body] : m_bodies) {
-		if (!body->simulatePhysics) continue;
-
+		if (!body->simulatePhysics) continue; 
 
 		//std::cout << "integrate for rb: " << ToString(rb->force ) << '\n';
 		body->linearVelocity = body->linearVelocity + body->force / body->mass * delta;
@@ -158,8 +159,7 @@ void PhysicsScene::DetectCollisions()
 
 
 	std::vector<ColliderPair> pairs;
-	m_broadPhase.ComputePairs(ws, pairs);
-
+	m_broadPhase.ComputePairs(ws, pairs); 
 
 	//for (size_t i = 0; i < ws.size(); ++i)
 	//	for (size_t j = i + 1; j < ws.size(); ++j)
@@ -167,23 +167,23 @@ void PhysicsScene::DetectCollisions()
 	//		auto& A = ws[i];
 	//		auto& B = ws[j];
 
-	for (auto& pr : pairs) { 
+	for (auto& pr : pairs) {
 		WorldShapeProxy A{ MakeWorldShape(*pr.first), pr.first };
 		WorldShapeProxy B{ MakeWorldShape(*pr.second), pr.second };
 
-			std::visit([&, this](auto const& sa, auto const& sb)
-				{
-					Contact c;
-					c.a = A.owner;
-					c.b = B.owner;
-					if (Collide(sa, sb, c)) {
-						//std::cout << "Collision detected: " << typeid(decltype(sa)).name() << " vs " << typeid(decltype(sb)).name() << std::endl;
+		std::visit([&, this](auto const& sa, auto const& sb)
+			{
+				Contact c;
+				c.a = A.owner;
+				c.b = B.owner;
+				if (Collide(sa, sb, c)) {
+					//std::cout << "Collision detected: " << typeid(decltype(sa)).name() << " vs " << typeid(decltype(sb)).name() << std::endl;
 
-						m_contacts.emplace_back(std::move(c));
-					}
+					m_contacts.emplace_back(std::move(c));
+				}
 
-				}, A.shape, B.shape);
-		}
+			}, A.shape, B.shape);
+	}
 
 	//std::cout << "Contacts detected: " << m_contacts.size() << std::endl;
 
@@ -192,11 +192,11 @@ void PhysicsScene::DetectCollisions()
 void PhysicsScene::SolveConstraints(float delta)
 {
 	//hardcode compliance:
-	constexpr float compliance = 0.000001f; // compliance factor 
+	float compliance = 0.001f; // compliance factor 
 	const float inv_dt2 = 1.f / (delta * delta); // 1 / dt²
 
 	auto generalizedInvMass = [&](RigidBody* rb,
-		const Float3& ri,
+		const Float3& r,
 		const Float3& n)->float
 		{
 			if (!rb || !rb->simulatePhysics) return 0.f;
@@ -204,7 +204,13 @@ void PhysicsScene::SolveConstraints(float delta)
 			if (rb->simulateRotation == false) {
 				return rb->invMass;
 			}
-			Float3 cross = Vector3Cross(ri, n);
+			//if (LengthSq(Vector3Cross(r, n)) < 1e-4f)
+			//{
+			//	//std::cout << "\t singular angular correction?" << '\n';*/
+			//	return;
+			//}
+
+			Float3 cross = Vector3Cross(r, n);
 			Float3 tmp = rb->invWorldInertia * cross;
 			return rb->invMass + Dot(cross, tmp);     // scalar
 		};
@@ -212,7 +218,7 @@ void PhysicsScene::SolveConstraints(float delta)
 
 	for (Contact& contact : m_contacts) {
 
-		DebugDraw::AddCube(contact.point, 0.05f);
+		DebugDraw::AddCube(contact.point, 0.02f);
 		//new:
 		if (contact.a->bIsTrigger || contact.b->bIsTrigger) {
 			FCollisionEvent event = {
@@ -237,14 +243,24 @@ void PhysicsScene::SolveConstraints(float delta)
 		Float3 rb = contact.point - (B->predPos);
 
 		float wA = generalizedInvMass(A, ra, contact.normal);
-		float wB = generalizedInvMass(B, rb, contact.normal);
+		float wB = generalizedInvMass(B, rb, contact.normal); 
+
 		float wSum = wA + wB;
-		if (wSum == 0) continue;
+		//if (wSum == 0) continue;
+		if (wSum < 1e-2) continue;
 
 		//PBD: distance constraint C = l-l0 = l;
 		float C = contact.penetration;
-		if (C <= 0) {  //if (C <= 0.01) {  //
+		if (C <= 0) {   
 			continue;
+		}
+
+		//band-aid tech: if C is small ,dial down compliance to avoid large corrections
+		if (C < 0.001f) {
+			compliance = 0.00001f; 
+		}  
+		else {
+			compliance = 0.001f;  
 		}
 
 		//if (C <= 0.01f ) continue;
@@ -262,25 +278,41 @@ void PhysicsScene::SolveConstraints(float delta)
 		//contact.lambda = dLambda; // store the lambda for this contact
 
 		//PBD: impulse direction:
-		Float3 N = contact.normal; // contact normal
+		Float3 N = Normalize(contact.normal); // contact normal
+
+		//std::cout << "corr: " << dLambda << '\n';
+		//dLambda = std::clamp(dLambda, -0.0003f, 0.0003f);
 
 		Float3 corr = dLambda * N;
 		//apply correction to predicted positions:
 		if (A) A->predPos += corr * wA;
-		if (B) B->predPos -= corr * wB;
+		if (B) B->predPos -= corr * wB; 
+
+		if (Length(corr * wA / delta) > 10.0f || Length(corr * wB / delta) > 10.0f)
+		{
+			std::cout << "large correction: " << ToString(corr * wA / delta) << " " << ToString(corr * wB / delta) << '\n';
+		}
+
+		//body->position = body->predPos;  
+		//body->linearVelocity = (body->predPos - body->prevPos) / delta;
 
 		auto applyRot = [&](RigidBody* rb, const Float3& r, const Float3& dir, float lambda, float sign)
 			{
 				if (!rb || !rb->simulatePhysics || !rb->simulateRotation) return;
 
+		/*		if (std::abs(Dot(Normalize(r), Normalize(dir))) > 0.999f) {
+					std::cout << "\t singular angular correction?" << '\n';
+					return;
+				}*/
 				if (LengthSq(Vector3Cross(r, dir * sign)) < 1e-4f)
 				{
-					//std::cout << "\t Zero angular correction?" << '\n';
-					//return;
+	/*				std::cout << "\t singular angular correction?" << '\n';*/
+					/*return;*/
 				}
 
 				// dω = invI (r × Δp)
 				Float3 dOmega = rb->invWorldInertia * Vector3Cross(r, dir);
+				//std::cout << "dOmega: " << ToString(dOmega) << '\n';
 				XMVECTOR q = rb->predRot;
 				XMVECTOR dq = XMQuaternionMultiply(q,
 					XMVectorSet(dOmega.x(), dOmega.y(), dOmega.z(), 0.f));
@@ -322,10 +354,14 @@ void PhysicsScene::PostPBD(float delta)
 		Float3 v = { dq.m128_f32[0], dq.m128_f32[1], dq.m128_f32[2] };
 		float  w = dq.m128_f32[3];
 		if (w < 0.f) v = -v;
-		if (body->bFastStable && LengthSq(v) < 1e-10f / body->mass) {
-			v = Float3{}; 
-		}
+		//if (body->bFastStable && LengthSq(v) < 1e-10f / body->mass) {
+		//	v = Float3{};
+		//}
 		body->angularVelocity = (2.f / delta) * v;
+
+		if (Length(body->angularVelocity) > 10.f) {
+			std::cout << "stophere";
+		}
 
 		//std::cout << "post pbd for rb: " << rb->debugName << '\n';
 		//std::cout <<  " ang vel: " << ToString(rb->angularVelocity) << '\n';
@@ -379,6 +415,10 @@ void PhysicsScene::VelocityPass(float delta)
 		Float3 vRel = vA - vB;
 		DebugDraw::AddRay(c.point, vRel, Color::Cyan);
 
+		//std::cout << "ang vel A: " << ToString(A->angularVelocity) << '\n';
+		//std::cout << "ang vel B: " << ToString(B->angularVelocity) << '\n';
+		//std::cout << "vRel: " << ToString(vRel) << '\n';
+
 		float vn = Dot(vRel, c.normal);
 		//already separating:
 		if (vn > 0.0) continue;
@@ -412,7 +452,7 @@ void PhysicsScene::VelocityPass(float delta)
 		float jn = c.lambda / delta;
 		Float3 mimicF = jn * c.normal / delta;
 
-		DebugDraw::AddRay(c.point, mimicF, Color::Cyan);
+		//DebugDraw::AddRay(c.point, mimicF, Color::Cyan);
 		//DebugDraw::Get().AddRay(c.point, mimicF, Color::Cyan);
 
 
@@ -463,16 +503,16 @@ void PhysicsScene::VelocityPass(float delta)
 			//std::cout << "no slip detected";
 		}
 		else
-		{ 
+		{
 			jt = mu_k * jn;
-			//std::cout << "slip detected, mu_k: " << mu_k << " jn: " << jn << '\n';
+			//std::cout << "slip detected, mu_k: " << mu_k << " jt: " << jt << '\n';
 		}
 
 		//------------------------------ 
 		// composed impulse 
 		//Float3 impulse = jn * c.normal + -jt * vT; // impulse vector
 		Float3 impulse = -jt * vT; // impulse vector
-		DebugDraw::AddRay(c.point, vT, Color::Brown);
+		//DebugDraw::AddRay(c.point, vT, Color::Brown);
 		//DebugDraw::AddRay(c.point, impulse / delta, Color::Brown);
 		//std::cout << "Impulse: " << ToString(impulse) << '\n';
 
@@ -486,7 +526,8 @@ void PhysicsScene::VelocityPass(float delta)
 				if (!r->simulateRotation) return;
 				r->angularVelocity += sign * (r->invWorldInertia *
 					Vector3Cross(rVec, imp));
-			};
+
+				};
 
 		applyImpulse(A, ra, impulse, +1.f);
 		applyImpulse(B, rb, impulse, -1.f);
@@ -495,7 +536,7 @@ void PhysicsScene::VelocityPass(float delta)
 }
 
 
-void PhysicsScene::PostSimulation()
+void PhysicsScene::PostSimulation(float delta)
 {
 	//for (auto& [actor, rb] : m_bodies) {
 	//	 
@@ -523,11 +564,15 @@ void PhysicsScene::PostSimulation()
 	//write to transform buffer:
 	auto& writeBuffer = m_transformBuffer.GetWriteBuffer();
 	//std::cout << "physics buffer size: " << writeBuffer.size() << '\n';
-	for (auto& [actor, rb] : m_bodies) {
+	for (auto& [actor, body] : m_bodies) {
+
+		auto currSpeed = LengthSq(body->linearVelocity);
+		body->linearAccel = (currSpeed - body->prevLinearSpeed) / delta;
+		body->prevLinearSpeed = currSpeed;
 
 		auto& transform = writeBuffer[actor];
-		transform.position = rb->position;
-		transform.rotation = rb->rotation;
+		transform.position = body->position;
+		transform.rotation = body->rotation;
 
 		//DebugDraw::AddRay(rb->position, rb->linearVelocity, Color::Purple);
 		//DebugDraw::AddRay(rb->position, rb->angularVelocity, Color::Yellow);
@@ -581,14 +626,14 @@ void PhysicsScene::AddCollider(Collider* collider, ActorId owner)
 	m_commandBuffer.Enqueue([=]() {
 		collider->actorId = owner;
 		m_colliders[owner] = collider;
-		});  
+		});
 }
 
 void PhysicsScene::RemoveRigidBody(ActorId owner)
 {
 	m_commandBuffer.Enqueue([=]() {
 		if (m_bodies.contains(owner))
-			m_bodies.erase(owner); 
+			m_bodies.erase(owner);
 
 		m_transformBuffer.MarkToRemove(owner);
 
@@ -607,35 +652,42 @@ void PhysicsScene::RemoveCollider(ActorId owner)
 	//assert(m_colliders.contains(owner)); 
 }
 
+void PhysicsScene::SetShape(ActorId owner, ShapeType shape)
+{
+	m_commandBuffer.Enqueue([=]() {
+		this->m_bodies[owner]->SetShape(shape);
+		this->m_colliders[owner]->SetShape(shape);
+		});
+
+}
+
+ 
 
 RigidBody::RigidBody()
 {
 	//localInertia = MakeInertiaTensor(type, mass);
 }
-
  
-
 void BroadPhase::ComputePairs(std::vector<WorldShapeProxy>& ws, std::vector<ColliderPair>& out)
 {
 	out.clear();
-	out.reserve(ws.size() * ws.size()); 
- 
-	for (size_t i = 0; i < ws.size(); ++i)
-	   for (size_t j = i + 1; j < ws.size(); ++j)
-	{
-		  auto& AABB0 = ws[i].owner->aabb;
-		  auto& AABB1 = ws[j].owner->aabb;
-  
-		  //todo: open for schemes
-		  float pad = 0.02f;  
-		  AABB fat0 = ExpandFatAABB(AABB0, pad);
-		  AABB fat1 = ExpandFatAABB(AABB1, pad);
+	out.reserve(ws.size() * ws.size());
 
-		  Contact c;
-		  if (Collide(fat0, fat1, c)) {
-			  //std::cout << "BroadPhase: AABB overlap detected: " << i << " vs " << j << '\n';
-			  out.emplace_back(ws[i].owner, ws[j].owner);
-		  }
-	}
- 
+	for (size_t i = 0; i < ws.size(); ++i)
+		for (size_t j = i + 1; j < ws.size(); ++j)
+		{
+			auto& AABB0 = ws[i].owner->aabb;
+			auto& AABB1 = ws[j].owner->aabb;
+
+			//todo: open for schemes
+			//float pad = 0.02f;
+			//AABB0 = ExpandFatAABB(AABB0, pad);
+			//AABB1 = ExpandFatAABB(AABB1, pad);
+
+			Contact c;
+			if (Collide(AABB0, AABB1, c)) {
+				//std::cout << "BroadPhase: AABB overlap detected: " << i << " vs " << j << '\n';
+				out.emplace_back(ws[i].owner, ws[j].owner);
+			}
+		} 
 }

@@ -16,6 +16,9 @@ namespace Gameplay {
 		//physics update is handled by time system;
 		gTime->RegisterFixedFrame([=](float delta) {
 			physicsScene->Tick(delta);
+
+			this->SyncPhysicsToGame();
+
 			});
 
 		//new understanding:  controllers are managed by world itself; 

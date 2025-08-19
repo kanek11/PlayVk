@@ -18,7 +18,7 @@ void AGameState::OnTick(float delta)
 }
 
 void AGameState::BeginPlay()
-{ 
+{
 	InitUI();
 
 	//after world is ready
@@ -27,21 +27,21 @@ void AGameState::BeginPlay()
 
 void AGameState::SetupGameStates()
 {
-	auto world = this->GetWorld();  
+	auto world = this->GetWorld();
 	auto pc = world->GetFirstPlayerController();
 
-	auto uiManager = GameApplication::GetInstance()->GetUIManager(); 
+	auto uiManager = GameApplication::GetInstance()->GetUIManager();
 	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
 	auto timeSystem = GameApplication::GetInstance()->GetTimeSystem();
 
-    //
+	//
 	{
 		auto mainMenuState = m_gameManager->Register<MainTitleState>();
 
 		mainMenuState->OnEnter.Add(
 			[=]() {
 				std::cout << "state: enter mainMenu " << "\n";
-				//uiManager->RegisterRootElement(mainTitle.get());
+				uiManager->RegisterRootElement(mainTitle.get());
 
 				this->OnResetGameplay();
 				pc->SetInputMode(EInputMode::UIOnly);
@@ -50,17 +50,14 @@ void AGameState::SetupGameStates()
 		mainMenuState->OnUpdate.Add(
 			[=](float dt) {
 				//std::cout << " tick mainMenu: " << dt << "\n";
-		 
+
 			});
 		mainMenuState->OnExit.Add(
 			[=]() {
-				//uiManager->UnregisterRootElement(mainTitle.get());
+				uiManager->UnregisterRootElement(mainTitle.get());
 			});
-
-		//m_gameManager->SetInitialState(mainMenuState->GetId());
-
+		 
 	}
-
 
 
 	{
@@ -74,6 +71,7 @@ void AGameState::SetupGameStates()
 				this->OnResetGameplay();
 				pc->SetInputMode(EInputMode::None);
 				uiManager->RegisterRootElement(playerHUD.get());
+				uiManager->RegisterRootElement(gameStats.get());
 			});
 
 		playingState->OnUpdate.Add(
@@ -86,8 +84,7 @@ void AGameState::SetupGameStates()
 					timeSystem->TogglePaused();
 				}
 
-				if (inputSystem->IsKeyJustPressed(KeyCode::L)) {
-					//this->RequestTransitState(GameStateId::Paused);
+				if (inputSystem->IsKeyJustPressed(KeyCode::L)) { 
 					timeSystem->AdvanceFixedSteps();
 					timeSystem->AdvanceFrames();
 				}
@@ -102,9 +99,10 @@ void AGameState::SetupGameStates()
 			[=]() {
 				std::cout << "state: exit playing" << "\n";
 				uiManager->UnregisterRootElement(playerHUD.get());
+				uiManager->UnregisterRootElement(gameStats.get());
 			});
 	}
-	
+
 
 
 	//---------------------
@@ -131,8 +129,7 @@ void AGameState::SetupGameStates()
 				std::cout << " exit pause state" << "\n";
 				uiManager->UnregisterRootElement(pauseMenu.get());
 				timeSystem->SetPaused(false);
-			});
-
+			}); 
 	}
 
 
@@ -142,40 +139,36 @@ void AGameState::SetupGameStates()
 		goalingState->OnEnter.Add(
 			[=]() {
 				std::cout << "enter pause state" << "\n";
-				uiManager->RegisterRootElement(goalUI.get()); 
+				uiManager->RegisterRootElement(goalUI.get());
 				pc->SetInputMode(EInputMode::UIOnly);
 			});
 
 		goalingState->OnUpdate.Add(
-			[=](float dt) { 
+			[=](float dt) {
 
 			});
 
 		goalingState->OnExit.Add(
 			[=]() {
 				std::cout << " exit pause state" << "\n";
-				uiManager->UnregisterRootElement(goalUI.get()); 
+				uiManager->UnregisterRootElement(goalUI.get());
 			});
 
 	}
-
 	 
- 
 	//----------------------------  
 
-	//m_gameManager->SetInitialState(playingState->GetId());
 	m_gameManager->SetInitialState(PlayingState::GetId());
+	//m_gameManager->SetInitialState(MainTitleState::GetId());
 	m_gameManager->Initialize();
 
 }
 
-
-
 void AGameState::InitUI()
-{ 
+{
 	//auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
-	this->playerHUD = CreateGameplayUI<UPlayerHUD>(this->GetWorld());   
+	this->playerHUD = CreateGameplayUI<UPlayerHUD>(this->GetWorld());
 	this->playerHUD->name = "PlayerHUD";
 
 	this->mainTitle = CreateGameplayUI<UMainTitleUI>(this->GetWorld());
@@ -187,6 +180,9 @@ void AGameState::InitUI()
 	this->goalUI = CreateGameplayUI<UGoalingUI>(this->GetWorld());
 	this->goalUI->name = "GoalUI";
 
+	this->gameStats = CreateGameplayUI<UGameStatsHUD>(this->GetWorld());
+	this->gameStats->name = "GameStatsHUD";
+
 	//uiManager->RegisterRootElement(playerHUD.get());
 	//uiManager->UnregisterRootElement(playerHUD.get());
 }
@@ -194,12 +190,15 @@ void AGameState::InitUI()
 
 
 void AGameState::OnResetGameplay()
-{ 
+{
 	std::cout << "gamestate: reset game!" << std::endl;
 
 	auto world = this->GetWorld();
 	world->LoadOrResetLevel("gameplay");
 
+	if (this->timeCount < bestRecord) {
+		bestRecord = timeCount;
+	}
 	this->timeCount = 0.0f;
 }
 

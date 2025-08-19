@@ -35,13 +35,15 @@ public:
 	FPlayerState currPlayerState{};
 
 public:
-	UniquePtr<GameStateManager> m_gameManager = CreateUnique<GameStateManager>(); 
+	UniquePtr<GameStateManager> m_gameManager = CreateUnique<GameStateManager>();
 
 	void RequestTransitState(const GameStateId& targetState) {
 		m_gameManager->RequestTransitState(targetState);
 	}
 
 public:
+	SharedPtr<UGameStatsHUD> gameStats;
+
 	SharedPtr<UPlayerHUD> playerHUD;
 
 	SharedPtr<UMainTitleUI> mainTitle;
@@ -50,6 +52,7 @@ public:
 
 	SharedPtr<UGoalingUI> goalUI;
 
-public: 
+public:
 	float timeCount{ 0.0f };
+	float bestRecord = std::numeric_limits<float>::max();
 };

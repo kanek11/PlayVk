@@ -6,32 +6,43 @@
 #include "Gameplay/Actors/StaticMeshActor.h"
 
 #include "GameState.h"
+#include "Item.h"
 
 
-void TransitPlayerState(APlayer* actor, const FFormState& targetState)
+void APlayer::RequestTransitForm(EPlayerForm targetForm)
 {
-	actor->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+	if (currForm == targetForm) return;
+	currForm = targetForm;
 
-	if (auto meshComp = actor->GetComponent<UStaticMeshComponent>()) {
+	this->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+
+	assert(playerForms.contains(targetForm));
+	auto& targetState = playerForms.at(targetForm);
+
+	if (auto meshComp = this->GetComponent<UStaticMeshComponent>()) {
 		meshComp->SetMesh(targetState.mesh);
 		meshComp->SetMaterial(targetState.material);
 	}
 
-	if (auto shapeComp = actor->GetComponent<UShapeComponent>()) {
-		actor->RootComponent->SetRelativePosition(shapeComp->GetRelativePosition() + Float3{ 0.0f, 0.1f, 0.0f });
-		actor->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
-		actor->RootComponent->UpdateWorldTransform();
+	if (auto shapeComp = this->GetComponent<UShapeComponent>()) {
+		this->RootComponent->SetRelativePosition(shapeComp->GetRelativePosition() + Float3{ 0.0f, 0.5f, 0.0f });
+		this->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+		this->RootComponent->UpdateWorldTransform();
 		//shapeComp->rigidBody->ClearRotation();
 		shapeComp->rigidBody->SetPhysicalMaterial(targetState.physMaterial);
+
+		//new: set mass before reset shape;  for correct inertia
+		shapeComp->rigidBody->SetMass(targetState.mass);
 		shapeComp->SetShape(targetState.shape);
 	}
 
 	//new: input comp:
-	if (actor->InputComponent) {
-		actor->InputComponent->BindBehavior(targetState.inputCb);
+	if (this->InputComponent) {
+		this->InputComponent->BindBehavior(targetState.inputCb);
 	}
-
 }
+
+ 
 
 APlayer::APlayer() : APawn()
 {
@@ -63,71 +74,78 @@ APlayer::APlayer() : APawn()
 }
 
 void APlayer::BeginPlay()
-{
-	//
-	//this->InputComponent->BindBehavior([this](float delta) {
-	//	this->MetalStateBehavior(delta);
-	//	});
-
+{ 
 	//
 	auto overlapCb = [=](AActor* other) {
 		std::cout << "player: overlap with tag: " << other->tag << '\n';
+		if(other->tag == "item")
+		this->OnOverlapItem(other);
 		};
 
 	this->shapeComponent->onOverlap.Add(overlapCb);
 
 
 	{
-		FFormState normalForm = {
-	.mesh = CreateShared<CubeMesh>(),
-	.material = Materials::GetIron(), //CreateShared<UMaterial>(),
-	.shape = Box({ 1.0f ,1.0f, 1.0f }),
-	.physMaterial = PhysicalMaterial{ 0.0f, 0.0f }
-		};
+		FFormState form{};
+		form.mesh = CreateShared<SphereMesh>();
+		form.material = Materials::GetSnowSurface(); //CreateShared<UMaterial>(),
+		form.shape = Sphere{ 1.0f };
+		form.physMaterial = PhysicalMaterial{ 0.0f, 0.4f }; 
+		//FFormState form{};
+		//form.mesh = CreateShared<CubeMesh>();
+		//form.material = Materials::GetIron(); //CreateShared<UMaterial>(),
+		//form.shape = Box({ 1.0f ,1.0f, 1.0f });
+		//form.physMaterial = PhysicalMaterial{ 0.0f, 2.0f };
 
-		normalForm.inputCb = [this](float delta) {
+		form.inputCb = [this](float delta) {
 			this->NormalStateBehavior(delta);
 			};
 
-		playerForms[EPlayerForm::Normal] = normalForm;
+		playerForms[EPlayerForm::Normal] = form;
 	}
 
 
 	//
 	{
-		FFormState sphereForm = {
-.mesh = CreateShared<SphereMesh>(),
-.material = Materials::GetRustyIron(), //CreateShared<UMaterial>(),
-.shape = Sphere{ 1.0f },
-.physMaterial = PhysicalMaterial{ 0.0f, 0.8f },
-		};
+		FFormState form{};
+		form.mesh = CreateShared<SphereMesh>();
+		form.material = Materials::GetRustyIron(); //CreateShared<UMaterial>(),
+		form.shape = Sphere{ 1.0f };
+		form.physMaterial = PhysicalMaterial{ 0.0f, 1.0f }; 
 
-		sphereForm.inputCb = [this](float delta) {
+		form.inputCb = [this](float delta) {
 			this->MetalStateBehavior(delta);
-			};
+			}; 
+		
+		form.mass = 10.0f;
 
-		playerForms[EPlayerForm::MetalBall] = sphereForm;
+		playerForms[EPlayerForm::MetalBall] = form;
 	}
 
 
 	{
-		FFormState cubeForm = {
-	.mesh = CreateShared<CubeMesh>(),
-	.material = Materials::GetIceSurface(), //CreateShared<UMaterial>(),
-	.shape = Box({ 1.0f ,1.0f, 1.0f }),
-	.physMaterial = PhysicalMaterial{ 0.0f, 0.0f }
-		};
-		 
-		cubeForm.inputCb = [this](float delta) {
+		FFormState form{};
+		form.mesh = CreateShared<CubeMesh>();
+		form.material = Materials::GetIceSurface(); //CreateShared<UMaterial>(),
+		form.shape = Box({ 1.0f ,1.0f, 1.0f });
+		form.physMaterial = PhysicalMaterial{ 0.0f, 0.0f }; 
+
+		form.inputCb = [this](float delta) {
 			this->IceStateBehavior(delta);
 			};
 
-		playerForms[EPlayerForm::IceCube] = cubeForm;
+		playerForms[EPlayerForm::IceCube] = form;
 	}
 
 
-	TransitPlayerState(this, playerForms.at(EPlayerForm::MetalBall));
+	RequestTransitForm(EPlayerForm::Normal);
 
+
+	//todo: enum enumerator?
+
+	abilities[EPlayerForm::Normal] = FAbilityRuntime{};
+	abilities[EPlayerForm::IceCube] = FAbilityRuntime{};
+	abilities[EPlayerForm::MetalBall] = FAbilityRuntime{};
 }
 
 
@@ -139,66 +157,134 @@ void APlayer::EndPlay()
 
 void APlayer::OnTick(float delta)
 {
-	APawn::OnTick(delta);
+	APawn::OnTick(delta); 
 
-	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+	this->TickPlayingPersistent(delta);
 
-	if (inputSystem->IsKeyJustPressed(KeyCode::Num1))
-	{
-		TransitPlayerState(this, playerForms.at(EPlayerForm::MetalBall));
-	}
-	else if (inputSystem->IsKeyJustPressed(KeyCode::Num2)) {
-		TransitPlayerState(this, playerForms.at(EPlayerForm::IceCube));
-	}
-	 
-	this->UploadPlayerState();
+	this->UploadPlayerState(); 
 
+	//for (auto& [form, rt] : abilities) {
+	//	std::cout << "form remain:" << rt.remaining << '\n';
+	//}
 }
 
 void APlayer::UploadPlayerState()
 {
-	playerState.speed = Length(this->shapeComponent->rigidBody->linearVelocity);
+	playerState.speed = this->shapeComponent->rigidBody->prevLinearSpeed; 
+
+	playerState.accel = this->shapeComponent->rigidBody->linearAccel; 
+
+	playerState.abilitiesRT = abilities; 
 
 	auto gameState = GetWorld()->GetGameState<AGameState>();
 	gameState->SetPlayerState(this->playerState);
 
 }
 
-void APlayer::NormalStateBehavior(float delta)
+
+
+
+
+void APlayer::TickPlayingPersistent(float delta)
 {
-	 
+	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+
+
+
+	//
+	if (inputSystem->IsKeyJustPressed(KeyCode::Num1))
+	{ 
+		RequestTransitForm(EPlayerForm::Normal);
+	} 
+
+	else if (inputSystem->IsKeyJustPressed(KeyCode::Num2))
+	{ 
+		RequestTransitForm(EPlayerForm::MetalBall);
+	}
+	else if (inputSystem->IsKeyJustPressed(KeyCode::Num3)) {
+		 
+		RequestTransitForm(EPlayerForm::IceCube);
+	}
+
+}
+
+void APlayer::NormalStateBehavior(float delta)
+{ 
+	//
 	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
 
 	if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
-		shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 500.0f, 0.0f) * delta); 
-	} 
-
-	float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-	shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f) * delta);
-
-	float axisX = inputSystem->GetAxis(EAxis::MoveX);
-	shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta); 
-}
-
-void APlayer::MetalStateBehavior(float delta)
-{
-	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
-
+		shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, 4.0f, 0.0f) * delta);
+	}
+	
 	float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
 	shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f) * delta);
 
 	float axisX = inputSystem->GetAxis(EAxis::MoveX);
 	shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta);
+
+
+}
+
+void APlayer::MetalStateBehavior(float delta)
+{
+	auto& ability = abilities[EPlayerForm::IceCube];
+	ability.remaining -= delta;
+	if (ability.remaining < 0.0f)
+	{
+		ability.remaining = 0.0f;
+		RequestTransitForm(EPlayerForm::Normal);
+	}
+
+	//
+	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+
+	float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
+	shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 10.0f) * delta);
+
+	float axisX = inputSystem->GetAxis(EAxis::MoveX);
+	shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 10.0f, 0.0f, 0.0f) * delta);
 
 }
 
 void APlayer::IceStateBehavior(float delta)
 {
-	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+	auto& ability = abilities[EPlayerForm::IceCube];
+	ability.remaining -= delta;
+	if(ability.remaining < 0.0f)
+	{
+		ability.remaining = 0.0f; 
+		RequestTransitForm(EPlayerForm::Normal);
+	}
 
-	float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-	shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f) * delta);
 
-	float axisX = inputSystem->GetAxis(EAxis::MoveX);
-	shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta);
+	//auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+
+	//float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
+	//shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f) * delta);
+
+	//float axisX = inputSystem->GetAxis(EAxis::MoveX);
+	//shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta);
+}
+
+void APlayer::OnOverlapItem(AActor* item)
+{
+	std::cout << "detect overlap with item:" << '\n';
+
+	if (auto itemActor = dynamic_cast<AItem*>(item)) {
+
+		if (!itemActor->bConsumed) 
+     	this->AddPayloadImmediate(itemActor->GetPlayload());
+	}
+
+}
+
+
+void APlayer::AddPayloadImmediate(const FAbilityPayload& payload)
+{
+	if (!playerForms.contains(payload.formType))  return; 
+
+	auto& abilityRT = abilities[payload.formType];
+	abilityRT.remaining += payload.duration;
+
 }
