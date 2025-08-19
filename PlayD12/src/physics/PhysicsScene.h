@@ -123,7 +123,13 @@ struct RigidBody {
 };
 
 
-struct Collider {
+struct Collider { 
+	Collider(RigidBody* body)
+		:body(body)
+	{
+	};
+
+
 	ShapeType type;
 	AABB aabb; //for broadphase
 
@@ -136,12 +142,6 @@ struct Collider {
 	void SetIsTrigger(bool isTrigger) {
 		this->bIsTrigger = isTrigger;
 	}
-
-	Collider(RigidBody* body)
-		:body(body)
-	{
-	};
-
 
 	ActorId actorId;
 	bool bIsTrigger{ false };

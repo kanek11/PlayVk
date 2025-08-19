@@ -607,33 +607,6 @@ void PhysicsScene::RemoveCollider(ActorId owner)
 	//assert(m_colliders.contains(owner)); 
 }
 
-/*
-RigidBody::RigidBody(StaticMeshActorProxy* owner, ShapeType type)
-	: owner(owner), type(type)
-{
-	position = owner->position;
-	predPos = owner->position;
-	prevPos = owner->position;
-
-	rotation = owner->rotation;
-	predRot = owner->rotation;
-	prevRot = owner->rotation;
-
-
-	localInertia = MakeInertiaTensor(type, mass);
-	//std::cout << "RigidBody created: " << typeid(type).name() << std::endl;
-	DirectX::XMMATRIX R_ = DirectX::XMMatrixRotationQuaternion(rotation);
-	Float3x3 R;
-	R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
-	R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
-	R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
-	RotationMatrix = R;
-
-	worldInertia = MatrixMultiply(MatrixMultiply(R, localInertia), Transpose(R));
-	invWorldInertia = Inverse3x3(worldInertia);
-
-}
-*/
 
 RigidBody::RigidBody()
 {
@@ -645,17 +618,15 @@ RigidBody::RigidBody()
 void BroadPhase::ComputePairs(std::vector<WorldShapeProxy>& ws, std::vector<ColliderPair>& out)
 {
 	out.clear();
-	out.reserve(ws.size() * ws.size());
-
-	//std::vector<AABB> aabbs;
-	//aabbs.reserve(inWS.size()); 
+	out.reserve(ws.size() * ws.size()); 
  
 	for (size_t i = 0; i < ws.size(); ++i)
-	  for (size_t j = i + 1; j < ws.size(); ++j)
+	   for (size_t j = i + 1; j < ws.size(); ++j)
 	{
 		  auto& AABB0 = ws[i].owner->aabb;
 		  auto& AABB1 = ws[j].owner->aabb;
   
+		  //todo: open for schemes
 		  float pad = 0.02f;  
 		  AABB fat0 = ExpandFatAABB(AABB0, pad);
 		  AABB fat1 = ExpandFatAABB(AABB1, pad);

@@ -82,7 +82,8 @@ void GamePlayLevel::LoadActors()
     //new:
     auto& gridPattern = MMath::GenerateGrid3D({ 2,2,2 }, 1.1f);
     for (const auto& pos : gridPattern) {
-        auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
+        //auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
+		auto actor = Mesh::CreateSphereActor(0.5f, pos);
         actor->RootComponent->SetRelativePosition(pos);
 
         //rotate 30 degree:
@@ -92,7 +93,7 @@ void GamePlayLevel::LoadActors()
         //auto z = XMConvertToRadians(90.0f) * Random::Uniform01();  
 
         //auto rotation = XMQuaternionRotationRollPitchYaw(x, y, z);
-  //      actor->RootComponent->SetRelativeRotation(rotation);  
+        //actor->RootComponent->SetRelativeRotation(rotation);  
 
         actor->RootComponent->UpdateWorldTransform();
 

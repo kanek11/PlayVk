@@ -253,15 +253,16 @@ namespace MMath {
 	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> VectorDivide(const Vector<Scalar_t, Length>& vector, Scalar_t divisor)
 	{
-		assert(divisor != 0 && "Division by zero is not allowed.");
+		if (divisor == 0) 
+			std::cerr << "Division by zero is not allowed!" << std::endl;
+
 		Vector<Scalar_t, Length> result = VectorMultiply(vector, Scalar_t{ 1 } / divisor);
 		return result;
 	}
 
 	template <FLOP_t T, std::size_t N>
 	inline Vector<T, N> operator/(const Vector<T, N>& vector, T divisor)
-	{
-		assert(divisor != 0 && "Division by zero is not allowed.");
+	{ 
 		return VectorDivide(vector, divisor);
 	}
 

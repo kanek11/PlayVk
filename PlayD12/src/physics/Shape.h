@@ -35,8 +35,26 @@ struct Capsule {
 using ShapeType = std::variant<EmptyShape, Plane, Sphere, Box>;
 
 
+// primary template
+template<class T, class Variant>
+struct is_variant_member;
+
+// partial specialization for std::variant<...>
+template<class T, class... Ts>
+struct is_variant_member<T, std::variant<Ts...>>
+	: std::disjunction<std::is_same<T, Ts>...> {
+};
+
+// convenience variable template
+template<class T, class Variant>
+inline constexpr bool is_variant_member_v = is_variant_member<T, Variant>::value;
+
+template<class T>
+concept IsShape = is_variant_member_v<std::remove_cvref_t<T>, ShapeType>;
+
+
 //generic fallback:
-template<typename T>
+template<IsShape T>
 inline Float3x3 MakeInertiaTensor(const T& shape, float mass)
 { 
 	std::cerr << "\tMakeInertiaTensor: Unsupported shape type: " << typeid(T).name() << std::endl;

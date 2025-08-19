@@ -27,7 +27,7 @@ struct PlaneWS {
 
 using WorldShape = std::variant<EmptyWS, SphereWS, AABB, PlaneWS, OBB>; 
 
- 
+
 inline void DrawDebugSphere(const SphereWS& sphere)
 {
 	uint32_t segment = 6;

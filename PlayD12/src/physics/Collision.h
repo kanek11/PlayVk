@@ -267,6 +267,11 @@ WorldShape MakeWorldShape(Collider& c)
         if (distSq > s.radius * s.radius) 
             return false;
 
+        //degeneracy check
+		if (distSq < 1e-6f) {  
+            return false;
+		}
+
         float dist = std::sqrt(distSq); 
         out.normal = offset / dist;
         out.point = closestPoint;
