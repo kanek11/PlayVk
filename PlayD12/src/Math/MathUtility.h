@@ -448,16 +448,15 @@ namespace MMath {
 
 
 
-	inline std::vector<Float3> GenerateGrid3D(Float3 dim , float spacing)
+	inline std::vector<Float3> GenerateGrid3D(Float3 dim , Float3 spacing)
 	{
-		std::vector<Float3> data;  
-		Float3 offset = { -dim.x() * spacing * 0.5f, spacing * 1.0f, -dim.z() * spacing * 0.5f };
+		std::vector<Float3> data; 
 
 		for (int x = 0; x < dim.x(); ++x)
 			for (int y = 0; y < dim.y(); ++y)
 				for (int z = 0; z < dim.z(); ++z)
 		{ 
-			Float3 _data = Float3{ x * spacing  , y * spacing , z * spacing   } + offset; 
+			Float3 _data = Float3{ x * spacing.x()  , y * spacing.y() , z * spacing.z() };
 			data.push_back(_data);
 		}
 
@@ -505,6 +504,12 @@ namespace Random {
 	inline float Uniform01() {
 		static thread_local std::mt19937 gen{ std::random_device{}() };
 		static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+		return dist(gen);
+	}
+
+	inline float UniformRange(float min, float max) {
+		static thread_local std::mt19937 gen{ std::random_device{}() };
+		static thread_local std::uniform_real_distribution<float> dist(min, max);
 		return dist(gen);
 	}
 }

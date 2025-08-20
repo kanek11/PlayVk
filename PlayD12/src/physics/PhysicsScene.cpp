@@ -30,9 +30,9 @@ void PhysicsScene::Tick(float delta)
 
 		PostPBD(substepDelta);
 
+		VelocityPass(substepDelta);
 	}
 
-	VelocityPass(delta);
 
 	PostSimulation(delta);
 }
@@ -192,7 +192,7 @@ void PhysicsScene::DetectCollisions()
 void PhysicsScene::SolveConstraints(float delta)
 {
 	//hardcode compliance:
-	float compliance = 0.001f; // compliance factor 
+	float compliance = 0.00001f; // compliance factor 
 	const float inv_dt2 = 1.f / (delta * delta); // 1 / dt²
 
 	auto generalizedInvMass = [&](RigidBody* rb,
@@ -255,13 +255,26 @@ void PhysicsScene::SolveConstraints(float delta)
 			continue;
 		}
 
-		//band-aid tech: if C is small ,dial down compliance to avoid large corrections
+
+
+		////band-aid tech: if C is small ,dial down compliance
 		if (C < 0.001f) {
 			compliance = 0.00001f; 
 		}  
 		else {
 			compliance = 0.001f;  
 		}
+
+		//dial up compliance if both shape is OBB:
+		std::visit([&](auto const& sa, auto const& sb)
+			{
+				using ShapeA = std::decay_t<decltype(sa)>;
+				using ShapeB = std::decay_t<decltype(sb)>;
+				if constexpr (std::is_same_v<ShapeA, Sphere> || std::is_same_v<ShapeB, Sphere>) {
+					compliance = 0.00001f;
+				} 
+			}, A->type, B->type);
+
 
 		//if (C <= 0.01f ) continue;
 		// XPBD: α = compliance / dt|2
@@ -337,14 +350,14 @@ void PhysicsScene::PostPBD(float delta)
 	for (auto& [actor, body] : m_bodies) {
 		if (!body->simulatePhysics) continue;
 
-		body->position = body->predPos; //update position to predicted position 
+		body->position = body->predPos; 
 		body->linearVelocity = (body->predPos - body->prevPos) / delta;
+		//tryed idea: not really work
+		//Float3 fixVelocity = (body->predPos - body->prevPos) / delta;
+		//Float3 deltaV = fixVelocity - body->linearVelocity;
+		//body->linearVelocity += deltaV * 0.8f; //apply the delta to the velocity
 
-		//rb->linearVelocity *= 0.999f;  //debug damping;
-		//if (LengthSq(rb->linearVelocity) < 1e-3f)  
-		//	rb->linearVelocity = Float3{}; //reset to zero if too small 
-
-		// PostPBD()
+		 
 		if (!body->simulateRotation) continue; //skip if not enabled
 		body->rotation = body->predRot;
 
@@ -354,14 +367,14 @@ void PhysicsScene::PostPBD(float delta)
 		Float3 v = { dq.m128_f32[0], dq.m128_f32[1], dq.m128_f32[2] };
 		float  w = dq.m128_f32[3];
 		if (w < 0.f) v = -v;
-		//if (body->bFastStable && LengthSq(v) < 1e-10f / body->mass) {
-		//	v = Float3{};
-		//}
+		if (body->bFastStable && LengthSq(v) < 1e-10f / body->mass) {
+			v = Float3{};
+		}
 		body->angularVelocity = (2.f / delta) * v;
 
-		if (Length(body->angularVelocity) > 10.f) {
-			std::cout << "stophere";
-		}
+		//if (Length(body->angularVelocity) > 10.f) {
+		//	std::cout << "stophere";
+		//}
 
 		//std::cout << "post pbd for rb: " << rb->debugName << '\n';
 		//std::cout <<  " ang vel: " << ToString(rb->angularVelocity) << '\n';

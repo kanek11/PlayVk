@@ -51,7 +51,7 @@ struct RigidBody {
 	Float3 prevPos; //for previous
 	Float3 predPos; //for prediction
 
-	Float3 linearVelocity;
+	Float3 linearVelocity; 
 	Float3 force;  //accumulation in the frame; 
 
 
@@ -129,7 +129,7 @@ struct RigidBody {
 
 	bool bFastStable{ true };
 	float linearDamping = 0.999f;
-	float angularDamping = 0.98f;
+	float angularDamping = 0.95f;
 
 	//SleepParams sleepParams{};
 	//bool   isSleeping = false;

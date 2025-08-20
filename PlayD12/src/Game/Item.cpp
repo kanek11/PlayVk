@@ -101,3 +101,22 @@ AMetalItem::AMetalItem()
 	payload.formType = EPlayerForm::MetalBall;
 	payload.duration = 1.0f;
 }
+
+
+//----
+ARotateBox::ARotateBox() : AStaticMeshActor()
+{
+	this->tag = "env";
+	this->shapeComponent->SetSimulatePhysics(false); 
+	Mesh::SetBox(this, Float3{ 1.0f,1.0f,1.0f }); 
+}
+void ARotateBox::BeginPlay()
+{
+} 
+
+void ARotateBox::OnTick(float delta)
+{
+	AStaticMeshActor::OnTick(delta);
+	auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, MMath::ToRadians(rotationSpeed * delta), 0.0f));
+	RootComponent->SetRelativeRotation(targetRot);
+}

@@ -101,10 +101,10 @@ namespace Mesh {
     void SetBox(AActor* actor, Float3 extents);
 
 
-    SharedPtr<AStaticMeshActor> CreateSphereActor(float radius, Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
-    SharedPtr<AStaticMeshActor> CreatePlaneActor(uint32_t subdivX, uint32_t subdivZ,  Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
+    SharedPtr<AStaticMeshActor> CreateSphereActor(float radius, Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
+    SharedPtr<AStaticMeshActor> CreatePlaneActor(uint32_t subdivX, uint32_t subdivZ,  Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
 
-    SharedPtr<AStaticMeshActor> CreateBoxActor(Float3 extents, Float3 position, Float3 scale = { 1.0f, 1.0f, 1.0f });
+    SharedPtr<AStaticMeshActor> CreateBoxActor(Float3 extents, Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
 
 }
 

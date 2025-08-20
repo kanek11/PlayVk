@@ -89,7 +89,7 @@ void UIButton::Tick(float delta)
 {
 	UIElement::Tick(delta);
 
-	this->RenderBack();
+	//this->RenderBack();
 	this->RenderText();
 
 	//auto inputSystem = GameApplication::GetInstance()->GetInputSystem();

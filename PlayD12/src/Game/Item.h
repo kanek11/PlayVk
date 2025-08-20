@@ -60,3 +60,15 @@ public:
 	virtual void OnTick(float delta) override;
 
 };
+
+
+class ARotateBox : public AStaticMeshActor {
+public:
+	ARotateBox();
+	virtual void BeginPlay() override;
+	virtual void OnTick(float delta) override;
+	void SetRotationSpeed(float speed) { rotationSpeed = speed; }
+
+private:
+	float rotationSpeed{ 10.0f }; 
+};

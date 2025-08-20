@@ -49,8 +49,8 @@ USpringArmComponent::USpringArmComponent()
     //SetRelativePosition(Float3{ 0.0f, 2.0f, -5.0f });
     //SetRelativeRotation(DirectX::XMQuaternionRotationRollPitchYaw(MMath::ToRadians(20.0f), 0.0f, 0.0f));
 
-	LocalOffset = Float3{ 2.0f, 2.0f, -5.0f }; //offset from parent
-    LocalRotationEuler = Float3{ MMath::ToRadians(20.0f), 0.0f, 0.0f }; //pitch, yaw, roll 
+	LocalOffset = Float3{ 2.0f, 5.0f, -5.0f }; //offset from parent
+    LocalRotationEuler = Float3{ MMath::ToRadians(30.0f), 0.0f, 0.0f }; //pitch, yaw, roll 
 }
 
 
