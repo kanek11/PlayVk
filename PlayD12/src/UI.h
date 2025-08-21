@@ -40,6 +40,64 @@ inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
 }
 
 
+
+//=====================
+
+namespace UI {
+
+	enum class SizePolicy { Fixed, AutoText };
+
+	//percent of parent size;
+	enum class Unit { Pixel, Percent };
+
+	struct UISize {
+
+		//value is interpreted by unit
+		Unit unit{ Unit::Pixel };
+		float value{ 0.f }; 
+
+		//factory
+		static UISize Px(float v) { return { Unit::Pixel, v }; }
+		static UISize Pc(float v) { return { Unit::Percent, v }; }
+	};
+
+	struct Anchors { // 0~1 relative to parent;
+		float minX{ 0 }, minY{ 0 }, maxX{ 0 }, maxY{ 0 };
+
+		static Anchors TopLeft() { return { 0,0,0,0 }; }
+		static Anchors StretchAll() { return { 0,0,1,1 }; }
+	};
+
+	struct UIMargins { int l = 0, t = 0, r = 0, b = 0; };
+
+	//drive the final screen space;
+	struct LayoutSpec { 
+		UISize  offsetX = UISize::Px(0);
+		UISize  offsetY = UISize::Px(0);
+		UISize  width = UISize::Px(100);
+		UISize  height = UISize::Px(30);
+		
+		//auto text override the current w, h;
+	    SizePolicy policy = SizePolicy::Fixed;
+		Anchors anchors = Anchors::TopLeft();
+		UIMargins   margin{};
+		// pivot if needed..
+	};
+
+
+
+}
+
+
+
+
+
+
+
+
+//======================
+
+
 //classic four states 
 enum class UIState {
 	Disabled,
