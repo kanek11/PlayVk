@@ -1,0 +1,138 @@
+#pragma once
+
+#include <functional>
+#include <vector>
+
+#include "MMath.h"
+
+#include "Gameplay/SceneComponent.h"
+
+namespace Anim {
+
+    // normalized T -> value
+	using FCurve = std::function<float(float)>; 
+ 
+    namespace Easing {
+        inline float Linear(float t) { return t; } 
+        inline float QuadInOut(float t) { return (t < 0.5f) ? 2 * t * t : 1 - std::pow(-2 * t + 2, 2) / 2; }
+ 
+        inline float CubicInOut(float t) { return (t < 0.5f) ? 4 * t * t * t : 1 - std::pow(-2 * t + 2, 3) / 2; }
+ 
+    }
+ 
+ 
+    struct Tween { 
+        std::function<void(float)> onApply;  
+        std::function<void()> onComplete;
+
+        float elapsed = 0.f;
+        //float delay = 0.f;
+        float duration = 1.f;
+        bool  finished = false;
+        //bool  yoyo = false;
+        //int   loops = 0; 
+
+        //open to customm;
+        FCurve ease = Easing::Linear;
+          
+        Tween& SetEase(const FCurve& e) { ease = e; return *this; } 
+        Tween& OnComplete(std::function<void()> cb) { onComplete = std::move(cb); return *this; }
+    };
+
+    // singleton;
+    class TweenRunner {
+    public:
+        static TweenRunner& Get() { static TweenRunner inst; return inst; }
+         
+        Tween* Add(std::unique_ptr<Tween> tw) {
+            auto ptr = tw.get();
+            tweens.emplace_back(std::move(tw));
+            return ptr;
+        }
+
+        void Update(float dt) {
+            for (auto& t : tweens) {
+                if (t->finished) continue;
+
+                t->elapsed += dt;
+
+                float nt = std::clamp(t->elapsed / std::max(1e-6f, t->duration), 0.f, 1.f);
+                float et = t->ease ? t->ease(nt) : nt;
+                if (t->onApply) t->onApply(et);
+
+                if (t->elapsed >= t->duration) { 
+                        t->finished = true;
+                        if (t->onComplete) t->onComplete(); 
+                }
+            }
+         
+            //GC
+            tweens.erase(std::remove_if(tweens.begin(), tweens.end(),
+                [](const std::unique_ptr<Tween>& t) { return t->finished; }), tweens.end());
+        }
+
+    private:
+        std::vector<std::unique_ptr<Tween>> tweens; 
+    };
+
+
+
+    inline Tween* MoveTo(Gameplay::USceneComponent* comp,
+        const MMath::Float3& target,
+        float duration,
+        FCurve ease = Easing::CubicInOut)
+    {
+        if (!comp) return nullptr;
+        MMath::Float3 start = comp->GetRelativePosition();
+        auto tw = std::make_unique<Tween>(); 
+
+        tw->duration = duration;
+        tw->ease = std::move(ease);
+        tw->onApply = [comp, start, target](float e) {
+            auto v = Lerp(start, target, e);
+            comp->SetRelativePosition(v);
+            comp->UpdateWorldTransform(); 
+            };
+     
+        return TweenRunner::Get().Add(std::move(tw));
+    }
+
+    //rotate to:
+	inline Tween* RotateTo(Gameplay::USceneComponent* comp,
+		const DirectX::XMVECTOR& target,
+		float duration,
+		FCurve ease = Easing::CubicInOut)
+	{
+		if (!comp) return nullptr;
+		DirectX::XMVECTOR start = comp->GetRelativeRotation();
+		auto tw = std::make_unique<Tween>();
+		tw->duration = duration;
+		tw->ease = std::move(ease);
+		tw->onApply = [comp, start, target](float e) {
+			auto q = MMath::Slerp(start, target, e);
+			comp->SetRelativeRotation(q);
+			comp->UpdateWorldTransform();
+			};
+		return TweenRunner::Get().Add(std::move(tw));
+	}
+
+	// scale to:
+	inline Tween* ScaleTo(Gameplay::USceneComponent* comp,
+		const MMath::Float3& target,
+		float duration,
+		FCurve ease = Easing::CubicInOut)
+	{
+		if (!comp) return nullptr;
+		MMath::Float3 start = comp->GetRelativeScale();
+		auto tw = std::make_unique<Tween>();
+		tw->duration = duration;
+		tw->ease = std::move(ease);
+		tw->onApply = [comp, start, target](float e) {
+			auto v = MMath::Lerp(start, target, e);
+			comp->SetRelativeScale(v);
+			comp->UpdateWorldTransform();
+			};
+		return TweenRunner::Get().Add(std::move(tw));
+	}
+
+}

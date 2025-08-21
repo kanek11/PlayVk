@@ -5,6 +5,8 @@
 
 #include "Matrix.h" 
 
+#include "PCH.h"
+
 namespace MMath {
 
 	float constexpr PI = 3.14159265358979323846f; // Pi constant
@@ -429,8 +431,7 @@ namespace MMath {
 	}
 
 
-
-
+	 
 	inline std::string XMToString(const DirectX::XMMATRIX& mat) {
 		std::ostringstream oss;
 		for (int i = 0; i < 4; ++i) {
@@ -493,6 +494,19 @@ namespace MMath {
 		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
 		return R;
 	} 
+
+
+
+ 
+	template<typename T> 
+	inline T Lerp(const T& a, const T& b, float t) {
+		return a + (b - a) * t;  
+	}
+
+  
+	inline DirectX::XMVECTOR Slerp(const DirectX::XMVECTOR& qa, const DirectX::XMVECTOR& qb, float t) {
+		return DirectX::XMQuaternionSlerp(qa, qb, t);
+	}
 
 
   
