@@ -47,6 +47,8 @@ namespace UI {
 
 	enum class SizePolicy { Fixed, AutoText };
 
+	enum class Alignment { Left, Center };
+
 	//percent of parent size;
 	enum class Unit { Pixel, Percent };
 
@@ -59,6 +61,8 @@ namespace UI {
 		//factory
 		static UISize Px(float v) { return { Unit::Pixel, v }; }
 		static UISize Pc(float v) { return { Unit::Percent, v }; }
+
+		static UISize AlignLeft() { return { Unit::Percent, 0 }; }
 	};
 
 	struct Anchors { // 0~1 relative to parent;
@@ -68,32 +72,58 @@ namespace UI {
 		static Anchors StretchAll() { return { 0,0,1,1 }; }
 	};
 
+
+	//in pixel; we might use for tweaks, not for general layouting;
 	struct UIMargins { int l = 0, t = 0, r = 0, b = 0; };
 
 	//drive the final screen space;
 	struct LayoutSpec { 
-		UISize  offsetX = UISize::Px(0);
-		UISize  offsetY = UISize::Px(0);
 		UISize  width = UISize::Px(100);
 		UISize  height = UISize::Px(30);
+		
+		UISize  offsetX = UISize::Px(0);
+		UISize  offsetY = UISize::Px(0);
 		
 		//auto text override the current w, h;
 	    SizePolicy policy = SizePolicy::Fixed;
 		Anchors anchors = Anchors::TopLeft();
+		Alignment alignment = Alignment::Left;
+
 		UIMargins   margin{};
 		// pivot if needed..
 	};
 
 
 
+	inline int Eval(const UISize& l, int span) {
+		return 
+			(l.unit == Unit::Pixel) ? 
+			(int)l.value : 
+			(int)(l.value * span);
+	}
+
+	inline FRect ResolvePixelRect(LayoutSpec s, const FRect& parent) { 
+
+		if (s.alignment == Alignment::Center) {
+			float widthPc = s.width.unit == Unit::Percent ? s.width.value : s.width.value / parent.w;
+			s.offsetX = UISize::Pc(0.5f - widthPc * 0.5f);  
+		} 
+
+		//
+		int pxMin = parent.x + (int)(s.anchors.minX * parent.w);
+		int pyMin = parent.y + (int)(s.anchors.minY * parent.h);
+		int pxMax = parent.x + (int)(s.anchors.maxX * parent.w);
+		int pyMax = parent.y + (int)(s.anchors.maxY * parent.h);
+
+		int w = Eval(s.width, (pxMax - pxMin));
+		int h = Eval(s.height, (pyMax - pyMin));
+		int x = pxMin + Eval(s.offsetX, (pxMax - pxMin));
+		int y = pyMin + Eval(s.offsetY, (pyMax - pyMin));
+		return { x,y,w,h };
+	}
+
 }
-
-
-
-
-
-
-
+ 
 
 //======================
 
@@ -113,14 +143,20 @@ using UIId = uint32_t;
 class UIElement {
 public:
 	UIElement();
-	virtual ~UIElement() = default;
+	virtual ~UIElement() = default; 
 
+	virtual void OnRegister() {}; 
 
-	virtual void OnRegister() {};
+	virtual void RenderBack() {};
 
 	virtual void Tick(float delta) {
 		//a temp way to verify init:
 		assert(id != 0 && "ui id is not properly initialized");
+
+		//new:
+		if (style.has_value() && m_parent) {
+			layout = UI::ResolvePixelRect(style.value(), m_parent->GetLayout());
+		}
 
 		for (auto* child : m_children)
 		{
@@ -128,7 +164,6 @@ public:
 		}
 	};
 
-	virtual void RenderBack() {};
 
 public:
 	UIState state = UIState::Idle;
@@ -233,7 +268,10 @@ public:
 	}
 
 public:
-	Float4 baseColor = Color::White;
+	Float3 baseColor = Color::White.xyz();
+	float opacity = 0.2f; 
+
+	std::string backgroundTex;
 
 	FDelegate<void()> OnClick;
 	FDelegate<void()> OnHoverEnter;
@@ -243,8 +281,7 @@ public:
 public:
 	void SetLayout(const FRect& rect) {
 		layout = rect;
-	}
-
+	} 
 	FRect GetLayout() {
 		assert(layout.has_value());
 		return layout.value();
@@ -252,21 +289,35 @@ public:
 	std::optional<FRect> layout;
 
 
-	std::string name = "UIElement"; // for debugging 
+	void SetLayout(const UI::LayoutSpec& layout) {
+		style = layout;
+	}
+	UI::LayoutSpec GetLayout2() {
+		assert(style.has_value());
+		return style.value();
+	}
+	std::optional<UI::LayoutSpec> style;
+
+
+	std::string name = "UIElement"; 
+
+public:
 	UIId id{ 0 };
 	static std::atomic<uint32_t> GIdGenerator;
 };
-
-
+ 
+ 
 //todo: visible ,enable; blocking;
-class UIButton : public UIElement
+class UITextBlock : public UIElement
 {
 public:
-	UIButton();
-	virtual ~UIButton() = default;
+	UITextBlock();
+	virtual ~UITextBlock() = default;
 
 	virtual void RenderBack() override;
 	void RenderText();
+
+	void DeriveAutoText();
 
 	virtual void Tick(float delta) override;
 
@@ -278,13 +329,27 @@ public:
 	std::string text = "HELLO";
 };
 
+
+class UIButton : public UITextBlock {
+public:
+	UIButton() { 
+		OnHoverEnter.Add([this]() {
+			baseColor = Color::Cyan.xyz();
+			});
+
+		OnHoverExit.Add([this]() {
+			baseColor = Color::White.xyz();
+			});
+	} 
+};
+
+
+
+
 class UICanvasPanel : public UIElement {
 public:
 	UICanvasPanel();
-	virtual void Tick(float delta) override;
-
-
-
+	virtual void Tick(float delta) override; 
 };
 
 

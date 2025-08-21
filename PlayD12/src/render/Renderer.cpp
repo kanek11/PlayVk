@@ -908,8 +908,8 @@ void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float4& color)
     //delegate to  
     FQuadDesc desc = {
         .rect = rect,
-        .uvTL = Float2(0.0f, 0.0f), // default UV coordinates
-        .uvBR = Float2(1.0f, 1.0f), // default UV coordinates
+        .uvTL = Float2(0.0f, 0.0f), 
+        .uvBR = Float2(1.0f, 1.0f), 
         .color = color,
         .useAtlas = false,
     };

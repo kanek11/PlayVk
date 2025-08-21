@@ -65,7 +65,7 @@ public:
 	virtual void Tick(float delta) override;
 	virtual void LateConstruct() override;
 	 
-	SharedPtr<UIButton> timeHUD;
+	SharedPtr<UITextBlock> timeHUD;
 };
 
 
@@ -76,8 +76,8 @@ public:
 	UMainTitleUI();
 	virtual void Tick(float delta) override;
 	virtual void LateConstruct() override;
-	SharedPtr<UIButton> startButton;
-	SharedPtr<UIButton> quitButton;
+	SharedPtr<UITextBlock> startButton;
+	SharedPtr<UITextBlock> quitButton;
 };
 
 class UPlayerHUD :public UGameplayUI
@@ -88,8 +88,8 @@ public:
 	virtual void Tick(float delta) override;
 	virtual void LateConstruct() override;
 
-	SharedPtr<UIButton> speedHUD;
-	SharedPtr<UIButton> accelHUD;
+	SharedPtr<UITextBlock> speedHUD;
+	SharedPtr<UITextBlock> accelHUD;
 };
 
 
@@ -99,9 +99,9 @@ public:
 	UPauseMenu();
 	virtual void Tick(float delta) override;
 	virtual void LateConstruct() override;
-	SharedPtr<UIButton> resumeButton;
-	SharedPtr<UIButton> retryButton;
-	SharedPtr<UIButton> returnButton;
+	SharedPtr<UITextBlock> resumeButton;
+	SharedPtr<UITextBlock> retryButton;
+	SharedPtr<UITextBlock> returnButton;
 };
 
 
@@ -114,7 +114,7 @@ public:
 
 	virtual void OnRegister() override;
 
-	SharedPtr<UIButton> recordButton;
-	SharedPtr<UIButton> retryButton;
-	SharedPtr<UIButton> returnButton;
+	SharedPtr<UITextBlock> recordButton;
+	SharedPtr<UITextBlock> retryButton;
+	SharedPtr<UITextBlock> returnButton;
 };

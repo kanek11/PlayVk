@@ -10,27 +10,17 @@
 std::atomic<uint32_t> UIElement::GIdGenerator{ 0 };
 
 UIElement::UIElement()
-{
-	baseColor[3] = 0.5f;  
-
+{ 
 	//set id:
 	id = ++GIdGenerator;
 }
 
 
-UIButton::UIButton() : UIElement()
+UITextBlock::UITextBlock() : UIElement()
 {
-	OnHoverEnter.Add([this]() {
-		baseColor = Color::Cyan;
-		baseColor[3] = 0.5f;
-		});
-
-	OnHoverExit.Add([this]() {
-		baseColor = { 1.0f, 1.0f, 1.0f, 0.5f };
-		});
 }
 
-void UIButton::RenderBack()
+void UITextBlock::RenderBack()
 {
 	UIElement::RenderBack();
 
@@ -38,10 +28,10 @@ void UIButton::RenderBack()
 	assert(renderer != nullptr);
 	assert(layout.has_value());
 
-	renderer->AddQuad(layout.value(), baseColor);
+	renderer->AddQuad(layout.value(), { baseColor.x(), baseColor.y(), baseColor.z(), opacity });
 }
 
-void UIButton::RenderText()
+void UITextBlock::RenderText()
 {
 	auto renderer = GameApplication::GetInstance()->GetRenderer();
 	assert(renderer != nullptr);
@@ -61,7 +51,7 @@ void UIButton::RenderText()
 	Float2 cursor = { static_cast<float>(layout.x), static_cast<float>(layout.y) };
 
 	//clip the text only up to ,say only 10:
-	std::string text_ = this->text.substr(0, 20); // Limit to first 10 characters
+	std::string text_ = this->text.substr(0, 20); 
 
 	for (char c : text_) {
 		if (!font->glyphs.contains(c)) continue;
@@ -84,28 +74,30 @@ void UIButton::RenderText()
 	}
 }
 
+void UITextBlock::DeriveAutoText()
+{ 
+	if (!style.has_value() || style.value().policy != UI::SizePolicy::AutoText)
+	{
+		return;
+	}
 
-void UIButton::Tick(float delta)
+	assert(layout.has_value());
+	auto layout = this->layout.value();
+
+	float lineHeightPx = layout.h;
+	float w = (float)text.size() * lineHeightPx; 
+
+	this->layout.value().w = static_cast<int>(w);
+}
+
+
+void UITextBlock::Tick(float delta)
 {
-	UIElement::Tick(delta);
+	UIElement::Tick(delta); 
 
-	//this->RenderBack();
-	this->RenderText();
-
-	//auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
-
-	//auto pointer = inputSystem->GetMousePointer();
-	//
-
-	//if (IsPointInRect(layout, pointer.x, pointer.y)) {
-	//	//std::cout << "UI: pointer x:" << pointer.x << '\n';
-	//	if (inputSystem->IsMouseButtonJustPressed(MouseButtonCode::ButtonLeft))
-	//	{
-	//		std::cout << "UI: left button clicked" << '\n';
-	//		OnClick.BlockingBroadCast();
-	//	}
-	//}
-
+	this->DeriveAutoText();
+	this->RenderBack();
+	this->RenderText(); 
 }
 
 UICanvasPanel::UICanvasPanel() : UIElement()
@@ -114,11 +106,5 @@ UICanvasPanel::UICanvasPanel() : UIElement()
 
 void UICanvasPanel::Tick(float delta)
 {
-	UIElement::Tick(delta);
-
-	//auto renderer = GameApplication::GetInstance()->GetRenderer();
-	//assert(renderer != nullptr);
-	//assert(layout.has_value());
-
-	//renderer->AddQuad(layout.value(), baseColor);
+	UIElement::Tick(delta); 
 }

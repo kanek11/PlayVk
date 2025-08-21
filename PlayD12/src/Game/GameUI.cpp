@@ -58,7 +58,7 @@ void UPlayerHUD::LateConstruct()
 
     {
         //debugHUD1 = uiManager->CreateUIAsRoot<UIButton>();
-        speedHUD = CreateShared<UIButton>();
+        speedHUD = CreateShared<UITextBlock>();
 
         FRect buttonRect = { 10, 20, 300, 50 };
         speedHUD->SetLayout(buttonRect);
@@ -68,7 +68,7 @@ void UPlayerHUD::LateConstruct()
 
     {
         //debugHUD1 = uiManager->CreateUIAsRoot<UIButton>();
-        accelHUD = CreateShared<UIButton>();
+        accelHUD = CreateShared<UITextBlock>();
 
         FRect buttonRect = { 10, 20, 300, 50 };
         buttonRect.y += 60;
@@ -105,7 +105,7 @@ void UMainTitleUI::LateConstruct()
         FRect buttonRect = { 0, 0, 500, 50 };
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
 
-        startButton = CreateShared<UIButton>();
+        startButton = CreateShared<UITextBlock>();
         startButton->SetLayout(centeredRect);
         startButton->text = "Press To Enter";
 
@@ -121,7 +121,7 @@ void UMainTitleUI::LateConstruct()
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
         centeredRect.y += 60;
 
-        quitButton = CreateShared<UIButton>();
+        quitButton = CreateShared<UITextBlock>();
         quitButton->SetLayout(centeredRect);
         quitButton->text = "Quit";
     }
@@ -151,7 +151,7 @@ void UPauseMenu::LateConstruct()
         FRect buttonRect = { 0, 0, 500, 50 };
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
 
-        resumeButton = CreateShared<UIButton>();
+        resumeButton = CreateShared<UITextBlock>();
         resumeButton->SetLayout(centeredRect);
         resumeButton->text = "Resume";
 
@@ -165,7 +165,7 @@ void UPauseMenu::LateConstruct()
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
         centeredRect.y += 60;
 
-        retryButton = CreateShared<UIButton>();
+        retryButton = CreateShared<UITextBlock>();
         retryButton->SetLayout(centeredRect);
         retryButton->text = "retry";
 
@@ -180,7 +180,7 @@ void UPauseMenu::LateConstruct()
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
         centeredRect.y += 60 * 2;
 
-        returnButton = CreateShared<UIButton>();
+        returnButton = CreateShared<UITextBlock>();
         returnButton->SetLayout(centeredRect);
         returnButton->text = "back to title";
 
@@ -218,7 +218,7 @@ void UGoalingUI::LateConstruct()
         FRect buttonRect = { 0, 0, 500, 50 };
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
 
-        recordButton = CreateShared<UIButton>();
+        recordButton = CreateShared<UITextBlock>();
         recordButton->SetLayout(centeredRect);
         recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
 
@@ -229,7 +229,7 @@ void UGoalingUI::LateConstruct()
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
         centeredRect.y += 60;
 
-        retryButton = CreateShared<UIButton>();
+        retryButton = CreateShared<UITextBlock>();
         retryButton->SetLayout(centeredRect);
         retryButton->text = "retry";
 
@@ -244,7 +244,7 @@ void UGoalingUI::LateConstruct()
         FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
         centeredRect.y += 60 * 2;
 
-        returnButton = CreateShared<UIButton>();
+        returnButton = CreateShared<UITextBlock>();
         returnButton->SetLayout(centeredRect);
         returnButton->text = "back to title";
 
@@ -286,7 +286,7 @@ void UGameStatsHUD::LateConstruct()
 {
 
     {
-        timeHUD = CreateShared<UIButton>();
+        timeHUD = CreateShared<UITextBlock>();
 
         FRect buttonRect = { 10, 20, 300, 50 };
         buttonRect.y = 720 - 50;
