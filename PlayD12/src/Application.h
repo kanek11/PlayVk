@@ -95,6 +95,8 @@ public:
 	float getAspectRatio() const { return static_cast<float>(m_width) / static_cast<float>(m_height); }
 
 	//PhysicsScene* GetPhysicalScene() { return owningWorld->physicsScene; }
+	
+	WindowBase* GetMainWindow() { return m_mainWindow.get(); }
 	D3D12HelloRenderer* GetRenderer() { return  m_renderer; }
 	InputSystem* GetInputSystem() { return  m_inputSystem; }
 	//GameStateManager* GetGameStateManager() { return m_gameManager; }

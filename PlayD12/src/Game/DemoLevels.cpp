@@ -347,10 +347,7 @@ void GamePlayLevel::LoadMap0()
         }
     }
 
- 
-
-
-
+  
 
     //
     {
@@ -396,25 +393,7 @@ void GamePlayLevel::OnUnload()
 {
     ULevel::OnUnload();
 
-    std::cout << "unload game world" << '\n';
-
-    //auto physicsScene = GameApplication::GetInstance()->GetPhysicalScene();
-    //auto renderer = GameApplication::GetInstance()->GetRenderer();
-    //renderer->ClearMesh();
-
-    //owningWorld->physicsScene->ClearCollider();
-    //owningWorld->physicsScene->ClearRigidBody();
-    //owningWorld->physicsScene->ClearBuffer();
-
-    //
-    //for (auto& [id, actor] : m_staticMeshActors) {
-    //    actor->onUpdate.Clear();
-    //    // actor->onUpdate =
-    //}
-
-    //m_staticMeshActors.clear();
-    //m_buttons.clear();
-    //dummyCamera = nullptr;
+    std::cout << "unload game world" << '\n'; 
 }
 
 void GamePlayLevel::OnTick(float delta)

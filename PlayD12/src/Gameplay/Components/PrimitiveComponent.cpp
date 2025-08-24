@@ -13,6 +13,8 @@ namespace Gameplay {
 
 	void UPrimitiveComponent::OnRegister()
 	{
+		USceneComponent::OnRegister();
+
 		auto owningWorld = this->GetWorld();
 		owningWorld->AddPrimitiveComponent(this); 
 	}
@@ -20,7 +22,17 @@ namespace Gameplay {
 
 	void UPrimitiveComponent::EndPlay()
 	{
+		USceneComponent::EndPlay();
+
 		auto owningWorld = this->GetWorld();
 		owningWorld->RemovePrimitiveComponent(this);
+
+		this->m_children.clear(); 
+		this->m_parent = nullptr;  
+
+		this->onOverlap.Clear();  
+		this->onPrePhysicsEvents.Clear(); 
+
+
 	}
 }

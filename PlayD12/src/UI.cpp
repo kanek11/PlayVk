@@ -19,15 +19,8 @@ UIElement::UIElement()
 	id = ++GIdGenerator;
 }
 
-
-UITextBlock::UITextBlock() : UIElement()
+void UIElement::RenderBack()
 {
-}
-
-void UITextBlock::RenderBack()
-{
-	UIElement::RenderBack();
-
 	auto renderer = GameApplication::GetInstance()->GetRenderer();
 	assert(renderer != nullptr);
 	assert(layout.has_value());
@@ -44,6 +37,18 @@ void UITextBlock::RenderBack()
 	};
 
 	renderer->AddQuad(desc);
+}
+
+
+UITextBlock::UITextBlock() : UIElement()
+{
+}
+
+void UITextBlock::RenderBack()
+{
+	UIElement::RenderBack();
+
+
 }
 
 void UITextBlock::RenderText()
@@ -157,4 +162,6 @@ UICanvasPanel::UICanvasPanel() : UIElement()
 void UICanvasPanel::Tick(float delta)
 {
 	UIElement::Tick(delta);
+
+	this->RenderBack();
 }

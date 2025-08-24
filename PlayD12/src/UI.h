@@ -153,7 +153,7 @@ public:
 
 	virtual void OnRegister() {};
 
-	virtual void RenderBack() {};
+	virtual void RenderBack();
 
 	virtual void Tick(float delta) {
 		//a temp way to verify init:
@@ -273,7 +273,7 @@ public:
 
 public:
 	Float3 baseColor = Color::White.xyz();
-	Float4 backAlpha = { 0.1f, 0.1f, 0.1f, 0.1f };
+	Float4 backAlpha = { 1.0f, 0.0f, 0.0f, 0.0f };
 	float opacity = 1.0f;
 
 	std::optional<std::string> backTex;

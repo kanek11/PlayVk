@@ -91,6 +91,10 @@ namespace Anim {
                 [](const std::unique_ptr<Tween>& t) { return t->finished; }), tweens.end());
         }
 
+		void Clear() {
+			tweens.clear();
+		}
+
     private:
         std::vector<std::unique_ptr<Tween>> tweens;
     };

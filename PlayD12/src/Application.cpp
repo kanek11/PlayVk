@@ -83,7 +83,10 @@ void GameApplication::run()
 			+ std::format(" simTime: {:.4f}", timeInfo.simTime);
 		m_mainWindow->SetCustomWindowText(text);
 
-		//
+
+
+		//todo: physics interpolation;  
+		//=======
 		m_mainWindow->onUpdate();
 
 		m_inputSystem->OnUpdate();
@@ -92,68 +95,48 @@ void GameApplication::run()
 
 		m_uiManager->Tick(delta);
 
-
-		//owningWorld->physicsScene->Tick(0.016f);
-
-
-		//if (m_inputSystem->IsKeyJustPressed(KeyCode::Space)) {
-		//	//std::cout << "app: A is pressed" << '\n';
-		//	gTime.TogglePaused();
-		//}
-		//else if (m_inputSystem->IsKeyJustReleased(KeyCode::L)) {
-		//	//std::cout << "app: A is released" << '\n';
-		//	gTime.AdvanceFixedSteps();
-		//	gTime.AdvanceFrames();
-		//}
-
-		//if (m_inputSystem->IsKeyJustPressed(KeyCode::A)) {
-		//	std::cout << "app: A is pressed" << '\n';
-		//}
-		//else if (m_inputSystem->IsKeyJustReleased(KeyCode::A)) {
-		//	std::cout << "app: A is released" << '\n';
-		//}
-		//else if (m_inputSystem->IsKeyDown(KeyCode::A)) {
-		//	//std::cout << "app: A is down" << '\n';
-		//}
-		//else if (m_inputSystem->IsKeyUp(KeyCode::A)) {
-		//	//std::cout << "app: A is up" << '\n';
-		//}
-
-	/*	if (m_inputSystem->IsKeyJustPressed(KeyCode::Num1)) {
-			std::cout << "app: 1 is pressed" << '\n';
-			m_gameManager->TransitState(GameStateId::Playing);
-		}
-		else
-			if (m_inputSystem->IsKeyJustPressed(KeyCode::Num2)) {
-				std::cout << "app: 2 is pressed" << '\n';
-				m_gameManager->TransitState(GameStateId::MainMenu);
-			}*/
-
-			//tick level transition;
-		//m_gameManager->Update(delta);
-
-
-
-		//todo: physics interpolation; 
-		//tick level>actor> component
-
-
 		m_world->OnTick(delta);
 
 		m_world->SyncGameToPhysics();
 
-		gTime->PumpFixedSteps(); 
+
+		//=======
+		gTime->PumpFixedSteps();  
 
 
+		//=======
 		m_renderer->OnUpdate(delta);
 		m_renderer->OnRender();
+
+
+		//m_taskSystem.AddTask(
+		//	"main",
+		//	[=]() {
+		//		m_mainWindow->onUpdate();
+
+		//		m_inputSystem->OnUpdate();
+
+		//		m_uiManager->RouteEvents();
+
+		//		m_uiManager->Tick(delta);
+
+		//		//todo: physics interpolation;  
+
+		//		m_world->OnTick(delta);
+
+		//		m_world->SyncGameToPhysics();
+		//	},
+		//	System::ETaskDomain::MainThread,
+		//	{}
+		//);
+
 
 
 		//m_taskSystem.AddTask(
 		//	"physics",
 		//	[=]() {
 		//		//std::cout << "dummy task\n" ;   
-		//		gTime.PumpFixedSteps();
+		//		gTime->PumpFixedSteps();
 		//	},
 		//	System::ETaskDomain::PhysicsThread,
 		//	{}
@@ -170,9 +153,12 @@ void GameApplication::run()
 		//{}
 		//);
 
-		//m_taskSystem.ExecuteAll();  
+		//m_taskSystem.ExecuteAll();
+		// 
+		// 
+		m_world->EndFrame();
 
-	}
+	}//while
 
 	m_world->EndPlay();
 }

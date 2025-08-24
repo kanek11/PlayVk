@@ -13,8 +13,7 @@ AGameState::AGameState() : AGameStateBase()
 
 void AGameState::OnTick(float delta)
 {
-	m_gameManager->Update(delta);
-
+	m_gameManager->Update(delta); 
 }
 
 void AGameState::BeginPlay()
@@ -49,10 +48,12 @@ void AGameState::SetupGameStates()
 				//
 				uiManager->RegisterRootElement(mainTitle.get());
 
-				//debug: enter game automatically;
-				//mainTitle->startButton->OnClick.BlockingBroadCast();
 
 				this->OnResetGameplay();
+
+				//debug: enter game automatically; after scene loaded
+				//mainTitle->startButton->OnClick.BlockingBroadCast();
+
 				pc->SetInputMode(EInputMode::UIOnly);
 			});
 
@@ -77,19 +78,16 @@ void AGameState::SetupGameStates()
 				//world->TransitLevel("gameplay");
 				//world->LoadOrResetLevel("gameplay");
 				//this->OnResetGameplay();
-
-				auto countDownAnim = Anim::WaitFor(3.0f);
-				countDownAnim->onComplete = [=] {
-					pc->SetInputMode(EInputMode::None);
-					this->timeCount = 0.0f;
-					startGame = true;
-					};
-				countDownAnim->onApply = [=](float nt) {
-					countDown = 3.0f - 3.0f * nt;
-					};
+				if(lastState!= GameStateId::Paused)
+				this->OnStartPlay(3.0f);
+				else {
+					this->OnStartPlay(0.0f);
+				}
+				 
 				uiManager->RegisterRootElement(playerHUD.get());
 				uiManager->RegisterRootElement(gameStats.get());
 
+				 
 			});
 
 		playingState->OnUpdate.Add(
@@ -97,11 +95,19 @@ void AGameState::SetupGameStates()
 				if (startGame)
 					this->timeCount += dt;
 
+				if (shouldRespawn) {
+					this->OnResetGameplay();
+					this->RequestForceTransitGameState(GameStateId::Playing);
+					shouldRespawn = false;
+				} 
+
 				//std::cout << " tick playing: " << dt << "\n";
 				if (inputSystem->IsKeyJustPressed(KeyCode::Escape)) {
 					this->RequestTransitGameState(GameStateId::Paused);
-					/*timeSystem->TogglePaused();*/
-				}
+					/*timeSystem->TogglePaused();*/ 
+	 
+					paused = true;
+				} 
 
 
 				if (inputSystem->IsKeyJustPressed(KeyCode::P)) {
@@ -114,8 +120,7 @@ void AGameState::SetupGameStates()
 			[=]() {
 				std::cout << "state: exit playing" << "\n";
 				uiManager->UnregisterRootElement(playerHUD.get());
-				uiManager->UnregisterRootElement(gameStats.get());
-
+				uiManager->UnregisterRootElement(gameStats.get()); 
 				//
 				startGame = false;
 			});
@@ -131,6 +136,9 @@ void AGameState::SetupGameStates()
 				std::cout << "enter pause state" << "\n";
 				uiManager->RegisterRootElement(pauseMenu.get());
 				timeSystem->SetPaused(true);
+
+				pauseMenu->canvas->baseColor = Color::Black.xyz();
+				pauseMenu->canvas->backAlpha = { 0.2f, 0.2f, 0.2f, 0.2f };
 			});
 
 		pausedState->OnUpdate.Add(
@@ -225,7 +233,7 @@ void AGameState::OnResetGameplay()
 	std::cout << "gamestate: reset game!" << std::endl;
 
 	auto world = this->GetWorld();
-	world->LoadOrResetLevel("gameplay");
+	world->RequestReloadLevel("gameplay");
 
 }
 

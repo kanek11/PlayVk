@@ -65,12 +65,14 @@ namespace System {
         }
 
         for (int i = 0; i < steps; ++i) {
+
+            //std::cout << "pump sim step" << '\n'; 
+
             for (auto& entry : m_fixedCB) {
                 // e.t->TickFixed(m_policy.fixedDt);
                 entry((float)m_policy.fixedDt);
             }
 
-            //std::cout << "pump sim step" << '\n';
             m_info.simTime += m_policy.fixedDt;
         }
     }

@@ -55,26 +55,25 @@ namespace Gameplay {
 
 	void UWorld::SyncPhysicsToGame()
 	{
-		//if (currentLevel) {
-		//	currentLevel->SyncPhysicsToGame();
-		//}
-		//
+	
 		for (auto& [id, prim] : this->m_primtiveMap) {
+
+			//std::cout << "prim id:" << id << '\n';
 			prim->onPrePhysicsEvents.BlockingBroadCast();
 		} 
 
 		this->DispatchPhysicsEvents(); 
 
-		//
-
+		// 
 		auto& transformBuffer = physicsScene->GetTransformBuffer();
 		for (auto& [id, trans] : transformBuffer) {
 
 			if (!this->m_primtiveMap.contains(id)) continue;
-			auto& primitive = this->m_primtiveMap.at(id);
-
+			auto& primitive = this->m_primtiveMap.at(id); 
 
 			if (!primitive->IsSimulatingPhysics()) continue;
+
+			//std::cout << "prim id:" << id << '\n';
 
 			primitive->SetRelativePosition(trans.position);
 			primitive->SetRelativeRotation(trans.rotation);
@@ -86,7 +85,8 @@ namespace Gameplay {
 	void UWorld::SyncGameToPhysics() {
 
 		for (auto& [id, primitive] : this->m_primtiveMap) { 
-			physicsScene->SetPosition(id, primitive->GetWorldPosition()); 
+
+		    physicsScene->SetPosition(id, primitive->GetWorldPosition()); 
             physicsScene->SetRotation(id, primitive->GetWorldRotation()); 
 			//std::cout << "primitive component set id:" << id << " position: " << ToString(primitive->GetWorldPosition()) << '\n';
 		}
@@ -94,13 +94,22 @@ namespace Gameplay {
 
 	void UWorld::DispatchPhysicsEvents()
 	{
-		auto& events = PhysicsEventQueue::Get().Drain();
+		auto events = PhysicsEventQueue::Get().Drain();
 		for (auto& event : events) {
 			auto actorA = this->PrimitiveIdToActor(event.a_ID);
 			auto actorB = this->PrimitiveIdToActor(event.b_ID);
 
-			m_primtiveMap[event.a_ID]->onOverlap.BlockingBroadCast(actorB);
-			m_primtiveMap[event.b_ID]->onOverlap.BlockingBroadCast(actorA);
+			if (m_primtiveMap.contains(event.a_ID)) { 
+				//std::cout << "prim id:" << event.a_ID << '\n';
+
+				m_primtiveMap[event.a_ID]->onOverlap.BlockingBroadCast(actorB);
+			}
+
+			if (m_primtiveMap.contains(event.b_ID)) {
+				//std::cout << "prim id:" << event.b_ID << '\n';
+
+				m_primtiveMap[event.b_ID]->onOverlap.BlockingBroadCast(actorA);
+			}
 		}
 	}
 
@@ -167,8 +176,7 @@ namespace Gameplay {
 
 		for (auto& controller : playerControllers) {
 			controller->OnTick(delta);
-		}
-
+		} 
 
 		//
 		this->ConstructSceneView();

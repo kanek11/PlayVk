@@ -42,7 +42,7 @@ public:
 private:
 	UWorld* world{ nullptr };
 
-protected:
+public:
 	//as feature, a full-screen, default canvas is given; but could be bypassed, resized, etc.
 	SharedPtr<UICanvasPanel> canvas;
 };

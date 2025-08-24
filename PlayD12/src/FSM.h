@@ -73,18 +73,27 @@ public:
 
 		void RequestTransitState(const GameStateId& targetState) { 
 			assert(states.contains(targetState));
-			if (targetState == current) return;
+			//if (targetState == current) return;
 			target = targetState;
-		}
-
+			dirty = true;
+		} 
 
 		void TransitState(const GameStateId& targetState) override {
-			if (targetState == current) return;
+			//if (targetState == current) return;
 			assert(states.contains(current) && "Initial state must be registered before calling Initialize()");
 			if (states.contains(current)) states[current]->OnStateExit();
 			current = targetState;
 			if (states.contains(current)) states[current]->OnStateEnter();
+
+			dirty = false;
 		}
+
+		//void ForceTransitState(const GameStateId& targetState) { 
+		//	assert(states.contains(current) && "Initial state must be registered before calling Initialize()");
+		//	if (states.contains(current)) states[current]->OnStateExit();
+		//	current = targetState;
+		//	if (states.contains(current)) states[current]->OnStateEnter();
+		//}
 
 		void SetInitialState(const GameStateId& targetState) {
 			current = targetState;
@@ -99,7 +108,10 @@ public:
 		}
 
 		void Update(float dt) override {
-			if (target != current) this->TransitState(target);
+			//if (target != current) this->TransitState(target);
+			if (dirty) {
+				this->TransitState(target);
+			}
 			if (states.contains(current)) states[current]->OnStateUpdate(dt);
 		}
 
@@ -114,6 +126,8 @@ private:
 	GameStateId current = GameStateId::MainTitle;
 
 	GameStateId target = GameStateId::MainTitle;
+
+	bool dirty = false;  
 };
 
 

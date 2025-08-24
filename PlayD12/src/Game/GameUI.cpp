@@ -200,9 +200,9 @@ void UMainTitleUI::LateConstruct()
 
         startButton->OnClick.Add([=]() {
             std::cout << "click start" << '\n';
-            float duration = 1.0f;
+            float duration = 0.1f;
             gameState->RequestTransitGameState(GameStateId::Playing, duration);
-            gameState->PlayTitleToPlay(duration);
+            gameState->CameraToPlay(duration);
             });
     }
 
@@ -221,6 +221,11 @@ void UMainTitleUI::LateConstruct()
 
         quitButton->text = "Quit";
         quitButton->SetLayoutStyle(style);
+
+		quitButton->OnClick.Add([=]() {
+			std::cout << "click quit" << '\n';
+			GameApplication::GetInstance()->GetMainWindow()->RequestClose();
+			});
 
     }
 }
@@ -259,7 +264,7 @@ void UPauseMenu::LateConstruct()
 
         resumeButton->SetLayoutStyle(style);
 
-        resumeButton->OnClick.Add([=]() {
+        resumeButton->OnClick.Add([=]() { 
             gameState->RequestTransitGameState(GameStateId::Playing);
             });
     }
@@ -281,8 +286,10 @@ void UPauseMenu::LateConstruct()
 
 
         retryButton->OnClick.Add([=]() {
-            gameState->OnResetGameplay();
-            gameState->RequestTransitGameState(GameStateId::Playing);
+            gameState->OnResetGameplay(); 
+
+            float duration = 0.1f;
+            gameState->RequestTransitGameState(GameStateId::Playing); 
             });
     }
 
@@ -394,8 +401,7 @@ void UGoalingUI::LateConstruct()
         returnButton = canvas->CreateUIAsChild<UIButton>();
         returnButton->text = "title";
 
-        returnButton->SetLayoutStyle(style);
-
+        returnButton->SetLayoutStyle(style); 
 
         returnButton->OnClick.Add([=]() {
             gameState->RequestTransitGameState(GameStateId::MainTitle);
@@ -404,8 +410,7 @@ void UGoalingUI::LateConstruct()
 }
 
 void UGoalingUI::OnRegister()
-{
-
+{ 
     auto gameState = GetWorld()->GetGameState<AGameState>();
 
     recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
@@ -426,6 +431,7 @@ void UGameStatsHUD::Tick(float delta)
 
         if (!gameState->startGame && gameState->countDown >= 0) {
 
+			//std::cout << "count down: " << gameState->countDown << '\n';
             countDown->text = std::format("{:d}", static_cast<int>(std::ceil(gameState->countDown)));
         }
         else

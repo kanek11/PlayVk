@@ -243,8 +243,7 @@ void APlayer::OnRegister()
 	APawn::OnRegister();
 	//bug fix: you don't modify actor list on being iterated, so we must modifiy the logic;
 	//this could be...antipattern
-
-		//
+	 
 	{
 		FFormState form{};
 		form.mesh = CreateShared<SphereMesh>();
@@ -368,8 +367,7 @@ void APlayer::OnRegister()
 	abilities[EPlayerForm::Normal] = FAbilityRuntime{};
 	abilities[EPlayerForm::IceCube] = FAbilityRuntime{};
 	abilities[EPlayerForm::MetalBall] = FAbilityRuntime{};
-	abilities[EPlayerForm::Clone] = FAbilityRuntime{};
-
+	abilities[EPlayerForm::Clone] = FAbilityRuntime{}; 
 
 
 	//needed valid tex
@@ -403,6 +401,14 @@ void APlayer::UploadPlayerState()
 	auto gameState = GetWorld()->GetGameState<AGameState>();
 	gameState->SetPlayerState(this->playerState);
 
+
+	auto& pos = this->RootComponent->GetWorldPosition();
+	if (pos.x() < -10.4f || pos.x() > 10.4f)
+	{
+		std::cout << "player out of bound, respawn" << '\n';
+		gameState->shouldRespawn = true;
+	}
+
 }
  
 
@@ -414,22 +420,20 @@ void APlayer::TickPlayingPersistent(float delta)
 	if (!this->bDuringTransition) {
 
 		//
-		if (inputSystem->IsKeyJustPressed(KeyCode::Num1))
+		if (inputSystem->GetAction(EAction::Normal))
 		{
 			RequestTransitForm(EPlayerForm::Normal);
-		}
-
-		else if (inputSystem->IsKeyJustPressed(KeyCode::Num2))
+		} 
+		else if (inputSystem->GetAction(EAction::Metal))
 		{
 			RequestTransitForm(EPlayerForm::MetalBall);
 		}
-		else if (inputSystem->IsKeyJustPressed(KeyCode::Num3)) {
-
+		else if (inputSystem->GetAction(EAction::Ice))
+		{
 			RequestTransitForm(EPlayerForm::IceCube);
-		}
-
-		else if (inputSystem->IsKeyJustPressed(KeyCode::Num4)) {
-
+		} 
+	    else if (inputSystem->GetAction(EAction::Clone))
+		{
 			RequestTransitForm(EPlayerForm::Clone);
 		}
 	}
@@ -479,9 +483,11 @@ void APlayer::CloneStateBehavior(float delta)
 
 	if (bGroundedThisFrame)
 	{
-		if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
+		//if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
+		//	shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, 3.0f, 0.0f) * delta); 
+		//}
+		if (inputSystem->GetAction(EAction::Jump)) {
 			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, 3.0f, 0.0f) * delta);
-
 		}
 
 		float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
@@ -577,8 +583,7 @@ void APlayer::RegisterPhysicsHooks()
 		this->bGroundedThisFrame = false;
 		//std::cout << "pre physics called" << '\n';
 		};
-	
-
+	 
 	this->shapeComponent->onPrePhysicsEvents.Add(prePhysicsCb);
 
 	//
@@ -627,10 +632,9 @@ void APlayer::SpawnParticles()
 		actor->shapeComponent->rigidBody->angularDamping = form.angularDamping;
 		 
 		this->particleActors.push_back(actor);
-
-		owningLevel->AddActor(actor);
-
+		 
 		Mesh::SetSphere(actor.get(), particleR);
+		owningLevel->AddActor(actor);
 	}
 
 	

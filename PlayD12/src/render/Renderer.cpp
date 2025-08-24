@@ -27,15 +27,7 @@ void D3D12HelloRenderer::ConsumeCmdBuffer()
     cmdBuffer.SwapBuffers();
     cmdBuffer.Execute();
 }
-
-
-//void D3D12HelloRenderer::SubmitCamera(const FCameraProxy& camera)
-//{
-//    sceneCBData.pvMatrix = camera.pvMatrix;
-//    sceneCBData.invProj = camera.invProjMatrix;
-//    sceneCBData.invView = camera.invViewMatrix;
-//    sceneCBData.cameraPos = camera.position;
-//}
+ 
 
 void D3D12HelloRenderer::SubmitCamera(const FSceneView& sceneView)
 {

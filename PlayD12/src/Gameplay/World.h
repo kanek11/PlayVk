@@ -44,8 +44,21 @@ namespace Gameplay {
 			persistentLevel = level;
 			if (persistentLevel) {
 				persistentLevel->owningWorld = this;
-			}
+			} 
+		}
 
+
+		void RequestReloadLevel(const std::string& name) {
+			 
+			this->levelToLoad = name;
+		}
+
+
+		void EndFrame() { 
+			if (!levelToLoad.empty()) {
+				LoadOrResetLevel(levelToLoad);
+				levelToLoad.clear();
+			}
 		}
 
 		//todo: level loading could be async or more complex;
@@ -60,7 +73,15 @@ namespace Gameplay {
 
 			if (currentLevel) { 
 				currentLevel->RouteActorEndPlay();
-				currentLevel->OnUnload();
+				currentLevel->OnUnload(); 
+
+				//in-case
+				//this->m_primtiveMap.clear();
+				Anim::TweenRunner::Get().Clear();
+
+				this->physicsScene->ClearRigidBodySync();
+				this->physicsScene->ClearColliderSync();
+				this->physicsScene->ClearBufferSync();
 			}
 
 			if (!levels.contains(name)) {
@@ -78,6 +99,10 @@ namespace Gameplay {
 				currentLevel->RouteActorBeginPlay();
 			}
 		}
+
+
+	public:
+		std::string levelToLoad;
 
 	public:
 		void SyncGameToPhysics();
@@ -103,7 +128,7 @@ namespace Gameplay {
 			m_primtiveMap[comp->id] = comp;
 		}
 
-		void RemovePrimitiveComponent(UPrimitiveComponent* comp) {
+		void RemovePrimitiveComponent(UPrimitiveComponent* comp) { 
 			m_primtiveMap.erase(comp->id);
 		} 
 

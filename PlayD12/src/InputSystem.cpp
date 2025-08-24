@@ -99,6 +99,21 @@ void InputSystem::OnUpdate()
         }
     
     }
+
+    //action:
+    for (auto& [action, binds] : DefaultActionBindings) {
+        if (binds.empty()) continue;
+        bool actionState = false;
+        for (const auto& bind : binds) {
+            if (IsKeyJustPressed(bind.key)) {
+                actionState = true;
+            }
+            if (m_gamepad.GetButtonState(bind.gamepadButton)) {
+                actionState = true;
+            }
+        }
+		m_actionState[static_cast<size_t>(action)] = actionState;
+    }
 }
 
 void InputSystem::OnKeyDown(KeyCode key)

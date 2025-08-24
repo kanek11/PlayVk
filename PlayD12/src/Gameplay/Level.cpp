@@ -83,8 +83,7 @@ namespace Gameplay {
 
     void ULevel::UpdateTransforms()
     {
-        for (auto& actor : actors) {
-
+        for (auto& actor : actors) { 
             if (actor->RootComponent) {
                 actor->RootComponent->UpdateWorldTransform();
             }

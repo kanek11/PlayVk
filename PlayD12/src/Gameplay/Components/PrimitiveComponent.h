@@ -21,6 +21,7 @@ namespace Gameplay {
     class UPrimitiveComponent : public USceneComponent {
     public:
         UPrimitiveComponent();
+		virtual ~UPrimitiveComponent() = default;
 
         virtual void OnRegister() override;
         virtual void EndPlay() override;

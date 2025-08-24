@@ -11,7 +11,7 @@
 enum class EAxis { MoveX, MoveY, MoveZ, COUNT };
 constexpr size_t MAX_Axis = static_cast<size_t>(EAxis::COUNT);
 
-enum class EAction { Jump , COUNT };
+enum class EAction { Jump , Normal ,Metal, Ice, Clone, COUNT };
 
 struct Binding { 
 	KeyCode key;  
@@ -54,6 +54,46 @@ inline std::unordered_map<EAxis, std::vector<Binding>> DefaultAxisBindings = {
 		//{ GamepadAxis::RY },
     },
 },
+
+};
+
+
+inline std::unordered_map<EAction, std::vector<Binding>> DefaultActionBindings = {
+    {
+        EAction::Jump,
+        {
+            Binding{.key = KeyCode::Space },
+            Binding{.gamepadButton = GamepadButton::A,  },
+        },
+	},
+	{
+		EAction::Normal,
+		{
+			Binding{.key = KeyCode::Num1 },
+			Binding{.gamepadButton = GamepadButton::Start,  },
+		},
+	},
+	{
+		EAction::Metal,
+		{
+			Binding{.key = KeyCode::Num2 },
+			Binding{.gamepadButton = GamepadButton::X,  },
+		},
+	},
+	{
+		EAction::Ice,
+		{
+			Binding{.key = KeyCode::Num3 },
+			Binding{.gamepadButton = GamepadButton::Y, },
+		},
+	},
+	{
+		EAction::Clone,
+		{
+			Binding{.key = KeyCode::Num4 },
+			Binding{.gamepadButton = GamepadButton::B, },
+		},
+	},
 
 };
 
@@ -137,6 +177,12 @@ private:
 public:
     float GetAxis(EAxis axis) const;
     std::array<float, (size_t)EAxis::COUNT> m_axisState{};
+
+
+	bool GetAction(EAction action) const {
+		return m_actionState[static_cast<size_t>(action)];
+	}
+	std::array<bool, (size_t)EAction::COUNT> m_actionState{};
 };
 
 

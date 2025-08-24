@@ -600,11 +600,11 @@ void PhysicsScene::PostSimulation(float delta)
 	m_transformBuffer.SwapBuffers();
 }
 
-void PhysicsScene::SetPosition(ActorId handle, const Float3& position)
+void PhysicsScene::SetPosition(ActorId handle, Float3 position)
 {
 	m_commandBuffer.Enqueue([=]() {
-		auto it = m_bodies.find(handle);
-		if (it != m_bodies.end()) {
+		auto it = this->m_bodies.find(handle);
+		if (it != this->m_bodies.end()) {
 			it->second->SetPosition(position);
 		}
 		else {
@@ -614,11 +614,11 @@ void PhysicsScene::SetPosition(ActorId handle, const Float3& position)
 
 }
 
-void PhysicsScene::SetRotation(ActorId handle, const DirectX::XMVECTOR& rotation)
+void PhysicsScene::SetRotation(ActorId handle, DirectX::XMVECTOR rotation)
 {
 	m_commandBuffer.Enqueue([=]() {
-		auto it = m_bodies.find(handle);
-		if (it != m_bodies.end()) {
+		auto it = this->m_bodies.find(handle);
+		if (it != this->m_bodies.end()) {
 			it->second->SetRotation(rotation);
 		}
 		else {
@@ -676,8 +676,7 @@ void PhysicsScene::SetShape(ActorId owner, ShapeType shape)
 	m_commandBuffer.Enqueue([=]() {
 		this->m_bodies[owner]->SetShape(shape);
 		this->m_colliders[owner]->SetShape(shape);
-		});
-
+		}); 
 }
 
 void PhysicsScene::SetColliderShape(ActorId owner, ShapeType shape)

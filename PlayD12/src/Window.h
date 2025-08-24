@@ -34,6 +34,8 @@ public:
 	//	inputSource = new WindowsInputSource(inputsystem);
 	//}
 
+    virtual void RequestClose() = 0;
+
 public:
 	WindowsInputSource* inputSource =  new WindowsInputSource();
 };
@@ -49,6 +51,9 @@ public:
 	Win32Window(const WindowCreateInfo& createInfo);
 	~Win32Window() = default;
 
+	virtual void RequestClose() override 
+	{ PostMessage(m_hwnd, WM_CLOSE, 0, 0); } 
+
 	virtual bool shouldClose() override;
 	virtual void onUpdate() override;
 
@@ -58,6 +63,8 @@ public:
 
 public:
 	void SetCustomWindowText(const std::string& text) override;
+
+
 
 private:
 	void pollEvents(); 

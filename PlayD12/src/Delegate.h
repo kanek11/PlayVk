@@ -31,6 +31,10 @@ template <typename Ret, typename... Args>
 class FDelegate<Ret(Args...)>
 {
 public:
+    ~FDelegate() {
+		Clear(); // clear all callbacks
+    }
+
     using FunctionType = std::function<Ret(Args...)>;
 
     // register, bind, add,  Connect

@@ -18,6 +18,7 @@ namespace Gameplay {
 
 	class USceneComponent : public UActorComponent {
 	public:
+		virtual ~USceneComponent() = default;
 
 		const FTransform& GetRelativeTransform() const { return m_relativeTransform; }
 		void SetRelativeTransform(const FTransform& NewTransform) { m_relativeTransform = NewTransform; }

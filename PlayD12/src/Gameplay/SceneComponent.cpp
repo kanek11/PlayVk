@@ -156,6 +156,6 @@ void Gameplay::USceneComponent::DetachFromParent()
 void Gameplay::USceneComponent::MarkDirty()
 {
     m_transformDirty = true;
-    for (auto* child : m_children)
-        child->MarkDirty();
+    //for (auto* child : m_children)
+    //    child->MarkDirty();
 }

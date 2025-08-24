@@ -59,8 +59,13 @@ public:
     PhysicsTransformSyncBuffer() : m_writeIndex(0), m_readIndex(1) {}
       
     void MarkToRemove(ActorId actor) { 
-        m_Buffers[m_writeIndex].erase(actor);
-        removeList.push_back(actor);
+
+        if (m_Buffers[m_writeIndex].contains(actor)) {
+            //std::lock_guard<std::mutex> lock(m_mutex);
+            m_Buffers[m_writeIndex].erase(actor);
+
+            removeList.push_back(actor);
+        } 
     } 
 
     void Write(ActorId actor, const PhysicsTransform& transform) {
@@ -74,9 +79,11 @@ public:
 
         if (!removeList.empty()) {
             for (auto& id : removeList) {
-                m_Buffers[m_writeIndex].erase(id);
-                removeList.clear();
-            }  
+				if (m_Buffers[m_readIndex].contains(id)) {
+					m_Buffers[m_readIndex].erase(id);
+				} 
+            }   
+            removeList.clear();
         }
     }
 

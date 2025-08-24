@@ -29,6 +29,7 @@ public:
 
 	void OnResetGameplay();
 
+
 public:
 	FPlayerState& PullPlayerState() { return currPlayerState; }
 	void SetPlayerState(const FPlayerState& state) { currPlayerState = state; }
@@ -63,25 +64,37 @@ public:
 
 	float countDown{ 0.0f };
 
+	bool shouldRespawn{ false };
+
 public:
 
 	void RequestTransitGameState(const GameStateId& targetState, float desiredDelay = 0.0f) {
 
-
+		this->lastState = this->currentState;
+		this->currentState = targetState;
 		Anim::WaitFor(desiredDelay, [=]() {
 			m_gameManager->RequestTransitState(targetState);
-			});
+			});  
 
-		//m_gameManager->RequestTransitState(targetState);
+		
+	}
+	
+	GameStateId lastState{};
+	GameStateId currentState{};
 
+	void RequestForceTransitGameState(const GameStateId& targetState, float desiredDelay = 0.0f) {
+		this->lastState = this->currentState;
+		this->currentState = targetState;
+		m_gameManager->RequestTransitState(targetState);
+		  
 	}
 
 	//public:
-		//Float3 titleCamOff = { 0.0f, 2.0f, -5.0f };
+	//Float3 titleCamOff = { 0.0f, 2.0f, -5.0f };
 	Float3 inGameCamOff = { 0.0f, 4.0f, -5.0f };
 	Float3 inGameCamRot = Float3{ MMath::ToRadians(30.0f), 0.0f, 0.0f };
 
-	void PlayTitleToPlay(float duration) {
+	void CameraToPlay(float duration) {
 
 		auto arm = this->GetWorld()->GetActiveCameraArm();
 		auto currOffset = arm->LocalOffset;
@@ -98,13 +111,29 @@ public:
 			mainTitle->SetOpacityHierarchy(1.0f - nt);
 			};
 
+	} 
+
+
+	void OnStartPlay(float duration) {
+		auto world = this->GetWorld();
+		auto pc = world->GetFirstPlayerController();
+
+		auto arm = this->GetWorld()->GetActiveCameraArm();
+		arm->LocalOffset = inGameCamOff;
+		arm->LocalRotationEuler = inGameCamRot;
+
+		auto countDownAnim = Anim::WaitFor(duration);
+		countDownAnim->onComplete = [=] {
+			pc->SetInputMode(EInputMode::None);
+			this->timeCount = 0.0f;
+			startGame = true;
+			};
+		countDownAnim->onApply = [=](float nt) {
+			pc->SetInputMode(EInputMode::UIOnly);
+			countDown = 3.0f - 3.0f * nt;
+			std::cout << "count down: " << countDown << '\n';
+			};
 	}
 
-
-	void OnEnterPlay() {
-
-
-
-	}
-
+	bool paused{ false }; 
 };

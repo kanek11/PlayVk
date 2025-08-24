@@ -12,6 +12,8 @@ namespace Gameplay {
     class UShapeComponent : public UPrimitiveComponent {
     public:
         UShapeComponent();
+		virtual ~UShapeComponent() = default;
+
         virtual void OnRegister() override;
 
         virtual void EndPlay();
@@ -37,6 +39,9 @@ namespace Gameplay {
 
         void SetCollisionEnabled(bool bEnabled) { collider->bEnabled = bEnabled; }
         bool IsCollisionEnabled() const { return collider->bEnabled; }
+
+    protected:
+        void UploadStateToPhysics();
 
     protected:
         Float4 m_shapeColor = { 1,1,1,0.5f };

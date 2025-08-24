@@ -225,12 +225,21 @@ public:
 	void SetShape(ActorId owner, ShapeType shape);
 	void SetColliderShape(ActorId owner, ShapeType shape);
 
-	void ClearRigidBody() {
+	void ClearRigidBodySync() {
 		m_bodies.clear();
+		m_transformBuffer.Clear();
+		//m_commandBuffer.Enqueue([=]() {
+		//	m_bodies.clear();
+		//	m_transformBuffer.Clear();
+		//	}); 
 	}
 
-	void ClearCollider() {
+	void ClearColliderSync() {
 		m_colliders.clear();
+
+		//m_commandBuffer.Enqueue([=]() {
+		//	m_colliders.clear();
+		//	}); 
 	}
 
 private:
@@ -280,12 +289,11 @@ public:
 		return m_transformBuffer.GetReadBuffer();
 	}
 
-	void SetPosition(ActorId handle, const Float3& position);
-	void SetRotation(ActorId handle, const DirectX::XMVECTOR& rotation);
+	void SetPosition(ActorId handle,Float3 position);
+	void SetRotation(ActorId handle,DirectX::XMVECTOR rotation);
 
-	void ClearBuffer() {
-		m_commandBuffer.Clear();
-		m_transformBuffer.Clear();
+	void ClearBufferSync() {
+		m_commandBuffer.Clear(); 
 	}
 
 private:
