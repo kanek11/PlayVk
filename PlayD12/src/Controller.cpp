@@ -9,6 +9,7 @@ void GamepadInput::Update()
         XINPUT_STATE state{};
         DWORD result = XInputGetState(i, &state);
         auto& pad = m_states[i];
+		pad.prevButtons = pad.buttons;   
 
 		pad.connected = (result == ERROR_SUCCESS);
         if (!pad.connected)

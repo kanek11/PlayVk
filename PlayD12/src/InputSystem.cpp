@@ -108,7 +108,7 @@ void InputSystem::OnUpdate()
             if (IsKeyJustPressed(bind.key)) {
                 actionState = true;
             }
-            if (m_gamepad.GetButtonState(bind.gamepadButton)) {
+            if (m_gamepad.IsButtonPressed(bind.gamepadButton)) {
                 actionState = true;
             }
         }
