@@ -16,6 +16,7 @@ enum class EPlayerForm {
 	Normal,
 	MetalBall,
 	IceCube,
+	Clone,
 };
 
 struct FFormState {
@@ -24,8 +25,17 @@ struct FFormState {
 	ShapeType shape;
 	PhysicalMaterial physMaterial;
 	float mass{ 1.0f };
+	float linearDamping = 1.0f;
+	float angularDamping = 0.999f;
+	float compliance = 0.000001f;
 	//
-	InputBehavior inputCb;
+	InputBehavior inputCb; 
+	std::function<void()> onEnterTranMat;
+	std::function<void()> onEnter; 
+
+	std::function<void()> onExit;
+
+	std::function<void(float)> duringTran;
 };
  
 

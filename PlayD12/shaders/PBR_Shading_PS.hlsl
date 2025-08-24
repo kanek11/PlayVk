@@ -36,6 +36,7 @@ float4 PSMain(VSOutput input) : SV_Target0
     float4 alb_ao = rt0_albedo_ao.Sample(pointWrapSampler, uv);
     float4 norm_rough = rt1_normal_rough.Sample(pointWrapSampler, uv);
     float4 pos_metal = rt2_position_metallic.Sample(pointWrapSampler, uv);
+    float4 emission = rt3_emission.Sample(pointWrapSampler, uv);
 
     float3 albedo = alb_ao.rgb;
     float ao = alb_ao.a;
@@ -109,6 +110,10 @@ float4 PSMain(VSOutput input) : SV_Target0
     //color = diffuseIrradiance;
     //color += (kD * diffuseEnv  );
     //color = 3 * specularEnv;
+    
+    //new: 
+    if(emission.a > 0.1f)
+    color += emission.xyz; 
     
     
     //UVToViewDir(uv);

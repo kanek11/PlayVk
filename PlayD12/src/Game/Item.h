@@ -6,7 +6,7 @@
 
 /*
 * quick convention;
-* items are tagged as item;  
+* items are tagged as item;
 
 */
 
@@ -35,7 +35,7 @@ public:
 
 	virtual FAbilityPayload GetPlayload() override {
 		return payload;
-	} 
+	}
 };
 
 
@@ -49,7 +49,20 @@ public:
 	virtual FAbilityPayload GetPlayload() override {
 		return payload;
 	}
-}; 
+};
+
+
+class ACloneItem : public AItem {
+public:
+	ACloneItem();
+
+	//virtual void BeginPlay() override;
+	//virtual void OnTick(float delta) override;
+
+	virtual FAbilityPayload GetPlayload() override {
+		return payload;
+	}
+};
 
 
 class ATriggerVolume : public AStaticMeshActor {
@@ -70,5 +83,5 @@ public:
 	void SetRotationSpeed(float speed) { rotationSpeed = speed; }
 
 private:
-	float rotationSpeed{ 10.0f }; 
+	float rotationSpeed{ 10.0f };
 };

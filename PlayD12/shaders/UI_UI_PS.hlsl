@@ -4,7 +4,7 @@
 cbuffer UISettingsCB : register(b0)
 {
     int useTexture;
-    float padding[63];
+    float opacity; 
 }
  
 struct VSOutput
@@ -22,22 +22,13 @@ float4 PSMain(VSOutput input) : SV_TARGET
     if(useTexture > 0)
     {
         float4 texColor = baseColorMap.Sample(pointClampSampler, input.texCoord).rgba;
-     
-        if (texColor.r <= 0.0f)
-        {
-            texColor.a = 0.0f;
-
-        }
-        return float4(texColor);
+ 
+        float3 color = texColor.xyz * input.color.xyz;
+        float alpha = texColor.a * input.color.a * opacity;
+        return float4(color, alpha);
     }
     else
     {
-        return float4(input.color);
-    }
-    
-    
-    
-    //return float4(texColor, texColor, texColor, 1.0f);
-    //return float4(input.texCoord.x, input.texCoord.y, 0.0f, 1.0f);
-    //
+        return float4(input.color.xyz, input.color.a * opacity);
+    } 
 }

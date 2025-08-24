@@ -67,8 +67,17 @@ namespace Gameplay {
         actor->level = this;
 
         //this should come after the level registery;
-        actor->RegisterAllComponents();
+        actor->OnRegister();
         actors.push_back(actor);
+    }
+
+    void ULevel::AddActorPending(SharedPtr<AActor> actor)
+    {
+        actor->level = this;
+
+        //this should come after the level registery;
+        //actor->RegisterAllComponents();
+        //pendingActors.push_back(actor);
     }
 
 

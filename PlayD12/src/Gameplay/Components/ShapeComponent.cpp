@@ -18,18 +18,23 @@ namespace Gameplay {
     {
         UPrimitiveComponent::OnRegister();
 
-        std::cout << " sphere shape on register\n";
+        std::cout << " shape on register\n";
 
         auto owningWorld = this->GetWorld();
         auto id = this->id;
         auto rb = this->rigidBody.get();
-        rb->SetShape(shape);
+        //rb->SetShape(shape);
 
-        collider->SetShape(shape);
+        //collider->SetShape(shape);
         collider->SetIsTrigger(this->bIsTrigger);
 
         owningWorld->physicsScene->AddRigidBody(rb, id);
         owningWorld->physicsScene->AddCollider(collider.get(), id);
+
+        owningWorld->physicsScene->SetShape(id, shape);
+
+        owningWorld->physicsScene->SetPosition(id, this->GetWorldPosition());
+        owningWorld->physicsScene->SetRotation(id, this->GetWorldRotation());
     }
 
     void UShapeComponent::EndPlay()
@@ -53,16 +58,36 @@ namespace Gameplay {
         //for now, this means the setshape is called before registery which is not wrong;
         //if invoke after registry, then it set back to physics scene auto;
         auto owningWorld = this->GetWorld();
-        if (!owningWorld) return;
+        if (!owningWorld) {
+            std::cout << "owning world not set; could be unexpected?" << '\n';
+            return;
+        }
         auto id = this->id;
         auto rb = this->rigidBody.get();
-        rb->SetShape(shape);
+  /*      rb->SetShape(shape);
 
-        collider->SetShape(shape);
+        collider->SetShape(shape);*/
 
         owningWorld->physicsScene->AddRigidBody(rb, id);
         owningWorld->physicsScene->AddCollider(collider.get(), id);
 
+        owningWorld->physicsScene->SetShape(id, shape);
+
+        owningWorld->physicsScene->SetPosition(id, this->GetWorldPosition());
+        owningWorld->physicsScene->SetRotation(id, this->GetWorldRotation());
+
+    }
+
+    void UShapeComponent::SetColliderShape(const ShapeType& shape)
+    {
+        auto owningWorld = this->GetWorld();
+        if (!owningWorld) {
+            std::cout << "owning world not set; could be unexpected?" << '\n';
+            return;
+        }
+        auto id = this->id;   
+
+        owningWorld->physicsScene->SetColliderShape(id, shape);
     }
 
 

@@ -42,7 +42,7 @@ namespace Gameplay {
         //bool IsSelected() const;
 
         //void SetRenderLayer(int layer);
-        //int  GetRenderLayer() const;
+        //int  GetRenderLayer() const;  
 
     protected:
         bool bVisible{ true };
@@ -59,6 +59,8 @@ namespace Gameplay {
         FPrimitiveComponentId id{};
 
         OverlapEvent onOverlap;
+
+        FDelegate<void()> onPrePhysicsEvents;
     };
 
 }

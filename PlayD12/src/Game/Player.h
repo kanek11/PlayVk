@@ -10,6 +10,10 @@
 
 #include "Ability.h"
 
+#include "Math/GenericUtils.h"
+
+#include "Gameplay/Actors/StaticMeshActor.h"
+
 using namespace Gameplay;
 
 
@@ -18,6 +22,7 @@ struct FPlayerState {
 	float speed;
 	float accel;
 
+	EPlayerForm currForm;
 	std::unordered_map<EPlayerForm, FAbilityRuntime> abilitiesRT;
 };
 
@@ -32,10 +37,13 @@ public:
 
 	virtual void OnTick(float delta) override;
 
-
+	virtual void OnRegister();
 
 private: 
 	void RequestTransitForm(EPlayerForm form);
+	void TransitForm(EPlayerForm form);
+
+	void DuringFormTransition(float nt, float startSize);
 
 
 	void TickPlayingPersistent(float delta);
@@ -43,6 +51,8 @@ private:
 	void NormalStateBehavior(float delta);
 	void MetalStateBehavior(float delta);
 	void IceStateBehavior(float delta);
+
+	void CloneStateBehavior(float delta);
 
 private:
 	void OnOverlapItem(AActor* other);
@@ -66,4 +76,29 @@ public:
 
 	//todo : define elsewhere?
 	std::unordered_map<EPlayerForm, FFormState> playerForms;
+
+
+public:
+	BoolEdgeDetector EDGrounded{}; 
+	bool bGroundedThisFrame{ false };
+
+	void RegisterPhysicsHooks();
+
+public:
+	float playerOGR = 1.0f;
+	float playerShrinkR = 0.3f;
+	float particleR = 0.1f;
+	std::vector<Float3> particlePos;
+	std::vector<SharedPtr<AStaticMeshActor>> particleActors;
+
+	void SpawnParticles();
+	void ShowParticles();
+	void HideParticles();
+
+	void MoveParticles(float nt);
+
+
+	float emitDuration = 0.5f;
+
+	float bDuringTransition{ false };
 };

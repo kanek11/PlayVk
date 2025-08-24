@@ -11,7 +11,7 @@ struct VSInput
     float4 Color : COLOR;
     float3 Offset : INSTANCE_OFFSET;
 };
-
+ 
 
 struct VSOutput
 {
@@ -28,6 +28,7 @@ struct GBufferOutput
     float4 rt0_albedo_ao : SV_Target0; //R8G8B8A8_UNORM
     float4 rt1_normal_rough : SV_Target1; //R16G16B16A16_FLOAT
     float4 rt2_position_metallic : SV_Target2; //R16G16B16A16_FLOAT
+    float4 rt3_emission : SV_Target3; //R16G16B16A16_FLOAT
 };
 
 #endif

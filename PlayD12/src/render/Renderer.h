@@ -29,6 +29,9 @@
 #include "SceneViewProxy.h"
 
 
+#include "ProcTex.h"
+
+
 //todo: is there any cases the renderer might access a dangling ptr?
 
 //todo: generic untyped std::function is not opt for perf.; but trivial to implement;
@@ -64,7 +67,7 @@ private:
     std::mutex m_mutex;
 };
 
- 
+
 
 constexpr size_t MaxUIBatch = 128;
 constexpr size_t MaxStaticMesh = 512;
@@ -295,8 +298,8 @@ public:
 
     void AddQuad(const FQuadDesc& desc);
 
-    void AddQuad(const FRect& rect, const Float4& color);
-    void AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR);
+    void AddQuadBack(const FRect& rect, const Float3& color, float opacity, std::optional<std::string> tex = std::nullopt);
+    void AddQuadChar(const FRect& rect, const Float3& color, float opacity, const Float2& uvTL, const Float2& uvBR);
 
     void ClearUI()
     {
@@ -334,13 +337,13 @@ public:
 
     FrameDataContext* m_frame = new FrameDataContext{};
     RenderGraphContext* m_graph = new RenderGraphContext();
-      
-public:
-    DebugMesh::PassContext debugMeshCtx; 
 
 public:
-	DebugDraw::PassContext debugRayCtx;
-	void AddLine(const DebugDraw::Vertex& vert0, const DebugDraw::Vertex& vert1);
+    DebugMesh::PassContext debugMeshCtx;
+
+public:
+    DebugDraw::PassContext debugRayCtx;
+    void AddLine(const DebugDraw::Vertex& vert0, const DebugDraw::Vertex& vert1);
     void ClearDebugDraw()
     {
         cmdBuffer.Enqueue([=] {
@@ -348,12 +351,12 @@ public:
             });
     }
 
-	void AddDebugMesh(const FStaticMeshProxy& proxy)
-	{
-		cmdBuffer.Enqueue([=] {
-			debugRayCtx.debugMeshes.push_back(proxy);
-			});
-	}
+    void AddDebugMesh(const FStaticMeshProxy& proxy)
+    {
+        cmdBuffer.Enqueue([=] {
+            debugRayCtx.debugMeshes.push_back(proxy);
+            });
+    }
 
 private:
 
@@ -364,5 +367,9 @@ private:
 
 
 public:
-    void UploadTexture(std::vector<FUploadJob> tasks); 
+    void UploadTexture(std::vector<FUploadJob> tasks);
+
+
+public:
+    SharedPtr<FDynamicTex> playerTex = CreateShared<FPlayerTex>();
 };

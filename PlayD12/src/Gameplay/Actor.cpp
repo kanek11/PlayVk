@@ -13,6 +13,11 @@ namespace Gameplay
         m_components.push_back(component);
     }
 
+    void AActor::OnRegister()
+    { 
+        this->RegisterAllComponents();
+    }
+
     void AActor::RegisterAllComponents()
     {
         for (auto& component : m_components)
@@ -33,7 +38,7 @@ namespace Gameplay
     {
         for (auto& component : m_components)
         {
-        	component->BeginPlay();
+            component->BeginPlay();
         }
     }
 
@@ -41,16 +46,16 @@ namespace Gameplay
     {
         for (auto& component : m_components)
         {
-        	component->EndPlay();
+            component->EndPlay();
         }
     }
 
-	//bug fix: avoid using getworld on constructor;
+    //bug fix: avoid using getworld on constructor;
     UWorld* AActor::GetWorld() const
     {
-		assert(level!=nullptr );  //we can hardly justify cases where actor can't find its owner;
-		assert(level->owningWorld != nullptr);
+        assert(level != nullptr);  //we can hardly justify cases where actor can't find its owner;
+        assert(level->owningWorld != nullptr);
         return level ? level->owningWorld : nullptr;
-    } 
+    }
 
-} 
+}

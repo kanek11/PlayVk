@@ -49,26 +49,17 @@ void D3D12HelloRenderer::SubmitCamera(const FSceneView& sceneView)
 // Update frame-based values.  make sure comes before OnRender;
 void D3D12HelloRenderer::OnUpdate(float delta)
 {
-    this->ConsumeCmdBuffer();
-
-    //SceneCB sceneCBData = {};
-    //if (this->mainCamera) {
-
-    //    sceneCBData.pvMatrix = mainCamera->pvMatrix;
-    //    sceneCBData.invProj = mainCamera->invProjMatrix;
-    //    sceneCBData.invView = mainCamera->invViewMatrix;
-    //    sceneCBData.cameraPos = mainCamera->position;
-    //}
-    //else {
-    //    std::cerr << "no valid camera" << std::endl;
-    //}
+    
+    this->ConsumeCmdBuffer(); 
 
     //new:
+    auto timeSystem = GameApplication::GetInstance()->GetTimeSystem();
     sceneCBData.OnTick();
+    sceneCBData.time = timeSystem->GetTimeInfo().engineTime;
     sceneCBData.deltaTime = delta;
     sceneCBData.viewportSize = { (float)m_width, (float)m_height };
     //this->sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
-    
+
     this->sceneCB->UploadDataStructured(&sceneCBData);
 
     auto frameData = Render::frameContext;
@@ -79,16 +70,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
     frameData->currentRTV = m_presentBindings.rtvs[m_frameIndex];
 
     frameData->sceneCB = this->sceneCB.get();
-
-    //if (mainCamera) {
-    //    DebugDraw::Get().OnUpdate(delta, mainCamera->pvMatrix); 
-
-    //}
-    //else
-    //{
-    //    //std::cout << "no camera" << '\n';
-    //} 
-
+     
 }
 
 
@@ -112,7 +94,7 @@ void D3D12HelloRenderer::OnInit()
         .rtvHeapAllocator = this->m_rtvHeapAllocator,
 
     };
-     
+
 
     //after system;
     LoadSystemResources();
@@ -125,19 +107,20 @@ void D3D12HelloRenderer::OnInit()
     InitGBuffers();
 
     Render::frameContext = m_frame;
-     
+
     Render::graphContext = m_graph;
 
     m_graph->shadowMapWidth = m_shadowMapWidth;
     m_graph->shadowMapHeight = m_shadowMapHeight;
     m_graph->shadowMap = m_shadowMap;
-    m_graph->loadedTextures = this->loadTextures; 
+    m_graph->loadedTextures = this->loadTextures;
 
     //for valid atlas
     UI::Init(Render::rendererContext, uiPassCtx);
 
 
 
+    //after graph ctx:
     DebugMesh::Init(Render::rendererContext, debugMeshCtx);
 
     Shadow::Init(Render::rendererContext, shadowPassCtx);
@@ -150,6 +133,9 @@ void D3D12HelloRenderer::OnInit()
     //DebugDraw::Get().Init(Render::rendererContext);   
 
     InitEnvMap();
+
+
+    playerTex->Init();
 
 }
 
@@ -171,8 +157,9 @@ void D3D12HelloRenderer::OnRender()
     UI::BeginFrame(uiPassCtx);
     Shadow::BeginFrame(shadowPassCtx);
     GBuffer::BeginFrame(gbufferPassCtx);
-    PBR::BeginFrame(pbrShadingCtx); 
+    PBR::BeginFrame(pbrShadingCtx);
 
+    playerTex->Dispatch();
 
     //rg->Execute(m_commandList.Get());
 
@@ -189,18 +176,18 @@ void D3D12HelloRenderer::OnRender()
     GBuffer::FlushAndRender(m_commandList.Get(), gbufferPassCtx);
 
     EndGBufferPass(m_commandList.Get());
-    
+
 
     //
-    BeginPresentPass(m_commandList.Get()); 
-     
+    BeginPresentPass(m_commandList.Get());
+
     PBR::FlushAndRender(m_commandList.Get(), pbrShadingCtx);
 
     UI::FlushAndRender(m_commandList.Get(), uiPassCtx);
 
     DebugMesh::FlushAndRender(m_commandList.Get(), debugMeshCtx);
 
-	DebugDraw::FlushAndRender(m_commandList.Get(), debugRayCtx);
+    DebugDraw::FlushAndRender(m_commandList.Get(), debugRayCtx);
     //DebugDraw::Get().FlushAndRender(m_commandList.Get());  
 
     EndPresentPass(m_commandList.Get());
@@ -216,7 +203,7 @@ void D3D12HelloRenderer::OnRender()
     PBR::EndFrame(pbrShadingCtx);
 
     DebugMesh::EndFrame(debugMeshCtx);
-	DebugDraw::EndFrame(debugRayCtx);
+    DebugDraw::EndFrame(debugRayCtx);
 }
 
 
@@ -403,7 +390,7 @@ void D3D12HelloRenderer::LoadSystemResources()
 
 
         this->sceneCB = CreateShared<FD3D12Buffer>(m_device.Get(), FBufferDesc{
-    .SizeInBytes = sizeof(SceneCB), 
+    .SizeInBytes = sizeof(SceneCB),
     .Usage = EBufferUsage::Upload | EBufferUsage::Constant
             });
 
@@ -632,10 +619,10 @@ void D3D12HelloRenderer::EndFrame()
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     // Present the frame.
-    ThrowIfFailed(m_swapChain->Present(1, 0));
+    //ThrowIfFailed(m_swapChain->Present(1, 0));
 
     //donot use vsync
-    //ThrowIfFailed(m_swapChain->Present(0, 0));
+    ThrowIfFailed(m_swapChain->Present(0, 0));
 
     WaitForPreviousFrame();
 
@@ -691,7 +678,7 @@ void D3D12HelloRenderer::BeginPresentPass(ID3D12GraphicsCommandList* commandList
     else {
         std::cerr << "GBuffer pass: DSV is not set!" << std::endl;
     }
-     
+
     auto viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(m_width), static_cast<float>(m_height));
     auto scissorRect = CD3DX12_RECT(0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height));
 
@@ -866,10 +853,12 @@ std::vector<UINT8> D3D12HelloRenderer::GenerateCheckerboardData()
 void D3D12HelloRenderer::SubmitMesh(const FStaticMeshProxy& proxy)
 {
     cmdBuffer.Enqueue([=] {
-        if(!proxy.material->transparent)
-        m_frame->staticMeshes.push_back(proxy);
+        assert(proxy.material != nullptr);
+        if(proxy.material)
+        if (!proxy.material->transparent)
+            m_frame->staticMeshes.push_back(proxy);
         else
-        m_frame->transparentMeshes.push_back(proxy);
+            m_frame->transparentMeshes.push_back(proxy);
         });
 }
 
@@ -903,29 +892,39 @@ void D3D12HelloRenderer::AddQuad(const FQuadDesc& desc)
         });
 }
 
-void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float4& color)
+void D3D12HelloRenderer::AddQuadBack(const FRect& rect, 
+    const Float3& color, 
+    float opacity,
+    std::optional<std::string> tex
+)
 {
     //delegate to  
     FQuadDesc desc = {
         .rect = rect,
         .uvTL = Float2(0.0f, 0.0f), 
-        .uvBR = Float2(1.0f, 1.0f), 
+        .uvBR = Float2(1.0f, 1.0f),
         .color = color,
-        .useAtlas = false,
+        .opacity = opacity,
+        .useTexture = tex.has_value(),
+        .texName = tex.value_or("")
     };
     AddQuad(desc);
 
 }
 
-void D3D12HelloRenderer::AddQuad(const FRect& rect, const Float2& uvTL, const Float2& uvBR)
+void D3D12HelloRenderer::AddQuadChar(const FRect& rect, 
+    const Float3& color, float opacity,
+    const Float2& uvTL, const Float2& uvBR)
 {
     //delegate to
     FQuadDesc desc = {
         .rect = rect,
         .uvTL = uvTL,
         .uvBR = uvBR,
-        .color = Float4(1.0f, 1.0f, 1.0f, 1.0f),
-        .useAtlas = true,
+        .color = color,
+        .opacity = opacity,
+        .useTexture = true,
+        .texName = "ASCII_16x6.png",
     };
 
     AddQuad(desc);
@@ -1109,10 +1108,10 @@ void D3D12HelloRenderer::UploadTexture(std::vector<FUploadJob> tasks)
 
 void D3D12HelloRenderer::AddLine(const DebugDraw::Vertex& vert0, const DebugDraw::Vertex& vert1)
 {
-	cmdBuffer.Enqueue([=] {
-		debugRayCtx.data.vertices.push_back(vert0);
-		debugRayCtx.data.vertices.push_back(vert1);
-		});
+    cmdBuffer.Enqueue([=] {
+        debugRayCtx.data.vertices.push_back(vert0);
+        debugRayCtx.data.vertices.push_back(vert1);
+        });
 }
 
 

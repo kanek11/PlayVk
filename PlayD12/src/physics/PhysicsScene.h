@@ -14,27 +14,23 @@
 design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
 */
-struct SleepParams {
-	float vLinearThreshold = 0.03f;   //  m/s
-	float vAngularThreshold = 2.0f;    //  deg/s 
-
-	//a bit higher
-	float wakeVLinear = 0.05f;
-	float wakeVAngular = 4.0f;
-
-	int FramesRequired = 40;
-
-	// optional
-	float wakeImpulseThreshold = 0.5f;
-	float wakeForceThreshold = 5.0f;
-
-	// RMS lowpass; smaller means smoother, but slower to respond
-	float emaBeta = 0.2f;
-};
-
-
-
-
+//struct SleepParams {
+//	float vLinearThreshold = 0.03f;   //  m/s
+//	float vAngularThreshold = 2.0f;    //  deg/s 
+//
+//	//a bit higher
+//	float wakeVLinear = 0.05f;
+//	float wakeVAngular = 4.0f;
+//
+//	int FramesRequired = 40;
+//
+//	// optional
+//	float wakeImpulseThreshold = 0.5f;
+//	float wakeForceThreshold = 5.0f;
+//
+//	// RMS lowpass; smaller means smoother, but slower to respond
+//	float emaBeta = 0.2f;
+//};
 
 struct PhysicalMaterial {
 	float restitution;
@@ -51,9 +47,11 @@ struct RigidBody {
 	Float3 prevPos; //for previous
 	Float3 predPos; //for prediction
 
-	Float3 linearVelocity; 
-	Float3 force;  //accumulation in the frame; 
+	Float3 linearVelocity;
+	Float3 force;  //accumulation in the frame;  
 
+	//ref:  almost 0.000001f;  super elastic  0.001f
+	float compliance = 0.000001f;
 
 	float prevLinearSpeed{ 0.0f };
 	float linearAccel; //approx;
@@ -89,7 +87,7 @@ struct RigidBody {
 	void ApplyTorque(const Float3& torque) {
 		this->torque += torque;
 	}
-	 
+
 
 	void SetPosition(const Float3& position) {
 		this->position = position;
@@ -160,6 +158,7 @@ struct Collider {
 	ActorId actorId;
 	bool bIsTrigger{ false };
 	bool bEnabled{ true };
+	bool bNeedsEvent{ false };
 };
 
 struct Contact {
@@ -224,7 +223,7 @@ public:
 	void RemoveCollider(ActorId owner);
 
 	void SetShape(ActorId owner, ShapeType shape);
-
+	void SetColliderShape(ActorId owner, ShapeType shape);
 
 	void ClearRigidBody() {
 		m_bodies.clear();

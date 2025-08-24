@@ -15,18 +15,18 @@
 void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const BuildData& data, const GPUResources& res) noexcept
 {
     auto& frameData = Render::frameContext;
-     
+
     auto& shader = res.shader;
 
     cmdList->SetPipelineState(res.PSO.Get());
-    cmdList->SetGraphicsRootSignature(shader->GetRootSignature().Get()); 
+    cmdList->SetGraphicsRootSignature(shader->GetRootSignature().Get());
 
     shader->SetDescriptorHeap(cmdList);
     shader->SetSceneRootCBV(
         cmdList,
         frameData->sceneCB->GetRawResource()
     );
-     
+
     for (const auto& cmd : data.cmds)
     {
 
@@ -51,10 +51,10 @@ void Mesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const BuildData& d
 void Mesh::BeginFrame(BuildData& data, const GPUResources& res,
     const std::vector <FStaticMeshProxy>& proxies
 ) noexcept
-{ 
+{
     //auto& data = data;
 
-    auto& renderCtx = Render::rendererContext;  
+    auto& renderCtx = Render::rendererContext;
 
     auto& shader = res.shader;
 
@@ -66,7 +66,7 @@ void Mesh::BeginFrame(BuildData& data, const GPUResources& res,
 
     uint32_t currIndex{ 0 };
     for (auto& proxy : proxies) {
-         
+
         auto localHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
 
         auto instBV = instAllocator->Upload(proxy.instanceData, proxy.instanceCount);
@@ -90,12 +90,12 @@ void Mesh::BeginFrame(BuildData& data, const GPUResources& res,
         Mesh::DrawCmd cmd =
         {
             //.vbv = proxy.mesh->GetVertexBuffer()->GetVertexBufferView(),
-			.vbv = Buffer::MakeVBV(proxy.mesh->GetVertexBufferView()),
+            .vbv = Buffer::MakeVBV(proxy.mesh->GetVertexBufferView()),
 
             .topology = proxy.mesh->GetTopology(),
 
             //.ibv = proxy.mesh->GetIndexBuffer()->GetIndexBufferView(),
-			.ibv = Buffer::MakeIBV(proxy.mesh->GetIndexBufferView()),
+            .ibv = Buffer::MakeIBV(proxy.mesh->GetIndexBufferView()),
 
             .indexCount = proxy.mesh->GetIndexCount(),
 
@@ -107,11 +107,11 @@ void Mesh::BeginFrame(BuildData& data, const GPUResources& res,
         };
 
         data.cmds.push_back(cmd);
-		currIndex++;
+        currIndex++;
     }
 }
 
- 
+
 
 
 
@@ -124,7 +124,7 @@ void Mesh::EndFrame(PassContext& passCtx) noexcept
     passCtx.res.instanceBufferAllocator->Reset();
 }
 
- 
+
 
 //------------------------------
 void DebugMesh::Init(const RendererContext* ctx, PassContext& passCtx)
@@ -182,7 +182,7 @@ void DebugMesh::Init(const RendererContext* ctx, PassContext& passCtx)
 
 void DebugMesh::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
 {
-    Mesh::FlushAndRender(cmdList, passCtx.data, passCtx.res); 
+    Mesh::FlushAndRender(cmdList, passCtx.data, passCtx.res);
 }
 
 void DebugMesh::BeginFrame(PassContext& passCtx) noexcept
@@ -192,15 +192,15 @@ void DebugMesh::BeginFrame(PassContext& passCtx) noexcept
     auto& graphCtx = Render::graphContext;
 
     assert(frameCtx != nullptr && graphCtx != nullptr && renderCtx != nullptr);
-     
+
     Mesh::BeginFrame(passCtx.data, passCtx.res, frameCtx->transparentMeshes);
-     
+
 }
 
 void DebugMesh::EndFrame(PassContext& passCtx) noexcept
 {
     Mesh::EndFrame(passCtx);
-} 
+}
 
 
 
@@ -237,7 +237,7 @@ void Shadow::Init(const RendererContext* ctx, PassContext& passCtx)
         auto& pso = passCtx.res.PSO;
 
         // Assemble input layout for shadow pass.
-        auto inputDescs = InputLayoutBuilder::Build<StaticMeshVertex>(); 
+        auto inputDescs = InputLayoutBuilder::Build<StaticMeshVertex>();
         auto perInstanceDescs = InputLayoutBuilder::Build<InstanceData>(1, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1);
 
         inputDescs.insert(inputDescs.end(), perInstanceDescs.begin(), perInstanceDescs.end());
@@ -255,17 +255,17 @@ void Shadow::Init(const RendererContext* ctx, PassContext& passCtx)
 
 void Shadow::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
 {
-	Mesh::FlushAndRender(cmdList, passCtx.data, passCtx.res);
+    Mesh::FlushAndRender(cmdList, passCtx.data, passCtx.res);
 }
 
 void Shadow::BeginFrame(PassContext& passCtx) noexcept
-{ 
+{
     auto& renderCtx = Render::rendererContext;
     auto& frameCtx = Render::frameContext;
     auto& graphCtx = Render::graphContext;
 
-	assert(frameCtx != nullptr && graphCtx != nullptr && renderCtx != nullptr);
-  
+    assert(frameCtx != nullptr && graphCtx != nullptr && renderCtx != nullptr);
+
     Mesh::BeginFrame(passCtx.data, passCtx.res, frameCtx->staticMeshes);
 }
 
@@ -295,7 +295,7 @@ void GBuffer::Init(const RendererContext* ctx, PassContext& passCtx)
 
         ShaderPermutationKey key = {
          Materials::PBRMaterialDesc.shaderTag,
-		 Passes::GBufferPassDesc.passTag };
+         Passes::GBufferPassDesc.passTag };
 
         shader = ctx->shaderManager->GetOrLoad(key);
 
@@ -333,7 +333,7 @@ void GBuffer::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassConte
 }
 
 void GBuffer::BeginFrame(PassContext& passCtx) noexcept
-{ 
+{
 
     auto& renderCtx = Render::rendererContext;
     auto& frameCtx = Render::frameContext;
@@ -342,20 +342,21 @@ void GBuffer::BeginFrame(PassContext& passCtx) noexcept
     assert(frameCtx != nullptr && graphCtx != nullptr && renderCtx != nullptr);
 
 
-    Mesh::BeginFrame(passCtx.data, passCtx.res, frameCtx->staticMeshes  );
+    Mesh::BeginFrame(passCtx.data, passCtx.res, frameCtx->staticMeshes);
 
-    auto& shader = passCtx.res.shader; 
+    auto& shader = passCtx.res.shader;
 
     assert(passCtx.res.baseHeapOffset.has_value());
-    auto baseHeapOffset = passCtx.res.baseHeapOffset; 
- 
+    auto baseHeapOffset = passCtx.res.baseHeapOffset;
+
 
     uint32_t currIndex{ 0 };
     for (auto& proxy : frameCtx->staticMeshes) {
-         
+
         auto localHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
-  
-        Materials::PBRMaterialCB matParams = proxy.material->materialCB;
+
+        Materials::PBRMaterialCB matParams = proxy.material->materialCB; 
+
         auto matCBView = passCtx.matCBAllocator->Upload(&matParams);
         shader->SetCBV("MaterialCB", Buffer::MakeCBVDesc(matCBView), localHeapOffset);
 
@@ -368,11 +369,11 @@ void GBuffer::BeginFrame(PassContext& passCtx) noexcept
             }
             else
             {
-                std::cerr << "didn't find load tex:" << texName << std::endl;
-            } 
-        } 
+                //std::cerr << "didn't find load tex:" << texName << std::endl;
+            }
+        }
 
-		currIndex++;
+        currIndex++;
     }
 
 }

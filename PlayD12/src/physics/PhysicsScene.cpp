@@ -88,7 +88,7 @@ void PhysicsScene::ApplyExternalForce(float delta)
 void PhysicsScene::Integrate(float delta)
 {
 	for (auto& [actor, body] : m_bodies) {
-		if (!body->simulatePhysics) continue; 
+		if (!body->simulatePhysics) continue;
 
 		//std::cout << "integrate for rb: " << ToString(rb->force ) << '\n';
 		body->linearVelocity = body->linearVelocity + body->force / body->mass * delta;
@@ -159,7 +159,7 @@ void PhysicsScene::DetectCollisions()
 
 
 	std::vector<ColliderPair> pairs;
-	m_broadPhase.ComputePairs(ws, pairs); 
+	m_broadPhase.ComputePairs(ws, pairs);
 
 	//for (size_t i = 0; i < ws.size(); ++i)
 	//	for (size_t j = i + 1; j < ws.size(); ++j)
@@ -219,22 +219,38 @@ void PhysicsScene::SolveConstraints(float delta)
 	for (Contact& contact : m_contacts) {
 
 		DebugDraw::AddCube(contact.point, 0.02f);
-		//new:
-		if (contact.a->bIsTrigger || contact.b->bIsTrigger) {
+
+		//generate event
+		if (contact.a->bIsTrigger || contact.b->bIsTrigger
+			|| contact.a->bNeedsEvent || contact.b->bNeedsEvent) 
+		{ 
 			FCollisionEvent event = {
 				.a_ID = contact.a->actorId,
 				.b_ID = contact.b->actorId,
 				.contact = contact,
 			};
-			PhysicsEventQueue::Get().Push(event);
+			PhysicsEventQueue::Get().Push(event); 
+		}
+
+		//skip physics
+		if (contact.a->bIsTrigger || contact.b->bIsTrigger) {  
 			continue;
 		}
 
 		RigidBody* A = contact.a->body;
-		RigidBody* B = contact.b->body;
-
+		RigidBody* B = contact.b->body; 
+	 
 		//new: the architecture now assumes valid rigidbody;
 		assert(A != nullptr && B != nullptr);
+
+		if (!A->simulatePhysics && !B->simulatePhysics) {
+			continue;
+		}
+
+		//now:control complia
+		compliance = std::max(A->compliance, B->compliance);
+
+		//solver
 
 		Float3 posA = A->predPos;
 		Float3 posB = B->predPos;
@@ -243,7 +259,7 @@ void PhysicsScene::SolveConstraints(float delta)
 		Float3 rb = contact.point - (B->predPos);
 
 		float wA = generalizedInvMass(A, ra, contact.normal);
-		float wB = generalizedInvMass(B, rb, contact.normal); 
+		float wB = generalizedInvMass(B, rb, contact.normal);
 
 		float wSum = wA + wB;
 		//if (wSum == 0) continue;
@@ -251,7 +267,7 @@ void PhysicsScene::SolveConstraints(float delta)
 
 		//PBD: distance constraint C = l-l0 = l;
 		float C = contact.penetration;
-		if (C <= 0) {   
+		if (C <= 0) {
 			continue;
 		}
 
@@ -259,21 +275,11 @@ void PhysicsScene::SolveConstraints(float delta)
 
 		////band-aid tech: if C is small ,dial down compliance
 		if (C < 0.001f) {
-			compliance = 0.00001f; 
-		}  
-		else {
-			compliance = 0.001f;  
+			compliance = 0.00001f;
 		}
-
-		//dial up compliance if both shape is OBB:
-		std::visit([&](auto const& sa, auto const& sb)
-			{
-				using ShapeA = std::decay_t<decltype(sa)>;
-				using ShapeB = std::decay_t<decltype(sb)>;
-				if constexpr (std::is_same_v<ShapeA, Sphere> || std::is_same_v<ShapeB, Sphere>) {
-					compliance = 0.00001f;
-				} 
-			}, A->type, B->type);
+		else {
+			//compliance = 0.001f;
+		}
 
 
 		//if (C <= 0.01f ) continue;
@@ -299,7 +305,7 @@ void PhysicsScene::SolveConstraints(float delta)
 		Float3 corr = dLambda * N;
 		//apply correction to predicted positions:
 		if (A) A->predPos += corr * wA;
-		if (B) B->predPos -= corr * wB; 
+		if (B) B->predPos -= corr * wB;
 
 		if (Length(corr * wA / delta) > 10.0f || Length(corr * wB / delta) > 10.0f)
 		{
@@ -313,14 +319,14 @@ void PhysicsScene::SolveConstraints(float delta)
 			{
 				if (!rb || !rb->simulatePhysics || !rb->simulateRotation) return;
 
-		/*		if (std::abs(Dot(Normalize(r), Normalize(dir))) > 0.999f) {
-					std::cout << "\t singular angular correction?" << '\n';
-					return;
-				}*/
+				/*		if (std::abs(Dot(Normalize(r), Normalize(dir))) > 0.999f) {
+							std::cout << "\t singular angular correction?" << '\n';
+							return;
+						}*/
 				if (LengthSq(Vector3Cross(r, dir * sign)) < 1e-4f)
 				{
-	/*				std::cout << "\t singular angular correction?" << '\n';*/
-					/*return;*/
+					/*				std::cout << "\t singular angular correction?" << '\n';*/
+									/*return;*/
 				}
 
 				// dω = invI (r × Δp)
@@ -350,14 +356,14 @@ void PhysicsScene::PostPBD(float delta)
 	for (auto& [actor, body] : m_bodies) {
 		if (!body->simulatePhysics) continue;
 
-		body->position = body->predPos; 
-		body->linearVelocity = (body->predPos - body->prevPos) / delta;
+		body->position = body->predPos;
+		//body->linearVelocity = (body->predPos - body->prevPos) / delta;
 		//tryed idea: not really work
-		//Float3 fixVelocity = (body->predPos - body->prevPos) / delta;
-		//Float3 deltaV = fixVelocity - body->linearVelocity;
-		//body->linearVelocity += deltaV * 0.8f; //apply the delta to the velocity
+		Float3 fixedVelocity = (body->predPos - body->prevPos) / delta;
+		Float3 deltaV = fixedVelocity - body->linearVelocity;
+		body->linearVelocity += deltaV * 1.0f; //apply the delta to the velocity
 
-		 
+
 		if (!body->simulateRotation) continue; //skip if not enabled
 		body->rotation = body->predRot;
 
@@ -540,7 +546,7 @@ void PhysicsScene::VelocityPass(float delta)
 				r->angularVelocity += sign * (r->invWorldInertia *
 					Vector3Cross(rVec, imp));
 
-				};
+			};
 
 		applyImpulse(A, ra, impulse, +1.f);
 		applyImpulse(B, rb, impulse, -1.f);
@@ -674,13 +680,20 @@ void PhysicsScene::SetShape(ActorId owner, ShapeType shape)
 
 }
 
- 
+void PhysicsScene::SetColliderShape(ActorId owner, ShapeType shape)
+{
+	m_commandBuffer.Enqueue([=]() { 
+		this->m_colliders[owner]->SetShape(shape);
+		});
+}
+
+
 
 RigidBody::RigidBody()
 {
 	//localInertia = MakeInertiaTensor(type, mass);
 }
- 
+
 void BroadPhase::ComputePairs(std::vector<WorldShapeProxy>& ws, std::vector<ColliderPair>& out)
 {
 	out.clear();
@@ -702,5 +715,5 @@ void BroadPhase::ComputePairs(std::vector<WorldShapeProxy>& ws, std::vector<Coll
 				//std::cout << "BroadPhase: AABB overlap detected: " << i << " vs " << j << '\n';
 				out.emplace_back(ws[i].owner, ws[j].owner);
 			}
-		} 
+		}
 }

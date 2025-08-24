@@ -10,6 +10,9 @@
 
 #include "FSM.h"
 
+
+using namespace UI;
+
 //-------------------------
 UGameplayUI::UGameplayUI() : UIElement()
 {
@@ -44,9 +47,20 @@ void UPlayerHUD::Tick(float delta)
 
     {
         float currSpeed = playerState.speed;
-        speedHUD->text = std::format("vel:{:.1f}", currSpeed);
+        speedHUD->text = std::format("{:.1f} m/s", currSpeed);
 
-        accelHUD->text = std::format("acc:{:.1f}", std::clamp(playerState.accel,0.0f, 200.0f));
+        //accelHUD->text = std::format("acc:{:.1f}", std::clamp(playerState.accel,0.0f, 200.0f));
+    }
+
+
+    auto& ability = playerState.abilitiesRT;
+
+    int index{ 0 };
+    for (auto& hud : abilityRT) {
+
+        EPlayerForm form = static_cast<EPlayerForm>(index + 1);
+        hud->text = std::format("{:.1f}", ability.at(form).remaining);
+        index++;
     }
 
 
@@ -56,33 +70,79 @@ void UPlayerHUD::LateConstruct()
 {
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
+    float speedH = 0.1f;
     {
         //debugHUD1 = uiManager->CreateUIAsRoot<UIButton>();
-        speedHUD = CreateShared<UITextBlock>();
+        speedHUD = canvas->CreateUIAsChild<UITextBlock>();
 
-        FRect buttonRect = { 10, 20, 300, 50 };
-        speedHUD->SetLayout(buttonRect);
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(speedH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(1.0f - speedH);
+
+        style.policy = SizePolicy::AutoText;
+        style.alignment = Alignment::Center;
+
+        speedHUD->text = std::format("vel:{:.1f}", 0.0f);
+        speedHUD->SetLayoutStyle(style);
+
         speedHUD->name = "PlayerSpeed";
     }
 
 
-    {
-        //debugHUD1 = uiManager->CreateUIAsRoot<UIButton>();
-        accelHUD = CreateShared<UITextBlock>();
+    float iconW = 0.05f;
+    float abilityH = 0.05f;
 
-        FRect buttonRect = { 10, 20, 300, 50 };
-        buttonRect.y += 60;
-        accelHUD->SetLayout(buttonRect);
-        accelHUD->name = "PlayerAccel";
+
+    {
+        int index{ 0 };
+        for (auto& hud : abilityIcon) {
+
+            hud = canvas->CreateUIAsChild<UITextBlock>();
+            hud->backAlpha = { 1.0f,1.0f,1.0f,1.0f };
+            hud->backTex = "Checkerboard";
+            hud->text = "";
+
+            LayoutStyle style{};
+            style.width = UISize::Pc(iconW);
+            style.height = UISize::Pc(abilityH);
+            style.offsetX = UISize::Pc(0.0f);
+            style.offsetY = UISize::Pc(abilityH * index);
+
+            style.policy = SizePolicy::Fixed;
+            style.alignment = Alignment::Left;
+
+            hud->SetLayoutStyle(style);
+            index++;
+        }
     }
 
- 
 
-    //hierarchy
-    speedHUD->AttachTo(canvas.get()); 
-    accelHUD->AttachTo(canvas.get());
-    //FRect buttonRect2 = { 10, 200, 300, 50 };
-    //debugHUD3 = CreateShared<UIButton>(buttonRect2);
+    {
+        int index{ 0 };
+        for (auto& hud : abilityRT) {
+
+            hud = canvas->CreateUIAsChild<UITextBlock>();
+
+            LayoutStyle style{};
+            style.width = UISize::Pc(1.0f);
+            style.height = UISize::Pc(abilityH);
+            style.offsetX = UISize::Pc(iconW);
+            style.offsetY = UISize::Pc(abilityH * index);
+
+            style.policy = SizePolicy::AutoText;
+            style.alignment = Alignment::Left;
+
+            hud->text = "";
+            hud->SetLayoutStyle(style);
+            index++;
+        }
+    }
+
+
+
+
 }
 
 
@@ -101,34 +161,68 @@ void UMainTitleUI::LateConstruct()
 {
     auto gameState = GetWorld()->GetGameState<AGameState>();
 
-    {
-        FRect buttonRect = { 0, 0, 500, 50 };
-        FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
+    float titleH = 0.3f;
+    float buttonH = 0.1f;
+    float spacingH = 0.03f;
 
-        startButton = CreateShared<UITextBlock>();
-        startButton->SetLayout(centeredRect);
-        startButton->text = "Press To Enter";
+    {
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(titleH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(0);
+
+        style.policy = SizePolicy::AutoText;
+        //style.alignment = Alignment::Center;
+
+        titleHUD = canvas->CreateUIAsChild<UITextBlock>();  //CreateShared<UITextBlock>(); 
+        titleHUD->text = "Title";
+        titleHUD->SetLayoutStyle(style);
+        //titleHUD->AttachTo(canvas.get()); 
+    }
+
+
+    {
+
+        startButton = canvas->CreateUIAsChild<UIButton>();
+
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(titleH + spacingH);
+
+        style.policy = SizePolicy::AutoText;
+        //style.alignment = Alignment::Center;
+
+        startButton->text = "Enter";
+        startButton->SetLayoutStyle(style);
 
         startButton->OnClick.Add([=]() {
             std::cout << "click start" << '\n';
-            gameState->RequestTransitState(GameStateId::Playing);
+            float duration = 1.0f;
+            gameState->RequestTransitGameState(GameStateId::Playing, duration);
+            gameState->PlayTitleToPlay(duration);
             });
     }
 
 
     {
-        FRect buttonRect = { 0, 0, 500, 50 };
-        FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
-        centeredRect.y += 60;
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(titleH + buttonH + spacingH + spacingH);
 
-        quitButton = CreateShared<UITextBlock>();
-        quitButton->SetLayout(centeredRect);
+        style.policy = SizePolicy::AutoText;
+        //style.alignment = Alignment::Center;
+
+        quitButton = canvas->CreateUIAsChild<UIButton>();
+
         quitButton->text = "Quit";
+        quitButton->SetLayoutStyle(style);
+
     }
-
-
-    startButton->AttachTo(canvas.get());
-    quitButton->AttachTo(canvas.get());
 }
 
 
@@ -147,51 +241,71 @@ void UPauseMenu::LateConstruct()
 {
     auto gameState = GetWorld()->GetGameState<AGameState>();
 
+    float startY = 0.2f;
+    float buttonH = 0.1f;
+    float spacingH = 0.05f;
     {
-        FRect buttonRect = { 0, 0, 500, 50 };
-        FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(startY);
 
-        resumeButton = CreateShared<UITextBlock>();
-        resumeButton->SetLayout(centeredRect);
+        style.policy = SizePolicy::AutoText;
+        style.alignment = Alignment::Center;
+
+        resumeButton = canvas->CreateUIAsChild<UIButton>();
         resumeButton->text = "Resume";
 
+        resumeButton->SetLayoutStyle(style);
+
         resumeButton->OnClick.Add([=]() {
-            gameState->RequestTransitState(GameStateId::Playing);
+            gameState->RequestTransitGameState(GameStateId::Playing);
             });
     }
 
     {
-        FRect buttonRect = { 0, 0, 500, 50 };
-        FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
-        centeredRect.y += 60;
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(startY + spacingH + buttonH);
 
-        retryButton = CreateShared<UITextBlock>();
-        retryButton->SetLayout(centeredRect);
+        style.policy = SizePolicy::AutoText;
+        style.alignment = Alignment::Center;
+
+        retryButton = canvas->CreateUIAsChild<UIButton>();
+
         retryButton->text = "retry";
+        retryButton->SetLayoutStyle(style);
+
 
         retryButton->OnClick.Add([=]() {
             gameState->OnResetGameplay();
-            gameState->RequestTransitState(GameStateId::Playing);
+            gameState->RequestTransitGameState(GameStateId::Playing);
             });
     }
 
     {
-        FRect buttonRect = { 0, 0, 500, 50 };
-        FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
-        centeredRect.y += 60 * 2;
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(startY + spacingH + buttonH + spacingH + buttonH);
 
-        returnButton = CreateShared<UITextBlock>();
-        returnButton->SetLayout(centeredRect);
-        returnButton->text = "back to title";
+        style.policy = SizePolicy::AutoText;
+        style.alignment = Alignment::Center;
+
+        returnButton = canvas->CreateUIAsChild<UIButton>();
+
+        returnButton->text = "title";
+        returnButton->SetLayoutStyle(style);
+
 
         returnButton->OnClick.Add([=]() {
-            gameState->RequestTransitState(GameStateId::MainTitle);
+            gameState->RequestTransitGameState(GameStateId::MainTitle);
             });
     }
-
-    resumeButton->AttachTo(canvas.get());
-    retryButton->AttachTo(canvas.get());
-    returnButton->AttachTo(canvas.get());
 }
 
 
@@ -205,7 +319,15 @@ void UGoalingUI::Tick(float delta)
 {
     UGameplayUI::Tick(delta);
 
+    auto gameState = GetWorld()->GetGameState<AGameState>();
+    auto& playerState = gameState->PullPlayerState();
 
+    if (gameState->newRecord) {
+        newRecordButton->text = "new record!";
+    }
+    else {
+        newRecordButton->text = "";
+    }
 
 }
 
@@ -214,48 +336,71 @@ void UGoalingUI::LateConstruct()
 
     auto gameState = GetWorld()->GetGameState<AGameState>();
 
+    float startY = 0.3f;
+    float buttonH = 0.1f;
+    float spacingH = 0.05f;
     {
-        FRect buttonRect = { 0, 0, 500, 50 };
-        FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(0.1f);
 
-        recordButton = CreateShared<UITextBlock>();
-        recordButton->SetLayout(centeredRect);
+        newRecordButton = canvas->CreateUIAsChild<UITextBlock>();
+        newRecordButton->text = "";
+        newRecordButton->SetLayoutStyle(style);
+    }
+
+
+    {
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(startY);
+
+        recordButton = canvas->CreateUIAsChild<UIButton>();
+
         recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
+        recordButton->SetLayoutStyle(style);
 
     }
 
     {
-        FRect buttonRect = { 0, 0, 500, 50 };
-        FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
-        centeredRect.y += 60;
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(startY + spacingH + buttonH);
 
-        retryButton = CreateShared<UITextBlock>();
-        retryButton->SetLayout(centeredRect);
+        retryButton = canvas->CreateUIAsChild<UIButton>();
+
         retryButton->text = "retry";
+        retryButton->SetLayoutStyle(style);
 
         retryButton->OnClick.Add([=]() {
             gameState->OnResetGameplay();
-            gameState->RequestTransitState(GameStateId::Playing);
+            gameState->RequestTransitGameState(GameStateId::Playing);
             });
     }
 
     {
-        FRect buttonRect = { 0, 0, 500, 50 };
-        FRect centeredRect = CenterRect(canvas->GetLayout(), buttonRect);
-        centeredRect.y += 60 * 2;
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(buttonH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(startY + spacingH + buttonH + spacingH + buttonH);
 
-        returnButton = CreateShared<UITextBlock>();
-        returnButton->SetLayout(centeredRect);
-        returnButton->text = "back to title";
+        returnButton = canvas->CreateUIAsChild<UIButton>();
+        returnButton->text = "title";
+
+        returnButton->SetLayoutStyle(style);
+
 
         returnButton->OnClick.Add([=]() {
-            gameState->RequestTransitState(GameStateId::MainTitle);
+            gameState->RequestTransitGameState(GameStateId::MainTitle);
             });
     }
-
-    recordButton->AttachTo(canvas.get());
-    retryButton->AttachTo(canvas.get());
-    returnButton->AttachTo(canvas.get());
 }
 
 void UGoalingUI::OnRegister()
@@ -268,7 +413,7 @@ void UGoalingUI::OnRegister()
 
 
 //------------
-UGameStatsHUD::UGameStatsHUD():UGameplayUI()
+UGameStatsHUD::UGameStatsHUD() :UGameplayUI()
 {
 }
 
@@ -277,7 +422,16 @@ void UGameStatsHUD::Tick(float delta)
     UGameplayUI::Tick(delta);
     auto gameState = GetWorld()->GetGameState<AGameState>();
     {
-        timeHUD->text = std::format("t:{:.2f}", gameState->timeCount);
+        timeHUD->text = std::format("{:.2f}", gameState->timeCount);
+
+        if (!gameState->startGame && gameState->countDown >= 0) {
+
+            countDown->text = std::format("{:d}", static_cast<int>(std::ceil(gameState->countDown)));
+        }
+        else
+        {
+            countDown->text = "";
+        }
     }
 
 }
@@ -285,16 +439,42 @@ void UGameStatsHUD::Tick(float delta)
 void UGameStatsHUD::LateConstruct()
 {
 
-    {
-        timeHUD = CreateShared<UITextBlock>();
+    float timeH = 0.1f;
 
-        FRect buttonRect = { 10, 20, 300, 50 };
-        buttonRect.y = 720 - 50;
-        timeHUD->SetLayout(buttonRect);
+    {
+        timeHUD = canvas->CreateUIAsChild<UITextBlock>();
+
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(timeH);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(1 - timeH);
+
+        style.policy = SizePolicy::AutoText;
+        style.alignment = Alignment::Left;
+
         timeHUD->name = "Current Time";
+        timeHUD->text = std::format("{:.1f}m/s", 0.0f);
+        timeHUD->SetLayoutStyle(style);
     }
-     
-    timeHUD->AttachTo(canvas.get());
+
+    float countDownH = 0.2f;
+    {
+        countDown = canvas->CreateUIAsChild<UITextBlock>();
+
+        LayoutStyle style{};
+        style.width = UISize::Pc(1.0f);
+        style.height = UISize::Pc(0.2f);
+        style.offsetX = UISize::Pc(0);
+        style.offsetY = UISize::Pc(0.3f);
+
+        style.policy = SizePolicy::AutoText;
+        style.alignment = Alignment::Center;
+
+        countDown->name = "count down";
+        countDown->text = ""; //std::format("{:d}", 0);
+        countDown->SetLayoutStyle(style);
+    }
 
 
 }

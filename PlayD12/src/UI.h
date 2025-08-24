@@ -32,6 +32,12 @@ inline FRect CenterRect(const FRect& parentRect, const FRect& childRect) {
 	return FRect{ cornerX, cornerY, childRect.w, childRect.h };
 }
 
+
+inline void CenterRectX(FRect& childRect, const FRect& parentRect) {
+	childRect.x = (parentRect.w - childRect.w) / 2; 
+}
+
+
 inline Float2 ScreenToNDC(int x, int y, int screenWidth, int screenHeight) {
 	float ndcX = (2.0f * static_cast<float>(x + 0.5f) / static_cast<float>(screenWidth)) - 1.0f;
 	float ndcY = 1.0f - (2.0f * static_cast<float>(y + 0.5f) / static_cast<float>(screenHeight)); // Invert Y for top-left 
@@ -49,14 +55,14 @@ namespace UI {
 
 	enum class Alignment { Left, Center };
 
-	//percent of parent size;
+	//percent of parent size;  we just use 0~1 here.
 	enum class Unit { Pixel, Percent };
 
 	struct UISize {
 
 		//value is interpreted by unit
 		Unit unit{ Unit::Pixel };
-		float value{ 0.f }; 
+		float value{ 0.f };
 
 		//factory
 		static UISize Px(float v) { return { Unit::Pixel, v }; }
@@ -68,7 +74,7 @@ namespace UI {
 	struct Anchors { // 0~1 relative to parent;
 		float minX{ 0 }, minY{ 0 }, maxX{ 0 }, maxY{ 0 };
 
-		static Anchors TopLeft() { return { 0,0,0,0 }; }
+		//static Anchors TopLeft() { return { 0,0,0,0 }; }
 		static Anchors StretchAll() { return { 0,0,1,1 }; }
 	};
 
@@ -77,37 +83,37 @@ namespace UI {
 	struct UIMargins { int l = 0, t = 0, r = 0, b = 0; };
 
 	//drive the final screen space;
-	struct LayoutSpec { 
+	struct LayoutStyle {
 		UISize  width = UISize::Px(100);
 		UISize  height = UISize::Px(30);
-		
+
 		UISize  offsetX = UISize::Px(0);
 		UISize  offsetY = UISize::Px(0);
-		
+
 		//auto text override the current w, h;
-	    SizePolicy policy = SizePolicy::Fixed;
-		Anchors anchors = Anchors::TopLeft();
+		SizePolicy policy = SizePolicy::AutoText;
+		Anchors anchors = Anchors::StretchAll();
 		Alignment alignment = Alignment::Left;
 
 		UIMargins   margin{};
 		// pivot if needed..
 	};
-
-
-
+	 
+	[[nodiscard]]
 	inline int Eval(const UISize& l, int span) {
-		return 
-			(l.unit == Unit::Pixel) ? 
-			(int)l.value : 
+		return
+			(l.unit == Unit::Pixel) ?
+			(int)l.value :
 			(int)(l.value * span);
 	}
 
-	inline FRect ResolvePixelRect(LayoutSpec s, const FRect& parent) { 
+	[[nodiscard]]
+	inline FRect ResolvePixelRect(LayoutStyle s, const FRect& parent) {
 
 		if (s.alignment == Alignment::Center) {
 			float widthPc = s.width.unit == Unit::Percent ? s.width.value : s.width.value / parent.w;
-			s.offsetX = UISize::Pc(0.5f - widthPc * 0.5f);  
-		} 
+			s.offsetX = UISize::Pc(0.5f - widthPc * 0.5f);
+		}
 
 		//
 		int pxMin = parent.x + (int)(s.anchors.minX * parent.w);
@@ -123,7 +129,7 @@ namespace UI {
 	}
 
 }
- 
+
 
 //======================
 
@@ -143,9 +149,9 @@ using UIId = uint32_t;
 class UIElement {
 public:
 	UIElement();
-	virtual ~UIElement() = default; 
+	virtual ~UIElement() = default;
 
-	virtual void OnRegister() {}; 
+	virtual void OnRegister() {};
 
 	virtual void RenderBack() {};
 
@@ -153,10 +159,8 @@ public:
 		//a temp way to verify init:
 		assert(id != 0 && "ui id is not properly initialized");
 
-		//new:
-		if (style.has_value() && m_parent) {
-			layout = UI::ResolvePixelRect(style.value(), m_parent->GetLayout());
-		}
+		//new: 
+		this->ResolvePixelRect();
 
 		for (auto* child : m_children)
 		{
@@ -269,10 +273,23 @@ public:
 
 public:
 	Float3 baseColor = Color::White.xyz();
-	float opacity = 0.2f; 
+	Float4 backAlpha = { 0.1f, 0.1f, 0.1f, 0.1f };
+	float opacity = 1.0f;
 
-	std::string backgroundTex;
+	std::optional<std::string> backTex;
 
+	void SetOpacityHierarchy(float opacity) { 
+		//new: 
+		this->opacity = opacity;
+
+		for (auto* child : m_children)
+		{
+			child->SetOpacityHierarchy(opacity);
+		}
+	};
+
+
+public:
 	FDelegate<void()> OnClick;
 	FDelegate<void()> OnHoverEnter;
 	FDelegate<void()> OnHoverExit;
@@ -281,32 +298,36 @@ public:
 public:
 	void SetLayout(const FRect& rect) {
 		layout = rect;
-	} 
-	FRect GetLayout() {
-		assert(layout.has_value());
-		return layout.value();
 	}
-	std::optional<FRect> layout;
-
-
-	void SetLayout(const UI::LayoutSpec& layout) {
-		style = layout;
+	std::optional<FRect> GetLayout() { 
+		return layout;
 	}
-	UI::LayoutSpec GetLayout2() {
-		assert(style.has_value());
-		return style.value();
-	}
-	std::optional<UI::LayoutSpec> style;
+	std::optional<FRect> layout; 
 
+	void SetLayoutStyle(const UI::LayoutStyle& layoutStyle) {
+		style = layoutStyle;
+		this->ResolvePixelRect();
+	}
+
+	virtual void ResolvePixelRect() {
+
+		if (m_parent && m_parent->GetLayout().has_value())
+		layout = UI::ResolvePixelRect(style, m_parent->GetLayout().value());
+	}
+
+	UI::LayoutStyle GetLayoutStyle() {
+		return style;
+	}
+
+	UI::LayoutStyle style{};
 
 	std::string name = "UIElement"; 
-
 public:
 	UIId id{ 0 };
 	static std::atomic<uint32_t> GIdGenerator;
 };
- 
- 
+
+
 //todo: visible ,enable; blocking;
 class UITextBlock : public UIElement
 {
@@ -317,7 +338,7 @@ public:
 	virtual void RenderBack() override;
 	void RenderText();
 
-	void DeriveAutoText();
+	void ApplyAutoText();
 
 	virtual void Tick(float delta) override;
 
@@ -326,21 +347,27 @@ public:
 		return IsPointInRect(layout.value(), x, y);
 	}
 
+	virtual void ResolvePixelRect();
+
 	std::string text = "HELLO";
 };
 
 
 class UIButton : public UITextBlock {
 public:
-	UIButton() { 
+	UIButton() {
 		OnHoverEnter.Add([this]() {
-			baseColor = Color::Cyan.xyz();
+			backAlpha = { 0.5f, 0.0f, 0.5f, 0.0f };
+			//baseColor = Color::Cyan.xyz();
 			});
 
 		OnHoverExit.Add([this]() {
-			baseColor = Color::White.xyz();
+			//baseColor = Color::White.xyz();
+			backAlpha = { 0.0f, 0.0f, 0.0f, 0.0f };
 			});
-	} 
+		 
+		backAlpha = { 0.0f,0.0f, 0.0f, 0.0f };
+	}
 };
 
 
@@ -349,7 +376,15 @@ public:
 class UICanvasPanel : public UIElement {
 public:
 	UICanvasPanel();
-	virtual void Tick(float delta) override; 
+	virtual void Tick(float delta) override;
+
+
+	template<DerivedFrom<UIElement> T>
+	SharedPtr<T> CreateUIAsChild() {
+		auto ui = CreateShared<T>();
+		ui->AttachTo(this);
+		return ui;
+	}
 };
 
 
@@ -387,7 +422,7 @@ public:
 	void RegisterRootElement(UIElement* elem) {
 		if (elem) {
 			rootElements[elem->id] = elem;
-			elem->OnRegister(); 
+			elem->OnRegister();
 		}
 	}
 
@@ -442,4 +477,3 @@ private:
 
 
 };
-

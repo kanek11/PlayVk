@@ -28,6 +28,7 @@ GBufferOutput PSMain(VSOutput input)
     float metallic = GetMetallic(input.UV);
     float roughness = GetRoughness(input.UV);
     float ao = GetAO(input.UV);
+    float4 emission = GetEmissive(input.UV);
 
     
     // GBuffer packing:
@@ -37,6 +38,8 @@ GBufferOutput PSMain(VSOutput input)
     //output.rt1_normal_rough = float4(EncodeRGB(input.WorldNormal), roughness); // normal packed into [0,1]
     //output.rt1_normal_rough = float4(EncodeRGB(input.WorldTangent), roughness); // normal packed into [0,1]
     output.rt2_position_metallic = float4(input.WorldPos, metallic);
+    
+    output.rt3_emission = emission;
 
     return output;
 }

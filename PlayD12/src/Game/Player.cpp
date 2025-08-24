@@ -1,35 +1,167 @@
 #include "PCH.h"
 #include "Player.h"
 
-#include "Application.h"
-
-#include "Gameplay/Actors/StaticMeshActor.h"
+#include "Application.h" 
 
 #include "GameState.h"
 #include "Item.h"
 
+#include "Math/MMath.h"
+#include "Math/AnimUtils.h"
+
+
+void EmissionFadeIn(UMaterial* mat, float nt) {
+	mat->materialCB.useEmissiveMap = false;
+	mat->materialCB.emissiveColor = Color::White.xyz();
+
+	mat->materialCB.emissiveStrength = Anim::Easing::QuadInOut(nt);//Anim::Lerp(0.0f, 1.0f, nt);
+}
+
+void MaterialFadeOut(UMaterial* mat, float nt) {
+	mat->materialCB.useEmissiveMap = false;
+	mat->materialCB.emissiveColor = Color::White.xyz();
+
+	mat->materialCB.emissiveStrength = Anim::Easing::QuadInOut(1.0-nt);//Anim::Lerp(0.0f, 1.0f, nt);
+}
+
+
+
+void APlayer::DuringFormTransition(float nt, float startSize)
+{
+	//
+	float r = Anim::Lerp(startSize, playerOGR * 1.00f, nt);
+	//std::cout << "start:" << startSize << ", r" << r << '\n';
+	Sphere dummyShape = { r };
+
+
+	if (auto meshComp = this->GetComponent<UStaticMeshComponent>()) {
+		//meshComp->SetMesh(targetState.mesh);
+		//meshComp->SetMaterial(targetState.material);
+		//meshComp->SetRelativeScale(scale);
+	}
+
+	if (auto shapeComp = this->GetComponent<UShapeComponent>()) {
+		//this->RootComponent->SetRelativePosition(shapeComp->GetRelativePosition() + Float3{ 0.0f, 0.01f, 0.0f });
+		//this->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+		//this->RootComponent->UpdateWorldTransform();
+		////shapeComp->rigidBody->ClearRotation();
+		//shapeComp->rigidBody->SetPhysicalMaterial(targetState.physMaterial);
+
+		//shapeComp->rigidBody->linearDamping = 0.5f;
+		//shapeComp->rigidBody->angularDamping = targetState.angularDamping;
+
+		////new: set mass before reset shape;  for correct inertia
+		//shapeComp->rigidBody->SetMass(targetState.mass);
+
+		shapeComp->rigidBody->compliance = 0.0001f;
+
+		shapeComp->SetColliderShape(dummyShape);
+	}
+
+}
+
+
 
 void APlayer::RequestTransitForm(EPlayerForm targetForm)
-{
-	if (currForm == targetForm) return;
-	currForm = targetForm;
+{ 
+	if (currForm == targetForm) return;   
 
-	this->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+
+	assert(playerForms.contains(targetForm));
+	auto& targetState = playerForms.at(targetForm); 
+
+	this->bDuringTransition = true;
+
+	auto tween = Anim::WaitFor(emitDuration, [=] {
+		this->TransitForm(targetForm);  
+		this->bDuringTransition = false;
+		});
+
+	Float3 scale{};
+	std::visit(overloaded{
+	[this, &scale](Sphere& s) {
+			 scale = this->staticMeshComponent->GetRelativeScale();
+		},
+	[this, &scale](Box& s) {
+			 scale = this->staticMeshComponent->GetRelativeScale();
+		},
+		}, this->shapeComponent->shape);
+
+	float startSize = scale.x(); 
+
+	
+	auto& mat = this->staticMeshComponent->GetMaterial();
+ 
+	tween->onApply = [=](float nt) { 
+		if (playerForms.contains(currForm)) {
+			auto& ogState = playerForms.at(currForm);
+			if (ogState.duringTran) ogState.duringTran(nt);
+		}
+
+		EmissionFadeIn(mat.get(), nt); 
+		this->DuringFormTransition(nt, startSize);
+		};
+}
+
+void APlayer::TransitForm(EPlayerForm targetForm)
+{
+	//todo init undefined state is not 
+	if (playerForms.contains(currForm)) {
+		auto& ogState = playerForms.at(currForm);
+		if (ogState.onExit) ogState.onExit();
+	}
+	 
+	currForm = targetForm;  
 
 	assert(playerForms.contains(targetForm));
 	auto& targetState = playerForms.at(targetForm);
 
+
+	//====================
+	auto& mat = this->staticMeshComponent->GetMaterial();
+	//
+	auto tween = Anim::WaitFor(0.3f, [= , &targetState] {  
+		if(targetState.onEnterTranMat) targetState.onEnterTranMat();
+		});
+
+	tween->onApply = [=](float nt) {
+		MaterialFadeOut(mat.get(), nt);
+		}; 
+	//====================
+
+	if (targetState.onEnter) targetState.onEnter();
+
+	//========
+
+	 
+	Float3 scale{};
+	std::visit(overloaded{
+	[this, &scale](Sphere& s) { 
+			//Mesh::SetSphere(this, s.radius); 
+			scale = Float3(s.radius, s.radius, s.radius);
+		},
+	[this, &scale](Box& s) {
+			scale = Float3{ s.halfExtents.x(), s.halfExtents.y(), s.halfExtents.z()};
+		}, 
+		}, targetState.shape); 
+
+
 	if (auto meshComp = this->GetComponent<UStaticMeshComponent>()) {
-		meshComp->SetMesh(targetState.mesh);
+		meshComp->SetMesh(targetState.mesh); 
 		meshComp->SetMaterial(targetState.material);
+		meshComp->SetRelativeScale(scale);
 	}
 
 	if (auto shapeComp = this->GetComponent<UShapeComponent>()) {
-		this->RootComponent->SetRelativePosition(shapeComp->GetRelativePosition() + Float3{ 0.0f, 0.5f, 0.0f });
-		this->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
-		this->RootComponent->UpdateWorldTransform();
+		//this->RootComponent->SetRelativePosition(shapeComp->GetRelativePosition() + Float3{ 0.0f, 0.01f, 0.0f });
+		//this->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+		//this->RootComponent->UpdateWorldTransform();
 		//shapeComp->rigidBody->ClearRotation();
 		shapeComp->rigidBody->SetPhysicalMaterial(targetState.physMaterial);
+
+		shapeComp->rigidBody->linearDamping = targetState.linearDamping;
+		shapeComp->rigidBody->angularDamping = targetState.angularDamping;
+		shapeComp->rigidBody->compliance = targetState.compliance;
 
 		//new: set mass before reset shape;  for correct inertia
 		shapeComp->rigidBody->SetMass(targetState.mass);
@@ -41,6 +173,7 @@ void APlayer::RequestTransitForm(EPlayerForm targetForm)
 		this->InputComponent->BindBehavior(targetState.inputCb);
 	}
 }
+
 
  
 
@@ -68,84 +201,20 @@ APlayer::APlayer() : APawn()
 	this->SpringArmComponent->AttachTo(RootComponent.get());
 	this->CameraComponent->AttachTo(SpringArmComponent.get());
 
-	// 
+
+	//todo:hardcoded for now
+	//RootComponent->SetRelativeRotation(DirectX::XMQuaternionRotationRollPitchYaw(0, MMath::ToRadians(90.0f), 0)); 
+	//std::cout << "curr rotation:" << ToString(RootComponent->GetWorldRotation()) << '\n';
+	  
 	//update the world transform manually:
 	RootComponent->UpdateWorldTransform();
+
 }
 
 void APlayer::BeginPlay()
 { 
-	//
-	auto overlapCb = [=](AActor* other) {
-		std::cout << "player: overlap with tag: " << other->tag << '\n';
-		if(other->tag == "item")
-		this->OnOverlapItem(other);
-		};
+	this->RegisterPhysicsHooks();  
 
-	this->shapeComponent->onOverlap.Add(overlapCb);
-
-
-	{
-		FFormState form{};
-		form.mesh = CreateShared<SphereMesh>();
-		form.material = Materials::GetSnowSurface(); //CreateShared<UMaterial>(),
-		form.shape = Sphere{ 1.0f };
-		form.physMaterial = PhysicalMaterial{ 0.0f, 0.4f }; 
-		//FFormState form{};
-		//form.mesh = CreateShared<CubeMesh>();
-		//form.material = Materials::GetIron(); //CreateShared<UMaterial>(),
-		//form.shape = Box({ 1.0f ,1.0f, 1.0f });
-		//form.physMaterial = PhysicalMaterial{ 0.0f, 2.0f };
-
-		form.inputCb = [this](float delta) {
-			this->NormalStateBehavior(delta);
-			};
-
-		playerForms[EPlayerForm::Normal] = form;
-	}
-
-
-	//
-	{
-		FFormState form{};
-		form.mesh = CreateShared<SphereMesh>();
-		form.material = Materials::GetRustyIron(); //CreateShared<UMaterial>(),
-		form.shape = Sphere{ 1.0f };
-		form.physMaterial = PhysicalMaterial{ 0.0f, 1.0f }; 
-
-		form.inputCb = [this](float delta) {
-			this->MetalStateBehavior(delta);
-			}; 
-		
-		form.mass = 10.0f;
-
-		playerForms[EPlayerForm::MetalBall] = form;
-	}
-
-
-	{
-		FFormState form{};
-		form.mesh = CreateShared<CubeMesh>();
-		form.material = Materials::GetIceSurface(); //CreateShared<UMaterial>(),
-		form.shape = Box({ 1.0f ,1.0f, 1.0f });
-		form.physMaterial = PhysicalMaterial{ 0.0f, 0.0f }; 
-
-		form.inputCb = [this](float delta) {
-			this->IceStateBehavior(delta);
-			};
-
-		playerForms[EPlayerForm::IceCube] = form;
-	}
-
-
-	RequestTransitForm(EPlayerForm::Normal);
-
-
-	//todo: enum enumerator?
-
-	abilities[EPlayerForm::Normal] = FAbilityRuntime{};
-	abilities[EPlayerForm::IceCube] = FAbilityRuntime{};
-	abilities[EPlayerForm::MetalBall] = FAbilityRuntime{};
 }
 
 
@@ -165,14 +234,169 @@ void APlayer::OnTick(float delta)
 
 	//for (auto& [form, rt] : abilities) {
 	//	std::cout << "form remain:" << rt.remaining << '\n';
-	//}
+	//} 
+		
 }
 
-void APlayer::UploadPlayerState()
+void APlayer::OnRegister()
+{ 
+	APawn::OnRegister();
+	//bug fix: you don't modify actor list on being iterated, so we must modifiy the logic;
+	//this could be...antipattern
+
+		//
+	{
+		FFormState form{};
+		form.mesh = CreateShared<SphereMesh>();
+		form.material = Materials::AttachPlayer(Materials::GetPlayerMat());
+		form.shape = Sphere{ playerOGR };
+		form.physMaterial = PhysicalMaterial{ 0.0f, 0.4f };
+
+		form.compliance = 0.0001f;
+		//FFormState form{};
+		//form.mesh = CreateShared<CubeMesh>();
+		//form.material = Materials::GetIron(); //CreateShared<UMaterial>(),
+		//form.shape = Box({ 1.0f ,1.0f, 1.0f });
+		//form.physMaterial = PhysicalMaterial{ 0.0f, 2.0f };
+
+		form.inputCb = [this](float delta) {
+			this->NormalStateBehavior(delta);
+			}; 
+
+
+		form.onEnterTranMat = [this]() {
+
+			auto& mat = this->playerForms[EPlayerForm::Normal].material;
+			mat->materialCB.useEmissiveMap = true;
+			mat->materialCB.emissiveStrength = 1.0f; 
+
+			};
+		 
+
+		playerForms[EPlayerForm::Normal] = form;
+
+	}
+
+
+	//clone
+	{
+		auto& mat = this->playerForms[EPlayerForm::Normal].material; 
+
+		FFormState form{};
+		form.mesh = CreateShared<SphereMesh>();
+		form.material = mat; //Materials::AttachPlayer(Materials::GetPlayerMat());
+		form.shape = Sphere{ playerShrinkR };
+		form.physMaterial = PhysicalMaterial{ 0.0f, 0.4f };
+
+		form.compliance = 0.00001f;
+
+		form.inputCb = [this](float delta) {
+			this->CloneStateBehavior(delta);
+			};
+
+		form.onEnter = [this]() {
+			this->ShowParticles();
+			};
+
+		form.onExit = [this]() {
+			this->HideParticles();
+			};
+
+		form.duringTran = [this](float nt) {
+			this->MoveParticles(nt);
+			};
+
+		form.onEnterTranMat = [this]() {
+			auto& mat = this->playerForms[EPlayerForm::Clone].material;
+			mat->materialCB.useEmissiveMap = true;
+			mat->materialCB.emissiveStrength = 1.0f;
+			};
+
+		playerForms[EPlayerForm::Clone] = form;
+	}
+
+	//
+	{
+		FFormState form{};
+		form.mesh = CreateShared<SphereMesh>();
+		form.material = Materials::GetRustyIron();
+		form.shape = Sphere{ playerOGR };
+		form.physMaterial = PhysicalMaterial{ 0.0f, 1.0f };
+
+		form.compliance = 0.000001f;
+
+		form.inputCb = [this](float delta) {
+			this->MetalStateBehavior(delta);
+			};
+
+		form.mass = 10.0f;
+
+		playerForms[EPlayerForm::MetalBall] = form;
+	}
+
+
+	//ice
+	{
+		auto size = playerOGR / 1.3f;
+		FFormState form{};
+		form.mesh = CreateShared<CubeMesh>();
+		form.material = Materials::GetIceSurface();
+		form.shape = Box({ size ,size, size });
+		form.physMaterial = PhysicalMaterial{ 0.0f, 0.0f };
+		form.mass = 2.0f;
+		form.angularDamping = 0.98f;
+		form.compliance = 0.0001f;
+
+		form.inputCb = [this](float delta) {
+			this->IceStateBehavior(delta);
+			}; 
+
+		form.onEnter = [this]() {
+			this->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+			this->RootComponent->UpdateWorldTransform();
+			}; 
+
+		playerForms[EPlayerForm::IceCube] = form;
+	}
+	 
+	//immeidate
+	TransitForm(EPlayerForm::Normal);
+
+
+
+	//todo: enum enumerator?  
+	abilities[EPlayerForm::Normal] = FAbilityRuntime{};
+	abilities[EPlayerForm::IceCube] = FAbilityRuntime{};
+	abilities[EPlayerForm::MetalBall] = FAbilityRuntime{};
+	abilities[EPlayerForm::Clone] = FAbilityRuntime{};
+
+
+
+	//needed valid tex
+	this->SpawnParticles();
+
+	//this->ShowParticles();
+}
+
+void APlayer::UploadPlayerState() 
 {
-	playerState.speed = this->shapeComponent->rigidBody->prevLinearSpeed; 
+	//===========
+
+	EDGrounded.Update(bGroundedThisFrame);
+	if (EDGrounded.risingEdge) {
+		std::cout << "ground event" << '\n';
+	}
+	else if (EDGrounded.fallingEdge) {
+
+		std::cout << "jump event" << '\n';
+	}
+
+	//============
+	playerState.speed = Length(shapeComponent->rigidBody->linearVelocity);
 
 	playerState.accel = this->shapeComponent->rigidBody->linearAccel; 
+
+	playerState.currForm = this->currForm;
 
 	playerState.abilitiesRT = abilities; 
 
@@ -180,55 +404,111 @@ void APlayer::UploadPlayerState()
 	gameState->SetPlayerState(this->playerState);
 
 }
-
-
-
+ 
 
 
 void APlayer::TickPlayingPersistent(float delta)
 {
 	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+	 
+	if (!this->bDuringTransition) {
 
+		//
+		if (inputSystem->IsKeyJustPressed(KeyCode::Num1))
+		{
+			RequestTransitForm(EPlayerForm::Normal);
+		}
 
+		else if (inputSystem->IsKeyJustPressed(KeyCode::Num2))
+		{
+			RequestTransitForm(EPlayerForm::MetalBall);
+		}
+		else if (inputSystem->IsKeyJustPressed(KeyCode::Num3)) {
 
-	//
-	if (inputSystem->IsKeyJustPressed(KeyCode::Num1))
-	{ 
-		RequestTransitForm(EPlayerForm::Normal);
-	} 
+			RequestTransitForm(EPlayerForm::IceCube);
+		}
 
-	else if (inputSystem->IsKeyJustPressed(KeyCode::Num2))
-	{ 
-		RequestTransitForm(EPlayerForm::MetalBall);
+		else if (inputSystem->IsKeyJustPressed(KeyCode::Num4)) {
+
+			RequestTransitForm(EPlayerForm::Clone);
+		}
 	}
-	else if (inputSystem->IsKeyJustPressed(KeyCode::Num3)) {
-		 
-		RequestTransitForm(EPlayerForm::IceCube);
-	}
+
+
+	//std::cout << "isGrounded ?" << this->bGroundedThisFrame << '\n';
 
 }
 
 void APlayer::NormalStateBehavior(float delta)
 { 
+	auto& form = playerForms[EPlayerForm::Normal];
 	//
 	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
 
-	if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
-		shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, 4.0f, 0.0f) * delta);
-	}
-	
-	float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-	shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f) * delta);
+	if (bGroundedThisFrame)
+	{
+		if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
+			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, 3.0f, 0.0f) * delta); 
+		}
 
-	float axisX = inputSystem->GetAxis(EAxis::MoveX);
-	shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta);
+		float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
+		shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f * form.mass) * delta);
 
+		float axisX = inputSystem->GetAxis(EAxis::MoveX);
+		shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 20.0f * form.mass, 0.0f, 0.0f) * delta);
+	} 
+	else {
+
+	} 
+	//
+	//if (Length(shapeComponent->rigidBody->linearVelocity) > 10.0f) {
+	//	shapeComponent->rigidBody->linearDamping = 0.9f;
+	//}
+	//else {
+	//	shapeComponent->rigidBody->linearDamping = 1.0f;
+	//}
 
 }
 
+
+void APlayer::CloneStateBehavior(float delta)
+{
+	auto& form = playerForms[EPlayerForm::Clone];
+	//
+	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+
+	if (bGroundedThisFrame)
+	{
+		if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
+			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, 3.0f, 0.0f) * delta);
+
+		}
+
+		float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
+		shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f * form.mass) * delta);
+
+		float axisX = inputSystem->GetAxis(EAxis::MoveX);
+		shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 20.0f * form.mass, 0.0f, 0.0f) * delta);
+	}
+	else {
+
+		float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
+		shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 1.0f * form.mass) * delta);
+
+		float axisX = inputSystem->GetAxis(EAxis::MoveX);
+		shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 2.0f * form.mass, 0.0f, 0.0f) * delta);
+
+	}
+
+}
+
+
 void APlayer::MetalStateBehavior(float delta)
 {
-	auto& ability = abilities[EPlayerForm::IceCube];
+	auto& form = playerForms[EPlayerForm::MetalBall];
+
+
+	auto& ability = abilities[EPlayerForm::MetalBall];
 	ability.remaining -= delta;
 	if (ability.remaining < 0.0f)
 	{
@@ -240,15 +520,17 @@ void APlayer::MetalStateBehavior(float delta)
 	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
 
 	float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-	shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 10.0f) * delta);
+	shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 5.0f * form.mass) * delta);
 
 	float axisX = inputSystem->GetAxis(EAxis::MoveX);
-	shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 10.0f, 0.0f, 0.0f) * delta);
+	shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 5.0f * form.mass, 0.0f, 0.0f) * delta);
 
 }
 
 void APlayer::IceStateBehavior(float delta)
 {
+	auto& form = playerForms[EPlayerForm::MetalBall];
+
 	auto& ability = abilities[EPlayerForm::IceCube];
 	ability.remaining -= delta;
 	if(ability.remaining < 0.0f)
@@ -266,6 +548,7 @@ void APlayer::IceStateBehavior(float delta)
 	//float axisX = inputSystem->GetAxis(EAxis::MoveX);
 	//shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 5.0f, 0.0f, 0.0f) * delta);
 }
+
 
 void APlayer::OnOverlapItem(AActor* item)
 {
@@ -285,6 +568,139 @@ void APlayer::AddPayloadImmediate(const FAbilityPayload& payload)
 	if (!playerForms.contains(payload.formType))  return; 
 
 	auto& abilityRT = abilities[payload.formType];
-	abilityRT.remaining += payload.duration;
+	abilityRT.remaining += payload.duration; 
+}
 
+void APlayer::RegisterPhysicsHooks()
+{
+	auto prePhysicsCb = [=]() { 
+		this->bGroundedThisFrame = false;
+		//std::cout << "pre physics called" << '\n';
+		};
+	
+
+	this->shapeComponent->onPrePhysicsEvents.Add(prePhysicsCb);
+
+	//
+	auto overlapCb = [=](AActor* other) {
+		//std::cout << "player: overlap with tag: " << other->tag << '\n';
+		if (other->tag == "item") {
+
+			this->OnOverlapItem(other);
+		}
+
+		else if (other->tag == "floor") { 
+			//std::cout << 
+			bGroundedThisFrame = true;
+		}
+		};
+
+	this->shapeComponent->onOverlap.Add(overlapCb);
+
+
+}
+
+void APlayer::SpawnParticles()
+{
+	auto& form = playerForms[EPlayerForm::Normal];
+	
+	particlePos = MMath::GenSpherePattern(playerShrinkR, playerOGR, particleR, 0.4f); 
+
+	auto& owningLevel = this->level;
+
+	for (auto& pos : particlePos) {
+		auto actor = CreateActor<AStaticMeshActor>(); 
+
+		auto& rb = actor->shapeComponent->rigidBody;
+		rb->simulatePhysics = false;
+		rb->simulateRotation = false;
+		//actor->staticMeshComponent->SetMaterial(Materials::GetIron()); 
+
+		actor->staticMeshComponent->SetVisible(false); 
+		actor->staticMeshComponent->SetMaterial(form.material);
+
+		actor->shapeComponent->SetCollisionEnabled(false);
+
+		actor->shapeComponent->rigidBody->SetPhysicalMaterial(PhysicalMaterial{0.0f, 10.0f});
+		actor->shapeComponent->rigidBody->SetMass(form.mass / 10.0f);
+		actor->shapeComponent->rigidBody->linearDamping = form.linearDamping;
+		actor->shapeComponent->rigidBody->angularDamping = form.angularDamping;
+		 
+		this->particleActors.push_back(actor);
+
+		owningLevel->AddActor(actor);
+
+		Mesh::SetSphere(actor.get(), particleR);
+	}
+
+	
+}
+
+void APlayer::ShowParticles()
+{
+	auto& form = playerForms[EPlayerForm::Normal];
+	auto superPosition = RootComponent->GetWorldPosition();
+
+	int index{ 0 };
+	for (auto& actor : particleActors) { 
+		 
+		assert(particlePos.size() > index);
+		auto& initOffset = particlePos[index];
+        actor->RootComponent->SetRelativePosition(superPosition + initOffset);
+		actor->RootComponent->UpdateWorldTransform();
+
+		auto& rb = actor->shapeComponent->rigidBody;
+		rb->simulatePhysics = true;
+		rb->simulateRotation = true;
+
+		rb->linearVelocity = this->shapeComponent->rigidBody->linearVelocity ;
+ 
+		actor->staticMeshComponent->SetVisible(true);
+		actor->staticMeshComponent->SetMaterial(form.material);
+		actor->shapeComponent->SetCollisionEnabled(true);
+
+		index++;
+	}
+}
+
+void APlayer::HideParticles()
+{ 
+	for (auto& actor : particleActors) {
+		  
+		actor->staticMeshComponent->SetVisible(false);
+		actor->shapeComponent->SetCollisionEnabled(false);  
+
+		auto& rb = actor->shapeComponent->rigidBody;
+		rb->simulatePhysics = false;
+		rb->simulateRotation = false; 
+	}
+}
+
+void APlayer::MoveParticles(float nt)
+{
+	auto& form = playerForms[EPlayerForm::Normal];
+	auto superPosition = RootComponent->GetWorldPosition();
+	int index{ 0 };
+	for (auto& actor : particleActors) {
+
+		assert(particlePos.size() > index);
+		auto& initOffset = particlePos[index]; 
+		auto targetPos = superPosition + initOffset;
+
+		actor->shapeComponent->SetCollisionEnabled(false); 
+
+		auto& rb = actor->shapeComponent->rigidBody; 
+		rb->simulateRotation = false;
+
+		auto currPos = actor->RootComponent->GetRelativePosition();
+		actor->RootComponent->SetRelativePosition(Anim::Lerp(currPos, targetPos, nt));
+		actor->RootComponent->UpdateWorldTransform();
+
+		index++;
+	}
+
+
+
+
+ 
 }

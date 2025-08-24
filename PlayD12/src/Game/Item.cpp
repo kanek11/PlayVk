@@ -24,7 +24,17 @@ void AItem::BeginPlay()
 	auto overlapCb = [=](AActor*) {
 		std::cout << "item: callback overlap\n";
 		this->shapeComponent->SetCollisionEnabled(false);
-		this->staticMeshComponent->SetVisible(false);
+
+		auto tween = Anim::WaitFor(0.2f, [=]() {
+			this->staticMeshComponent->SetVisible(false);
+			});
+		tween->onApply = [=](float nt) { 
+			auto mat = this->staticMeshComponent->GetMaterial();
+			mat->materialCB.useEmissiveMap = false;
+			mat->materialCB.emissiveColor = Color::Yellow.xyz(); 
+			mat->materialCB.emissiveStrength = Anim::Easing::QuadInOut(nt); 
+
+			};
 
 		//game thread flag is more predictable than physics?
 		this->bConsumed = true;
@@ -84,35 +94,59 @@ void ATriggerVolume::OnTick(float delta)
 //---------
 AIceItem::AIceItem() : AItem()
 {
-	this->staticMeshComponent->SetMaterial(Materials::GetIceSurface());
+	auto mat = Materials::GetIceSurface();
+	//mat->materialCB.emissiveColor = Color::Yellow.xyz();
+	//mat->materialCB.emissiveStrength = 0.1f;
 
+	this->staticMeshComponent->SetMaterial(mat);
 
 	payload.formType = EPlayerForm::IceCube;
 	payload.duration = 1.0f;
 }
 
 
-//--------
+//===============
 
 AMetalItem::AMetalItem()
 {
-	this->staticMeshComponent->SetMaterial(Materials::GetRustyIron());
+	auto mat = Materials::GetRustyIron();
+	//mat->materialCB.emissiveColor = Color::Yellow.xyz();
+
+	this->staticMeshComponent->SetMaterial(mat);
+
+	Mesh::SetSphere(this, 0.5f);
 
 	payload.formType = EPlayerForm::MetalBall;
 	payload.duration = 1.0f;
 }
 
 
+//===============
+ACloneItem::ACloneItem()
+{
+	auto mat = Materials::GetPlayerMat();
+	//mat->materialCB.emissiveColor = Color::Yellow.xyz();
+
+	this->staticMeshComponent->SetMaterial(mat); 
+
+	Mesh::SetSphere(this, 0.5f);
+
+	payload.formType = EPlayerForm::Clone;
+	payload.duration = 1.0f;
+}
+
+
+
 //----
 ARotateBox::ARotateBox() : AStaticMeshActor()
 {
 	this->tag = "env";
-	this->shapeComponent->SetSimulatePhysics(false); 
-	Mesh::SetBox(this, Float3{ 1.0f,1.0f,1.0f }); 
+	this->shapeComponent->SetSimulatePhysics(false);
+	Mesh::SetBox(this, Float3{ 1.0f,1.0f,1.0f });
 }
 void ARotateBox::BeginPlay()
 {
-} 
+}
 
 void ARotateBox::OnTick(float delta)
 {

@@ -5,8 +5,6 @@
 
 #include "Matrix.h" 
 
-#include "PCH.h"
-
 namespace MMath {
 
 	float constexpr PI = 3.14159265358979323846f; // Pi constant
@@ -34,7 +32,7 @@ namespace MMath {
 			oss << std::format("{: .3f}, {: .3f}, {: .3f}, {: .3f}\n",
 				mat[i][0], mat[i][1], mat[i][2], mat[i][3]);
 		}
-		return oss.str(); 
+		return oss.str();
 	}
 
 
@@ -58,9 +56,9 @@ namespace MMath {
 	{
 		Float4x4 translation = MatrixIdentity<float, 4>();
 		translation[3] = { x, y, z, 1.0f };
-		
+
 		//std::cout << "translation matrix: " << ToString(translation) << std::endl;
-		 
+
 		//translation = Transpose(translation);  
 		return translation;
 	}
@@ -102,9 +100,9 @@ namespace MMath {
 		matrix[0] = { right_N.x(), right_N.y(), right_N.z(), -Dot(right_N, EyePosition) };
 		matrix[1] = { up_N.x(), up_N.y(), up_N.z(), -Dot(up_N, EyePosition) };
 		matrix[2] = { forward.x(), forward.y(), forward.z(), -Dot(forward, EyePosition) };
-		matrix[3] = { 0.0f, 0.0f, 0.0f, 1.0f }; 
+		matrix[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-		matrix = Transpose(matrix); 
+		matrix = Transpose(matrix);
 		return matrix;
 	}
 
@@ -114,20 +112,20 @@ namespace MMath {
 		Float3 UpDirection
 	)
 	{
-		Float3 forward = Normalize(EyeDirection); 
+		Float3 forward = Normalize(EyeDirection);
 		Float3 right_N = Vector3Cross(UpDirection, forward);
-		right_N = Normalize(right_N); 
+		right_N = Normalize(right_N);
 		Float3 up_N = Vector3Cross(forward, right_N);
-		 
+
 		Float4x4 inv = MatrixIdentity<float, 4>();
 		//3x3 is transpose,  translation is minus:
 		inv[0] = { right_N.x(), up_N.x(), forward.x(), EyePosition.x() };
 		inv[1] = { right_N.y(), up_N.y(), forward.y(), EyePosition.y() };
 		inv[2] = { right_N.z(), up_N.z(), forward.z(), EyePosition.z() };
-		inv[3] = { 0.0f, 0.0f, 0.0f, 1.0f };        
+		inv[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 
-		inv = Transpose(inv); 
+		inv = Transpose(inv);
 
 		return inv;
 	}
@@ -173,12 +171,12 @@ namespace MMath {
 		float xScale = yScale / aspectRatio;
 		perspectiveMatrix[0] = { xScale, 0.0f, 0.0f, 0.0f };
 		perspectiveMatrix[1] = { 0.0f, yScale, 0.0f, 0.0f };
-		perspectiveMatrix[2] = {0.0f,0.0f,farZ / (farZ - nearZ), 1.0 };
-		perspectiveMatrix[3] = {0.0f,0.0f, -(nearZ * farZ) / (farZ - nearZ),0.0f };
+		perspectiveMatrix[2] = { 0.0f,0.0f,farZ / (farZ - nearZ), 1.0 };
+		perspectiveMatrix[3] = { 0.0f,0.0f, -(nearZ * farZ) / (farZ - nearZ),0.0f };
 
-		return perspectiveMatrix; 
+		return perspectiveMatrix;
 	}
-	 
+
 	inline Float4x4 InversePerspectiveFovLH(
 		float fovAngleY,
 		float aspectRatio,
@@ -191,12 +189,12 @@ namespace MMath {
 		float xScale = yScale / aspectRatio;
 		float A = farZ / (farZ - nearZ);
 		float B = -(nearZ * farZ) / (farZ - nearZ);
-		 
+
 		inv[0] = { 1.0f / xScale, 0.0f,     0.0f,      0.0f };
 		inv[1] = { 0.0f, 1.0f / yScale,     0.0f,      0.0f };
-		inv[2] = { 0.0f, 0.0f,              0.0f,      1.0f / B};
+		inv[2] = { 0.0f, 0.0f,              0.0f,      1.0f / B };
 		inv[3] = { 0.0f, 0.0f,              1.0f,      -A / B };
-		 
+
 
 		return inv;
 	}
@@ -255,10 +253,10 @@ namespace MMath {
 	{
 		Float3x3 inv;
 		float det = Det3x3(m);
-		if (det < 1e-07) {
+		if (det < 1e-12) {
 			std::cerr << "Inverse: Matrix is (almost) singular." << std::endl;
-			return Float3x3{};  
-		} 
+			return Float3x3{};
+		}
 		float invDet = 1.0f / det;
 		inv[0] = {
 			invDet * (m[1].y() * m[2].z() - m[1].z() * m[2].y()),
@@ -278,7 +276,7 @@ namespace MMath {
 
 		return inv;
 	}
-	 
+
 	inline Float4x4 Inverse4x4(const Float4x4& m)
 	{
 		Float4x4 inv;
@@ -401,7 +399,7 @@ namespace MMath {
 
 		if (det == 0.0f) {
 			std::cerr << "Matrix is singular, cannot invert!" << std::endl;
-			return Float4x4{}; 
+			return Float4x4{};
 		}
 
 		det = 1.0f / det;
@@ -418,7 +416,7 @@ namespace MMath {
 		result[0] = { mat[0][0], mat[0][1], mat[0][2] };
 		result[1] = { mat[1][0], mat[1][1], mat[1][2] };
 		result[2] = { mat[2][0], mat[2][1], mat[2][2] };
-		return result; 
+		return result;
 	}
 
 	inline Float4x4 ToFloat4x4(const Float3x3& mat) {
@@ -431,7 +429,8 @@ namespace MMath {
 	}
 
 
-	 
+
+
 	inline std::string XMToString(const DirectX::XMMATRIX& mat) {
 		std::ostringstream oss;
 		for (int i = 0; i < 4; ++i) {
@@ -449,19 +448,45 @@ namespace MMath {
 
 
 
-	inline std::vector<Float3> GenerateGrid3D(Float3 dim , Float3 spacing)
+	inline std::vector<Float3> GenerateGrid3D(Float3 dim, Float3 spacing)
 	{
-		std::vector<Float3> data; 
+		std::vector<Float3> data;
 
 		for (int x = 0; x < dim.x(); ++x)
 			for (int y = 0; y < dim.y(); ++y)
 				for (int z = 0; z < dim.z(); ++z)
-		{ 
-			Float3 _data = Float3{ x * spacing.x()  , y * spacing.y() , z * spacing.z() };
-			data.push_back(_data);
-		}
+				{
+					Float3 _data = Float3{ x * spacing.x()  , y * spacing.y() , z * spacing.z() };
+					data.push_back(_data);
+				}
 
 		return data;
+	}
+
+
+	inline std::vector<Float3> GenSpherePattern(
+		float innerRadius,
+		float outerRadius,
+		float particleRadius,
+		float spacing
+	) {
+		std::vector<Float3> positions;
+
+		// Step size ensures no overlap
+		float step = 2.0f * particleRadius + spacing;
+
+		for (float x = -outerRadius; x <= outerRadius; x += step) {
+			for (float y = -outerRadius; y <= outerRadius; y += step) {
+				for (float z = -outerRadius; z <= outerRadius; z += step) {
+					float r2 = x * x + y * y + z * z;
+					if (r2 >= innerRadius * innerRadius && r2 <= outerRadius * outerRadius) {
+						positions.push_back({ x, y, z });
+					}
+				}
+			}
+		}
+
+		return positions;
 	}
 
 
@@ -476,7 +501,7 @@ namespace MMath {
 		}
 		return std::sqrt(sum);
 	}
-	 
+
 	template <FLOP_t Scalar_t, std::size_t Rows, std::size_t Cols>
 	inline bool NearZero(const Matrix<Scalar_t, Rows, Cols>& mat, Scalar_t epsilon = 1e-6f)
 	{
@@ -493,27 +518,16 @@ namespace MMath {
 		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
 		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
 		return R;
-	} 
-
-
-
- 
-	template<typename T> 
-	inline T Lerp(const T& a, const T& b, float t) {
-		return a + (b - a) * t;  
-	}
-
-  
-	inline DirectX::XMVECTOR Slerp(const DirectX::XMVECTOR& qa, const DirectX::XMVECTOR& qb, float t) {
-		return DirectX::XMQuaternionSlerp(qa, qb, t);
 	}
 
 
-  
+
 }
 
 
 namespace Random {
+
+	using namespace MMath;
 
 	inline float Uniform01() {
 		static thread_local std::mt19937 gen{ std::random_device{}() };
@@ -526,4 +540,29 @@ namespace Random {
 		static thread_local std::uniform_real_distribution<float> dist(min, max);
 		return dist(gen);
 	}
+
+
+	// Generates a random point uniformly inside a hollow sphere
+
+	inline Float3 UniformSphere(float innerRadius, float outerRadius)
+	{
+		// Sample radius with correct distribution
+		float u = Uniform01();
+		float r = std::cbrt(u * (outerRadius * outerRadius * outerRadius - innerRadius * innerRadius * innerRadius) + innerRadius * innerRadius * innerRadius);
+
+		// Sample direction uniformly on the unit sphere
+		float theta = UniformRange(0.0f, 2.0f * MMath::PI); // azimuth
+		float phi = std::acos(1.0f - 2.0f * Uniform01()); // inclination
+
+		float sinPhi = std::sin(phi);
+		return Float3{
+			r * sinPhi * std::cos(theta),
+			r * sinPhi * std::sin(theta),
+			r * std::cos(phi)
+		};
+	}
+
+
+
+	 
 }

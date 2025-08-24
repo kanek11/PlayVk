@@ -19,14 +19,16 @@
 
 
 struct RendererContext;
- 
+
 struct FQuadDesc {
     FRect  rect;
     Float2 uvTL = { 0,0 };
     Float2 uvBR = { 1,1 };
-    Float4 color = Color::White;
-    bool   useAtlas = false;
-
+    Float3 color = Color::White.xyz();
+    Float4 alpha = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float opacity = { 1.0f };
+    bool useTexture = false; 
+    std::string texName;
 };
 //Screen space;
 namespace SS {
@@ -58,7 +60,7 @@ namespace SS {
     };
 
     //basically the CPU side;
-    struct BuildData { 
+    struct BuildData {
         std::vector<DrawCmd> cmds;
         std::vector<Vertex> vertices;
         std::vector<INDEX_FORMAT> indices;
@@ -75,8 +77,8 @@ namespace SS {
         }
     };
 
-     
-  
+
+
     struct GPUResources {
         SharedPtr<FD3D12ShaderPermutation> shader;
         ComPtr<ID3D12PipelineState> pso;
@@ -84,16 +86,16 @@ namespace SS {
         std::optional<uint32_t> baseHeapOffset = 0;
 
         SharedPtr<FD3D12Buffer> batchVB;
-		FBufferView batchVBV; 
-        SharedPtr<FD3D12Buffer> batchIB; 
-		FBufferView batchIBV;
+        FBufferView batchVBV;
+        SharedPtr<FD3D12Buffer> batchIB;
+        FBufferView batchIBV;
     };
 
     //void BeginFrame(BuildData& data) noexcept;
 
     //void Init(const RendererContext* ctx, GPUResources& res,
     //    const RenderPassDesc& passDesc, const MaterialDesc& matDesc); 
- 
+
 }
 
 
@@ -134,7 +136,8 @@ namespace UI {
     //bug fix: make sure 256 byte aligned
     struct alignas(256) UISettingsCB
     {
-        int useTexture = 0; 
+        int useTexture = 0;
+        float opacity{ 1.0f };
     };
     //static_assert(sizeof(UISettingsCB) % 256 == 0, "CB must be 256-byte aligned");
 

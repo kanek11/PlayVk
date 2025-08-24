@@ -46,6 +46,7 @@ Texture2D normalMap : register(t1, space1);
 Texture2D metallicMap : register(t2, space1);
 Texture2D RoughnessMap : register(t3, space1);
 Texture2D AOMap : register(t4, space1);
+Texture2D emissionMap : register(t5, space1);
 
 SamplerState linearWrapSampler : register(s0);
 
@@ -69,13 +70,13 @@ float GetAO(float2 uv)
     return gMaterial.useAOMap ? AOMap.Sample(linearWrapSampler, uv).r : gMaterial.ao;
 }
 
-float3 GetEmissive(float2 uv)
+float4 GetEmissive(float2 uv)
 {
     if (gMaterial.useEmissiveMap)
     {
-        return baseColorMap.Sample(linearWrapSampler, uv).rgb * gMaterial.emissiveStrength;
+        return emissionMap.Sample(linearWrapSampler, uv).rgba * gMaterial.emissiveStrength;
     }
-    return gMaterial.emissiveColor * gMaterial.emissiveStrength;
+    return float4(gMaterial.emissiveColor, 1.0f) * gMaterial.emissiveStrength;
 }
 
 

@@ -51,6 +51,8 @@ Float4x4 FTransform::ToMatrix() const
 
 void Gameplay::USceneComponent::UpdateWorldTransform()
 {
+    if (bAbsolute) return;
+
     if (m_parent)
         m_worldTransform = m_relativeTransform.CombineWith(m_parent->m_worldTransform);
     else
@@ -135,7 +137,7 @@ void Gameplay::USceneComponent::AttachTo(USceneComponent* newParent)
     }
 
     m_parent = newParent;
-    m_parent->m_children.push_back(this); 
+    m_parent->m_children.push_back(this);
 
     MarkDirty();
 }

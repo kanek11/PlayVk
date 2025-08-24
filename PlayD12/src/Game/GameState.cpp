@@ -41,7 +41,16 @@ void AGameState::SetupGameStates()
 		mainMenuState->OnEnter.Add(
 			[=]() {
 				std::cout << "state: enter mainMenu " << "\n";
+				//todo: camera is not ready
+				//auto arm = this->GetWorld()->GetActiveCameraArm(); 
+				//arm->LocalOffset = titleCamOff; 
+
+				mainTitle->SetOpacityHierarchy(1.0f);
+				//
 				uiManager->RegisterRootElement(mainTitle.get());
+
+				//debug: enter game automatically;
+				//mainTitle->startButton->OnClick.BlockingBroadCast();
 
 				this->OnResetGameplay();
 				pc->SetInputMode(EInputMode::UIOnly);
@@ -56,9 +65,8 @@ void AGameState::SetupGameStates()
 			[=]() {
 				uiManager->UnregisterRootElement(mainTitle.get());
 			});
-		 
-	}
 
+	}
 
 	{
 		auto playingState = m_gameManager->Register<PlayingState>();
@@ -68,26 +76,33 @@ void AGameState::SetupGameStates()
 				std::cout << "state: enter playing" << "\n";
 				//world->TransitLevel("gameplay");
 				//world->LoadOrResetLevel("gameplay");
-				this->OnResetGameplay();
-				pc->SetInputMode(EInputMode::None);
+				//this->OnResetGameplay();
+
+				auto countDownAnim = Anim::WaitFor(3.0f);
+				countDownAnim->onComplete = [=] {
+					pc->SetInputMode(EInputMode::None);
+					this->timeCount = 0.0f;
+					startGame = true;
+					};
+				countDownAnim->onApply = [=](float nt) {
+					countDown = 3.0f - 3.0f * nt;
+					};
 				uiManager->RegisterRootElement(playerHUD.get());
 				uiManager->RegisterRootElement(gameStats.get());
+
 			});
 
 		playingState->OnUpdate.Add(
 			[=](float dt) {
-				this->timeCount += dt;
+				if (startGame)
+					this->timeCount += dt;
 
 				//std::cout << " tick playing: " << dt << "\n";
 				if (inputSystem->IsKeyJustPressed(KeyCode::Escape)) {
-					//this->RequestTransitState(GameStateId::Paused);
-					timeSystem->TogglePaused();
+					this->RequestTransitGameState(GameStateId::Paused);
+					/*timeSystem->TogglePaused();*/
 				}
 
-				if (inputSystem->IsKeyJustPressed(KeyCode::L)) { 
-					timeSystem->AdvanceFixedSteps();
-					timeSystem->AdvanceFrames();
-				}
 
 				if (inputSystem->IsKeyJustPressed(KeyCode::P)) {
 					this->OnResetGameplay();
@@ -100,6 +115,9 @@ void AGameState::SetupGameStates()
 				std::cout << "state: exit playing" << "\n";
 				uiManager->UnregisterRootElement(playerHUD.get());
 				uiManager->UnregisterRootElement(gameStats.get());
+
+				//
+				startGame = false;
 			});
 	}
 
@@ -119,7 +137,12 @@ void AGameState::SetupGameStates()
 			[=](float dt) {
 				//std::cout << " tick pause: " << dt << "\n";
 				if (inputSystem->IsKeyJustPressed(KeyCode::Escape)) {
-					/*this->RequestTransitState(GameStateId::Playing);*/
+					this->RequestTransitGameState(GameStateId::Playing);
+				}
+
+				if (inputSystem->IsKeyJustPressed(KeyCode::L)) {
+					timeSystem->AdvanceFixedSteps();
+					timeSystem->AdvanceFrames();
 				}
 
 			});
@@ -129,7 +152,7 @@ void AGameState::SetupGameStates()
 				std::cout << " exit pause state" << "\n";
 				uiManager->UnregisterRootElement(pauseMenu.get());
 				timeSystem->SetPaused(false);
-			}); 
+			});
 	}
 
 
@@ -141,6 +164,12 @@ void AGameState::SetupGameStates()
 				std::cout << "enter pause state" << "\n";
 				uiManager->RegisterRootElement(goalUI.get());
 				pc->SetInputMode(EInputMode::UIOnly);
+
+				if (this->timeCount < bestRecord) {
+					bestRecord = timeCount;
+					newRecord = true;
+				}
+
 			});
 
 		goalingState->OnUpdate.Add(
@@ -152,14 +181,16 @@ void AGameState::SetupGameStates()
 			[=]() {
 				std::cout << " exit pause state" << "\n";
 				uiManager->UnregisterRootElement(goalUI.get());
+
+				newRecord = false;
 			});
 
 	}
-	 
+
 	//----------------------------  
 
-	m_gameManager->SetInitialState(PlayingState::GetId());
-	//m_gameManager->SetInitialState(MainTitleState::GetId());
+	//m_gameManager->SetInitialState(playingState->GetId());
+	m_gameManager->SetInitialState(MainTitleState::GetId());
 	m_gameManager->Initialize();
 
 }
@@ -196,15 +227,11 @@ void AGameState::OnResetGameplay()
 	auto world = this->GetWorld();
 	world->LoadOrResetLevel("gameplay");
 
-	if (this->timeCount < bestRecord) {
-		bestRecord = timeCount;
-	}
-	this->timeCount = 0.0f;
 }
 
 
 void AGameState::OnGoalReached()
 {
 	std::cout << "Goal reached!" << std::endl;
-	this->RequestTransitState(GameStateId::Goaling);
+	this->RequestTransitGameState(GameStateId::Goaling);
 }

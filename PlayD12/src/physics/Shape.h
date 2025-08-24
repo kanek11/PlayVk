@@ -58,7 +58,7 @@ template<IsShape T>
 inline Float3x3 MakeInertiaTensor(const T& shape, float mass)
 { 
 	std::cerr << "\tMakeInertiaTensor: Unsupported shape type: " << typeid(T).name() << std::endl;
-	return Float3x3{}; //return an empty tensor
+	return Float3x3{};
 }
 
 inline Float3x3 MakeInertiaTensor(const Sphere& s, float mass)

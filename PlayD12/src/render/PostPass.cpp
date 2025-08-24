@@ -17,20 +17,20 @@ void PBR::Init(const RendererContext* ctx, PassContext& passCtx)
 
     // Create vertex buffer for debug lines
     passCtx.res.batchVB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-        sizeof(Vertex) * MaxVertices, 
+        sizeof(Vertex) * MaxVertices,
         EBufferUsage::Upload | EBufferUsage::Vertex
         });
 
-	passCtx.res.batchVBV = Buffer::CreateBVStructured<Vertex>(passCtx.res.batchVB);
+    passCtx.res.batchVBV = Buffer::CreateBVStructured<Vertex>(passCtx.res.batchVB);
 
     passCtx.res.batchIB = CreateShared<FD3D12Buffer>(ctx->device, FBufferDesc{
-    sizeof(INDEX_FORMAT) * MaxIndices, 
+    sizeof(INDEX_FORMAT) * MaxIndices,
     EBufferUsage::Upload | EBufferUsage::Index
         });
 
-	passCtx.res.batchIBV = Buffer::CreateBVStructured<INDEX_FORMAT>(
-		passCtx.res.batchIB, INDEX_FORMAT_DX
-	);
+    passCtx.res.batchIBV = Buffer::CreateBVStructured<INDEX_FORMAT>(
+        passCtx.res.batchIB, INDEX_FORMAT_DX
+    );
 
     //shader perm:
     ShaderPermutationKey key = {
@@ -58,7 +58,7 @@ void PBR::Init(const RendererContext* ctx, PassContext& passCtx)
 
     passCtx.res.baseHeapOffset = passCtx.res.shader->RequestAllocationOnHeap(MaxUIBatch);
 }
- 
+
 
 void PBR::BeginFrame(PassContext& passCtx) noexcept
 {
@@ -76,7 +76,7 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
         .rect = screenRect,
         .uvTL = {0,0},
         .uvBR = {1,1},
-    }; 
+    };
 
     passCtx.data.pendings = { screenQuad };
 
@@ -99,10 +99,11 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
         Float2 br = ScreenToNDC(proxy.rect.x + proxy.rect.w, proxy.rect.y + proxy.rect.h, screenWidth, screenHeight);
 
         uint32_t baseVertex = static_cast<uint32_t>(batchData.vertices.size());
-        batchData.vertices.push_back({ tl, {proxy.uvTL.x(), proxy.uvTL.y()}, proxy.color }); // 0
-        batchData.vertices.push_back({ tr, {proxy.uvBR.x(), proxy.uvTL.y()}, proxy.color }); // 1
-        batchData.vertices.push_back({ bl, {proxy.uvTL.x(), proxy.uvBR.y()}, proxy.color }); // 2
-        batchData.vertices.push_back({ br, {proxy.uvBR.x(), proxy.uvBR.y()}, proxy.color }); // 3
+        batchData.vertices.push_back({ tl, {proxy.uvTL.x(), proxy.uvTL.y()}, {proxy.color.x(), proxy.color.y(), proxy.color.z(), proxy.alpha.x() } }); // 0
+        batchData.vertices.push_back({ tr, {proxy.uvBR.x(), proxy.uvTL.y()}, {proxy.color.x(), proxy.color.y(), proxy.color.z(), proxy.alpha.y() } }); // 1
+        batchData.vertices.push_back({ bl, {proxy.uvTL.x(), proxy.uvBR.y()}, {proxy.color.x(), proxy.color.y(), proxy.color.z(), proxy.alpha.z() } }); // 2
+        batchData.vertices.push_back({ br, {proxy.uvBR.x(), proxy.uvBR.y()}, {proxy.color.x(), proxy.color.y(), proxy.color.z(), proxy.alpha.w() } }); // 3
+
 
         uint32_t baseIndex = static_cast<uint32_t>(batchData.indices.size());
         batchData.indices.push_back(baseVertex + 0);
@@ -113,9 +114,9 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
         batchData.indices.push_back(baseVertex + 3);
 
         UI::UISettingsCB uiSettings = {
-            .useTexture = static_cast<int>(proxy.useAtlas),
+            .useTexture = static_cast<int>(proxy.useTexture),
         };
-         
+
         auto objectHeapOffset = static_cast<uint32_t>(baseHeapOffset.value() + currIndex * shader->GetDescriptorTableSize());
 
         for (const auto& [name, gbufferTex] : gbuffers)
@@ -131,11 +132,11 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
         if (graphCtx->shadowMap)
             shader->SetSRV("shadowMap", graphCtx->shadowMap->GetRawResource(), graphCtx->shadowMap->GetSRVDesc(), objectHeapOffset);
 
-        if (auto& probe = graphCtx->probe; probe!=nullptr) {
+        if (auto& probe = graphCtx->probe; probe != nullptr) {
             shader->SetSRV("skybox", probe->envMap->GetRawResource(), probe->envMap->GetSRVDesc(), objectHeapOffset);
             shader->SetSRV("irradianceMap", probe->diffuseIrradiance->GetRawResource(), probe->diffuseIrradiance->GetSRVDesc(), objectHeapOffset);
             shader->SetSRV("prefilterMap", probe->specularPrefilter->GetRawResource(), probe->specularPrefilter->GetSRVDesc(), objectHeapOffset);
- 
+
             //auto srvDesc = probe->specularPrefilter->GetDesc();
             //std::cout << "srv miplevels:" << srvDesc.mipLevels << '\n';
             shader->SetSRV("brdfLUT", probe->brdfLUT->GetRawResource(), probe->brdfLUT->GetSRVDesc(), objectHeapOffset);
@@ -149,7 +150,7 @@ void PBR::BeginFrame(PassContext& passCtx) noexcept
         };
 
         batchData.cmds.push_back(cmd);
-		currIndex++;
+        currIndex++;
     }
 }
 
@@ -190,7 +191,7 @@ void PBR::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& 
 
     //cmdList->IASetVertexBuffers(0, 1, &passCtx.res.batchVB->GetVertexBufferView());
  //   cmdList->IASetIndexBuffer(&res.batchIB->GetIndexBufferView());
-	//cmdList->IASetVertexBuffers(0, 1, &res.batchVB->GetVertexBufferView());
+    //cmdList->IASetVertexBuffers(0, 1, &res.batchVB->GetVertexBufferView());
     cmdList->IASetIndexBuffer(&MakeIBV(res.batchIBV));
     cmdList->IASetVertexBuffers(0, 1, &MakeVBV(res.batchVBV));
 

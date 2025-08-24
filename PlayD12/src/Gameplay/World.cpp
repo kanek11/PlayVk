@@ -15,10 +15,8 @@ namespace Gameplay {
 
 		//physics update is handled by time system;
 		gTime->RegisterFixedFrame([=](float delta) {
-			physicsScene->Tick(delta);
-
+			physicsScene->Tick(delta); 
 			this->SyncPhysicsToGame();
-
 			});
 
 		//new understanding:  controllers are managed by world itself; 
@@ -38,6 +36,8 @@ namespace Gameplay {
 		for (auto& controller : playerControllers) {
 			controller->BeginPlay();
 		}
+
+		this->bGameBegined = true;
 	}
 	void UWorld::EndPlay()
 	{
@@ -58,13 +58,21 @@ namespace Gameplay {
 		//if (currentLevel) {
 		//	currentLevel->SyncPhysicsToGame();
 		//}
-		this->DispatchPhysicsEvents();
+		//
+		for (auto& [id, prim] : this->m_primtiveMap) {
+			prim->onPrePhysicsEvents.BlockingBroadCast();
+		} 
+
+		this->DispatchPhysicsEvents(); 
+
+		//
 
 		auto& transformBuffer = physicsScene->GetTransformBuffer();
 		for (auto& [id, trans] : transformBuffer) {
 
 			if (!this->m_primtiveMap.contains(id)) continue;
 			auto& primitive = this->m_primtiveMap.at(id);
+
 
 			if (!primitive->IsSimulatingPhysics()) continue;
 
@@ -80,7 +88,7 @@ namespace Gameplay {
 		for (auto& [id, primitive] : this->m_primtiveMap) { 
 			physicsScene->SetPosition(id, primitive->GetWorldPosition()); 
             physicsScene->SetRotation(id, primitive->GetWorldRotation()); 
-			//std::cout << "primitive component on register, id:" << id << " position: " << ToString(this->GetWorldPosition()) << '\n';
+			//std::cout << "primitive component set id:" << id << " position: " << ToString(primitive->GetWorldPosition()) << '\n';
 		}
 	}
 
@@ -153,6 +161,9 @@ namespace Gameplay {
 			//std::cout << "tick current world: " << currentWorld << '\n';
 			currentLevel->OnTick(delta);
 		}
+
+		//tween:
+		Anim::TweenRunner::Get().Update(delta);
 
 		for (auto& controller : playerControllers) {
 			controller->OnTick(delta);

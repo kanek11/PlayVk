@@ -1,25 +1,25 @@
 #pragma once 
 #include "PCH.h"
 #include "Gameplay/SceneComponent.h"
- 
+
 namespace Gameplay {
 
 
     class USpringArmComponent : public USceneComponent
     {
     public:
-		USpringArmComponent();
-        virtual void TickComponent(float delta); 
-         
-		float TargetArmLength = 3.0f; 
+        USpringArmComponent();
+        virtual void TickComponent(float delta);
+
+        float TargetArmLength = 3.0f;
         Float3 LocalRotationEuler = { 0, 0, 0 };
-		Float3 LocalOffset = { 0, 0, 0 }; 
+        Float3 LocalOffset = { 0, 0, 0 };
 
         bool bInheritPitch = false;
         bool bInheritYaw = true;
-        bool bInheritRoll = false;
+        bool bInheritRoll = false; 
     };
-     
+
 
     class UCameraComponent : public USceneComponent
     {
@@ -27,40 +27,40 @@ namespace Gameplay {
         UCameraComponent();
         virtual void TickComponent(float delta);
 
-		void SetFieldOfView(float fovDegrees) {
-			m_fovDegrees = fovDegrees;
-		}
+        void SetFieldOfView(float fovDegrees) {
+            m_fovDegrees = fovDegrees;
+        }
         float GetFieldOfView() const
-		{
-			return m_fovDegrees;
-		}
+        {
+            return m_fovDegrees;
+        }
 
-        void SetAspectRatio(float aspect) 
-		{
-			m_aspectRatio = aspect;
-		}
+        void SetAspectRatio(float aspect)
+        {
+            m_aspectRatio = aspect;
+        }
         float GetAspectRatio() const
-		{
-			return m_aspectRatio;
-		}
+        {
+            return m_aspectRatio;
+        }
 
         void SetNearClip(float nearClip)
-		{
-			m_nearClip = nearClip;
-		}
+        {
+            m_nearClip = nearClip;
+        }
         float GetNearClip() const
-		{
-			return m_nearClip;
-		}
+        {
+            return m_nearClip;
+        }
 
         void SetFarClip(float farClip)
-		{
-			m_farClip = farClip;
-		}
+        {
+            m_farClip = farClip;
+        }
         float GetFarClip() const
-		{
-			return m_farClip;
-		}
+        {
+            return m_farClip;
+        }
 
         void SetOrthoWidth(float width);
         float GetOrthoWidth() const;

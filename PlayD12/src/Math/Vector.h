@@ -253,7 +253,7 @@ namespace MMath {
 	template <FLOP_t Scalar_t, size_t Length>
 	inline Vector<Scalar_t, Length> VectorDivide(const Vector<Scalar_t, Length>& vector, Scalar_t divisor)
 	{
-		if (divisor == 0) 
+		if (divisor == 0)
 			std::cerr << "Division by zero is not allowed!" << std::endl;
 
 		Vector<Scalar_t, Length> result = VectorMultiply(vector, Scalar_t{ 1 } / divisor);
@@ -262,7 +262,7 @@ namespace MMath {
 
 	template <FLOP_t T, std::size_t N>
 	inline Vector<T, N> operator/(const Vector<T, N>& vector, T divisor)
-	{ 
+	{
 		return VectorDivide(vector, divisor);
 	}
 
@@ -323,6 +323,9 @@ namespace MMath {
 	inline Vector<Scalar_t, Length> Normalize(const Vector<Scalar_t, Length>& vector)
 	{
 		Scalar_t length = std::sqrt(LengthSq(vector));
+		if (length == 0) {
+			std::cout << "normalize a zero vector" << '\n';
+		}
 		assert(length > 0 && "Cannot normalize a zero-length vector.");
 		return VectorDivide(vector, length);
 	}
@@ -389,6 +392,5 @@ namespace Color {
 	static Float4 Olive = Float4(0.5f, 0.5f, 0.0f, 1.0f);
 	static Float4 Teal = Float4(0.0f, 0.5f, 0.5f, 1.0f);
 
-	static Float3 Iron  = Float3(0.56, 0.57, 0.58);
+	static Float3 Iron = Float3(0.56, 0.57, 0.58);
 };
-

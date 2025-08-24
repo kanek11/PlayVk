@@ -7,10 +7,14 @@
 #include "Render/Renderer.h"
 #include "Render/Text.h"
 
+
+using namespace UI;
+
+
 std::atomic<uint32_t> UIElement::GIdGenerator{ 0 };
 
 UIElement::UIElement()
-{ 
+{
 	//set id:
 	id = ++GIdGenerator;
 }
@@ -28,7 +32,18 @@ void UITextBlock::RenderBack()
 	assert(renderer != nullptr);
 	assert(layout.has_value());
 
-	renderer->AddQuad(layout.value(), { baseColor.x(), baseColor.y(), baseColor.z(), opacity });
+	FQuadDesc desc = {
+	.rect = layout.value(),
+	.uvTL = Float2(0.0f, 0.0f),
+	.uvBR = Float2(1.0f, 1.0f),
+	.color = baseColor,
+	.alpha = backAlpha,
+	.opacity = opacity,
+	.useTexture = backTex.has_value(),
+	.texName = backTex.value_or("Checkerboard"),
+	};
+
+	renderer->AddQuad(desc);
 }
 
 void UITextBlock::RenderText()
@@ -51,7 +66,7 @@ void UITextBlock::RenderText()
 	Float2 cursor = { static_cast<float>(layout.x), static_cast<float>(layout.y) };
 
 	//clip the text only up to ,say only 10:
-	std::string text_ = this->text.substr(0, 20); 
+	std::string text_ = this->text.substr(0, 20);
 
 	for (char c : text_) {
 		if (!font->glyphs.contains(c)) continue;
@@ -67,37 +82,72 @@ void UITextBlock::RenderText()
 			//static_cast<int>(g.size.y())
 		};
 
-		renderer->AddQuad(glyphRect, g.uvTopLeft, g.uvBottomRight);
+		FQuadDesc desc = {
+.rect = glyphRect,
+.uvTL = g.uvTopLeft,
+.uvBR = g.uvBottomRight,
+.color = baseColor,
+.alpha = {1.0f,1.0f,1.0f,1.0f},
+.opacity = opacity,
+.useTexture = true,
+.texName = "ASCII_16x6.png"
+		};
+
+		renderer->AddQuad(desc);
 
 		//cursor = { cursor.x() + g.advance, cursor.y() };
+		float advanceX = std::clamp(cursor.x() + advance, (float)layout.x, (float)layout.x + layout.w);
 		cursor = { cursor.x() + advance, cursor.y() };
 	}
 }
 
-void UITextBlock::DeriveAutoText()
-{ 
-	if (!style.has_value() || style.value().policy != UI::SizePolicy::AutoText)
+void UITextBlock::ApplyAutoText()
+{
+	if (style.policy != UI::SizePolicy::AutoText)
 	{
 		return;
 	}
 
 	assert(layout.has_value());
-	auto layout = this->layout.value();
+	auto layoutV = this->layout.value();
 
-	float lineHeightPx = layout.h;
-	float w = (float)text.size() * lineHeightPx; 
+	float lineHeightPx = layoutV.h;
+	float targetW = (float)text.size() * lineHeightPx;
+	 
+	//if (targetW > layoutV.w)  
+	this->layout.value().w = static_cast<int>(targetW);
+ 
 
-	this->layout.value().w = static_cast<int>(w);
+	//if (text.size() > 0) {
+	//	this->style.width = 
+	//		style.height.unit == Unit::Percent ? 
+	//		UISize{ Unit::Percent, style.height.value * text.size() }:
+	//		UISize{ Unit::Pixel, style.height.value * text.size() }
+	//	;
+	//}
+	
 }
 
 
 void UITextBlock::Tick(float delta)
 {
-	UIElement::Tick(delta); 
+	UIElement::Tick(delta);
 
-	this->DeriveAutoText();
 	this->RenderBack();
-	this->RenderText(); 
+	this->RenderText();
+}
+
+void UITextBlock::ResolvePixelRect()
+{  
+	UIElement::ResolvePixelRect();
+
+	this->ApplyAutoText();
+
+
+	if (style.alignment == Alignment::Center) {
+		if(this->layout.has_value() && m_parent && m_parent->GetLayout().has_value())
+		CenterRectX(this->layout.value(), m_parent->GetLayout().value());
+	}
 }
 
 UICanvasPanel::UICanvasPanel() : UIElement()
@@ -106,5 +156,5 @@ UICanvasPanel::UICanvasPanel() : UIElement()
 
 void UICanvasPanel::Tick(float delta)
 {
-	UIElement::Tick(delta); 
+	UIElement::Tick(delta);
 }

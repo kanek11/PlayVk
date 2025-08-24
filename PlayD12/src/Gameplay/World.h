@@ -18,6 +18,7 @@
 
 #include "GameStateBase.h"
 
+#include "Math/AnimUtils.h"
 
 namespace Gameplay {
 
@@ -73,6 +74,7 @@ namespace Gameplay {
 
 			if (currentLevel) {
 				currentLevel->OnLoad();
+				if(bGameBegined)
 				currentLevel->RouteActorBeginPlay();
 			}
 		}
@@ -82,6 +84,9 @@ namespace Gameplay {
 		void SyncPhysicsToGame();
 
 		void DispatchPhysicsEvents();
+
+	private:
+		bool bGameBegined{ false };
 
 	private:
 		std::string currentLevelName;
@@ -160,6 +165,31 @@ namespace Gameplay {
 			return actor.get();
 		}
 
+
+		AActor* GetActivePlayer() {
+			auto controller = this->GetFirstPlayerController();
+			if (!controller) return nullptr;
+			 
+			AActor* viewer = controller->GetViewTarget();
+			if (!viewer) return nullptr;
+
+			return viewer;
+		}
+
+		USpringArmComponent* GetActiveCameraArm() {
+			auto controller = this->GetFirstPlayerController();
+			if (!controller) return nullptr;
+			 
+			AActor* viewer = controller->GetViewTarget();
+			if (!viewer) return nullptr;
+
+			auto armComp = viewer->GetComponent<USpringArmComponent>();
+			if (!armComp) return nullptr;
+
+			return armComp.get();
+		}
+
+		 
 	};
 
 

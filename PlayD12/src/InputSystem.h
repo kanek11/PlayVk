@@ -6,6 +6,7 @@
 
 #include "Controller.h"
 
+#include "Math/GenericUtils.h"
 
 enum class EAxis { MoveX, MoveY, MoveZ, COUNT };
 constexpr size_t MAX_Axis = static_cast<size_t>(EAxis::COUNT);
@@ -61,23 +62,7 @@ struct FPointer
 {
     int x, y;
 };
-
-struct BoolEdgeDetector {
-
-    bool previous = false;
-    bool risingEdge = false;
-    bool fallingEdge = false;
-
-    void Update(bool current) {
-        risingEdge = (!previous && current);
-        fallingEdge = (previous && !current);
-        previous = current;
-    }
-
-    bool Get() const { return previous; }
-    operator bool() const { return previous; }
-};
-
+ 
 
 enum class ButtonFrameState {
     Down,

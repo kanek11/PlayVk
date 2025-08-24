@@ -19,7 +19,7 @@ public:
 	virtual void OnUnload() override;
 	virtual void OnTick(float delta) override;
 
-	void LoadPlayer(); 
+	void LoadPlayer();
 	void LoadActors();
 
 
@@ -37,5 +37,4 @@ public:
 	//void SyncGameToPhysics() override;
 	//void SyncPhysicsToGame() override;
 };
-
 

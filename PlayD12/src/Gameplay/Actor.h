@@ -29,14 +29,19 @@ namespace Gameplay
         // game loop
         virtual void OnTick(float DeltaTime);
         virtual void BeginPlay();
-        virtual void EndPlay();
+        virtual void EndPlay(); 
+
+        virtual void OnRegister();
 
     public:
         // dynamic components
         void AddComponent(const SharedPtr<UActorComponent>& component);
         // void RemoveComponent();
 
+    private:
         void RegisterAllComponents();
+
+    public:
 
         // factory for subobjects;  otherwise the component must be register manually;
         template <typename T>

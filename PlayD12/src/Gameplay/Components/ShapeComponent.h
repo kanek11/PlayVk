@@ -30,6 +30,8 @@ namespace Gameplay {
         //float GetDensity() const;
         void SetShape(const ShapeType& shape);
 
+        void SetColliderShape(const ShapeType& shape);
+
         void SetIsTrigger(bool isTrigger) { this->bIsTrigger = isTrigger; }
 
 

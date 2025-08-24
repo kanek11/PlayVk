@@ -15,63 +15,7 @@
 //#include "Gameplay/Components/SceneComponent.h"
 #include "Gameplay/Components/MeshComponent.h"
 #include "Gameplay/Components/ShapeComponent.h"
-
-
-struct StaticMeshActorProxy;
-
-struct FCameraProxy {
-    Float4x4 pvMatrix;
-    Float4x4 invProjMatrix;
-    Float4x4 invViewMatrix;
-    Float3 position;
-
-    virtual void Tick(float delta);
-};
-
-struct FollowCameraProxy : public FCameraProxy {
-    Float3 offset = { 0.0f, +5.0f , -5.0f };
-    WeakPtr<StaticMeshActorProxy> target;
-
-    virtual void Tick(float delta) override;
-};
-
-
-//strip out the minimum to render a static mesh:
-struct StaticMeshActorProxy {
-    std::string debugName = "default static mesh";
-
-    //transform
-    Float3 position = { 0.0f, 0.0f, 0.0f };
-    DirectX::XMVECTOR rotation = DirectX::XMQuaternionIdentity();
-    Float3 scale = { 1.0f, 1.0f, 1.0f };
-
-    Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
-
-    //static mesh
-    SharedPtr<UStaticMesh> mesh;
-
-    SharedPtr<UMaterial> material;
-
-    std::vector<InstanceData> instanceData;
-
-    //new: for physics:
-    RigidBody* rigidBody{ nullptr };
-    Collider* collider{ nullptr };
-
-    void SetWorldPosition(const Float3& newPosition) {
-        position = newPosition;
-    }
-
-    void SetWorldRotation(const DirectX::XMVECTOR& newRotation) {
-        rotation = newRotation;
-    }
-
-    //custom behavior;
-    FDelegate<void(float)> onUpdate;
-};
-
-  
-
+ 
 using namespace Gameplay;
 
 class ACameraActor : public AActor
@@ -102,7 +46,7 @@ namespace Mesh {
 
 
     SharedPtr<AStaticMeshActor> CreateSphereActor(float radius, Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
-    SharedPtr<AStaticMeshActor> CreatePlaneActor(uint32_t subdivX, uint32_t subdivZ,  Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
+    SharedPtr<AStaticMeshActor> CreatePlaneActor(uint32_t subdivX, uint32_t subdivZ, Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
 
     SharedPtr<AStaticMeshActor> CreateBoxActor(Float3 extents, Float3 position = { 0.0f, 0.0f, 0.0f }, Float3 scale = { 1.0f, 1.0f, 1.0f });
 

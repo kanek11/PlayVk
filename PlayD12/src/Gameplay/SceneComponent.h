@@ -45,7 +45,7 @@ namespace Gameplay {
 
 		void SetRelativePosition(const Float3& pos) { m_relativeTransform.position = pos; MarkDirty(); }
 		void SetRelativeRotation(const DirectX::XMVECTOR& rot) { m_relativeTransform.rotation = rot; MarkDirty(); }
-		void SetRelativeScale(const Float3& scl) { m_relativeTransform.scale = scl; MarkDirty(); } 
+		void SetRelativeScale(const Float3& scl) { m_relativeTransform.scale = scl; MarkDirty(); }
 	public:
 
 		Float3 GetForwardVector() const;
@@ -71,6 +71,9 @@ namespace Gameplay {
 
 		void MarkDirty();
 		bool m_transformDirty = true;
+
+
+		bool bAbsolute{ false };
 	};
 
 

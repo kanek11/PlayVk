@@ -41,8 +41,10 @@ namespace Gameplay {
 	public:
 		//new: public because level is basically container of actors
 		std::vector<SharedPtr<AActor>> actors;
+		std::vector<SharedPtr<AActor>> pendingActors;
 
 		void AddActor(SharedPtr<AActor> actor);
+		void AddActorPending(SharedPtr<AActor> actor);
 
 		void UpdateTransforms();
 

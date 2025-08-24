@@ -28,7 +28,7 @@ namespace Passes {
     .passTag = "Volume",
     .colorFormats = {DXGI_FORMAT_R8G8B8A8_UNORM},
     .depthFormat = DXGI_FORMAT_D32_FLOAT,
-    .enableDepth = false, 
+    .enableDepth = true,
     .cullMode = D3D12_CULL_MODE_NONE,
     };
 
@@ -41,32 +41,32 @@ namespace Materials {
     .enableAlphaBlend = true,
     .doubleSided = true,
     .depthWrite = false,
-    .enableWireFrame = false, 
+    .enableWireFrame = false,
     };
 }
- 
+
 
 namespace Mesh {
 
 
     struct GPUResources {
         ComPtr<ID3D12PipelineState> PSO;
-        SharedPtr<FD3D12ShaderPermutation> shader; 
+        SharedPtr<FD3D12ShaderPermutation> shader;
 
         std::optional<uint32_t> baseHeapOffset = 0;
 
-        SharedPtr<FRingBufferAllocator<ObjectCB>> objCBAllocator; 
+        SharedPtr<FRingBufferAllocator<ObjectCB>> objCBAllocator;
         SharedPtr<FRingBufferAllocator<InstanceData>> instanceBufferAllocator;
 
-		virtual void ResetFrame()
-		{ 
-			objCBAllocator->Reset();
-			instanceBufferAllocator->Reset();
-		}
+        virtual void ResetFrame()
+        {
+            objCBAllocator->Reset();
+            instanceBufferAllocator->Reset();
+        }
     };
 
 
-    struct DrawCmd { 
+    struct DrawCmd {
         D3D12_VERTEX_BUFFER_VIEW vbv;
         D3D12_PRIMITIVE_TOPOLOGY topology;
         D3D12_INDEX_BUFFER_VIEW ibv;
@@ -95,20 +95,20 @@ namespace Mesh {
     };
 
     struct PassInitParms {
-		RenderPassDesc passDesc;
-		MaterialDesc materialDesc; 
+        RenderPassDesc passDesc;
+        MaterialDesc materialDesc;
     };
 
     //void Init(const RendererContext* ctx, GPUResources& res, const PassInitParms& params);
 
     //void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
-	void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const BuildData& data, const GPUResources& res) noexcept;
+    void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const BuildData& data, const GPUResources& res) noexcept;
 
     //void BeginFrame(PassContext& passCtx) noexcept;
-	void BeginFrame(BuildData& data, const GPUResources& res,
-		const std::vector <FStaticMeshProxy>& proxies) noexcept;
+    void BeginFrame(BuildData& data, const GPUResources& res,
+        const std::vector <FStaticMeshProxy>& proxies) noexcept;
 
-    void EndFrame(PassContext& passCtx) noexcept; 
+    void EndFrame(PassContext& passCtx) noexcept;
 }
 
 
@@ -121,9 +121,9 @@ namespace DebugMesh
     void FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept;
 
     void BeginFrame(PassContext& passCtx) noexcept;
-    void EndFrame(PassContext& passCtx) noexcept; 
+    void EndFrame(PassContext& passCtx) noexcept;
 }
- 
+
 
 namespace Passes {
 
@@ -131,7 +131,7 @@ namespace Passes {
        .passTag = "Shadow",
        .colorFormats = { },
        .depthFormat = DXGI_FORMAT_D32_FLOAT,
-       .enableDepth = true, 
+       .enableDepth = true,
        .cullMode = D3D12_CULL_MODE_NONE,
     };
 
@@ -182,14 +182,19 @@ namespace Passes {
 
     inline RenderPassDesc GBufferPassDesc = {
        .passTag = "GBuffer",
-       .colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT },
+       .colorFormats = { DXGI_FORMAT_R8G8B8A8_UNORM, 
+       DXGI_FORMAT_R16G16B16A16_FLOAT, 
+       DXGI_FORMAT_R16G16B16A16_FLOAT,
+       DXGI_FORMAT_R16G16B16A16_FLOAT
+    },
        .rtvNames = {
         "rt0_albedo_ao",
         "rt1_normal_rough",
         "rt2_position_metallic",
+        "rt3_emission",
        },
        .depthFormat = DXGI_FORMAT_D32_FLOAT,
-       .enableDepth = true, 
+       .enableDepth = true,
        .cullMode = D3D12_CULL_MODE_NONE,
     };
 
@@ -210,20 +215,20 @@ namespace Materials {
 namespace GBuffer
 {
     using ObjectCB = Mesh::ObjectCB;
-	using BuildData = Mesh::BuildData;
+    using BuildData = Mesh::BuildData;
     using GPUResources = Mesh::GPUResources;
-  //  struct GPUResources : public Mesh::GPUResources {
+    //  struct GPUResources : public Mesh::GPUResources {
 
-  //      //material CB:
-  //      SharedPtr<FRingBufferAllocator<Materials::PBRMaterialCB>> matCBAllocator;
-  // 
-		//virtual void ResetFrame() override
-		//{
-		//	Mesh::GPUResources::ResetFrame();
+    //      //material CB:
+    //      SharedPtr<FRingBufferAllocator<Materials::PBRMaterialCB>> matCBAllocator;
+    // 
+          //virtual void ResetFrame() override
+          //{
+          //	Mesh::GPUResources::ResetFrame();
 
-		//	matCBAllocator->Reset(); 
-		//}
-  //  };
+          //	matCBAllocator->Reset(); 
+          //}
+    //  };
 
     struct PassContext {
         BuildData data;
@@ -231,12 +236,12 @@ namespace GBuffer
 
         SharedPtr<FRingBufferAllocator<Materials::PBRMaterialCB>> matCBAllocator;
 
-		void ResetFrame()
-		{
-			data.ResetFrame();
-			res.ResetFrame();
-			matCBAllocator->Reset();
-		}
+        void ResetFrame()
+        {
+            data.ResetFrame();
+            res.ResetFrame();
+            matCBAllocator->Reset();
+        }
     };
 
     void Init(const RendererContext* ctx, PassContext& passCtx);
