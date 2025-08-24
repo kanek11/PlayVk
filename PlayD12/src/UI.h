@@ -183,8 +183,17 @@ public:
 		std::visit(overloaded{
 			[this](UIMouseMove& e) { OnMouseMove(e); },
 			[this](UIMouseButtonDown& e) { OnMouseButtonDown(e); },
-			[this](UIMouseButtonUp& e) { OnMouseButtonUp(e); }
+			[this](UIMouseButtonUp& e) { OnMouseButtonUp(e); },
+			[this](UIConfirm& e) { OnConfirm(e); },
 			}, evt);
+	}
+
+	virtual void OnConfirm(UIConfirm& e) {
+		//std::cout << "UI: confirm event received" << '\n';
+		if (e.confirmed && bFocused) {
+			//std::cout << "UI: confirm event confirmed" << '\n';
+			OnClick.BlockingBroadCast();
+		} 
 	}
 
 	virtual void OnMouseMove(const UIMouseMove& e) {
@@ -325,6 +334,18 @@ public:
 public:
 	UIId id{ 0 };
 	static std::atomic<uint32_t> GIdGenerator;
+
+public:
+	void OnFocus() {
+		this->OnHoverEnter.BlockingBroadCast();
+		bFocused = true;
+	}
+
+	void OnBlur() {
+		this->OnHoverExit.BlockingBroadCast();
+		bFocused = false;
+	}
+	bool bFocused{ false }; 
 };
 
 
@@ -440,14 +461,26 @@ private:
 	std::unordered_map<UIId, UIElement*> rootElements;
 	UIElement* captured = nullptr;
 
+	void SetFocus(UIElement* elem) {
+		if (captured && captured != elem) {
+			captured->OnBlur();
+		}
+		captured = elem;
+		if (captured) {
+			captured->OnFocus();
+		}
+	}
+
 	void DispatchToRoots(UIEvent& evt) {
-		//if (captured) {
-		//	DispatchToElement(captured, evt);
-		//	return;
-		//}
+		if (captured) {
+			DispatchToElement(captured, evt);
+			return;
+		}
 
 		for (auto& [id, elem] : rootElements) {
-			if (DispatchRecursive(elem, evt)) break;
+			if (DispatchRecursive(elem, evt)) {  
+				 break;
+			}
 		}
 	}
 
@@ -464,10 +497,19 @@ private:
 
 		DispatchToElement(elem, evt);
 
-		return std::visit([](auto const& e) {
-			//return true if the event was handled
+		bool handled = std::visit([=](auto const& e) { 
 			return e.handled;
 			}, evt);
+
+		//if (handled) {
+		//	if (captured && captured != elem) {
+		//		captured->OnBlur();
+		//	}
+		//	captured = elem;
+		//	elem->OnFocus();
+		//}
+
+		return handled;
 	}
 
 	//todo: dispatch within the element; 

@@ -104,8 +104,13 @@ struct UIMouseButtonUp : public UIEventBase
 	}
 };
 
+struct UIConfirm : public UIEventBase
+{ 
+	bool confirmed = false; // true if user confirmed, false if cancelled
+};
 
-using UIEvent = std::variant<UIMouseMove, UIMouseButtonDown, UIMouseButtonUp>;
+
+using UIEvent = std::variant<UIMouseMove, UIMouseButtonDown, UIMouseButtonUp, UIConfirm>;
 
 
 class InputEventQueue {

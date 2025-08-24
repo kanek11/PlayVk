@@ -200,7 +200,7 @@ void UMainTitleUI::LateConstruct()
 
         startButton->OnClick.Add([=]() {
             std::cout << "click start" << '\n';
-            float duration = 0.1f;
+            float duration = 1.0f;
             gameState->RequestTransitGameState(GameStateId::Playing, duration);
             gameState->CameraToPlay(duration);
             });
