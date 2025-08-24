@@ -11,7 +11,10 @@
 enum class EAxis { MoveX, MoveY, MoveZ, COUNT };
 constexpr size_t MAX_Axis = static_cast<size_t>(EAxis::COUNT);
 
-enum class EAction { Jump , Normal ,Metal, Ice, Clone, COUNT };
+enum class EAction { Jump , Normal ,Metal, Ice, Clone, 
+	NavigateUp, NavigateDown, 
+	Confirm, Cancel,
+    COUNT };
 
 struct Binding { 
 	KeyCode key;  
@@ -92,6 +95,38 @@ inline std::unordered_map<EAction, std::vector<Binding>> DefaultActionBindings =
 		{
 			Binding{.key = KeyCode::Num4 },
 			Binding{.gamepadButton = GamepadButton::B, },
+		},
+	},
+
+	{
+		EAction::NavigateUp,
+		{
+			Binding{.key = KeyCode::W, .buttonScale = 1.0f },
+			Binding{.key = KeyCode::Up, .buttonScale = 1.0f },
+			Binding{.gamepadButton = GamepadButton::DPadUp, .buttonScale = 1.0f },
+		},
+	},
+	{
+		EAction::NavigateDown,
+		{
+			Binding{.key = KeyCode::S, .buttonScale = -1.0f },
+			Binding{.key = KeyCode::Down, .buttonScale = -1.0f },
+			Binding{.gamepadButton = GamepadButton::DPadDown, .buttonScale = -1.0f },
+		},
+	},
+
+	{
+		EAction::Confirm,
+		{
+			Binding{.key = KeyCode::Enter },
+			Binding{.gamepadButton = GamepadButton::A,  },
+		},
+	},
+	{
+		EAction::Cancel,
+		{
+			Binding{.key = KeyCode::Escape },
+			Binding{.gamepadButton = GamepadButton::B,  },
 		},
 	},
 

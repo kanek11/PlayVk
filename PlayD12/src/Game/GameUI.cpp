@@ -27,6 +27,40 @@ UGameplayUI::UGameplayUI() : UIElement()
     canvas->AttachTo(this);
 }
 
+void UGameplayUI::Tick(float delta)
+{
+    UIElement::Tick(delta);
+	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+	auto uiManager = GameApplication::GetInstance()->GetUIManager();
+
+    //very simple navigation/ focus system
+	if (buttons.empty()) {
+		return; 
+	}
+	buttonCount = static_cast<int>(buttons.size()); 
+	////std::cout << "axis: " << axis << '\n';
+	if (inputSystem->GetAction(EAction::NavigateUp)) {
+		focusIndex = (focusIndex - 1 + buttonCount) % buttonCount;
+        uiManager->SetFocus(buttons[focusIndex]);
+	}
+	else if (inputSystem->GetAction(EAction::NavigateDown)) {
+		focusIndex = (focusIndex + 1) % buttonCount; 
+        uiManager->SetFocus(buttons[focusIndex]);
+	} 
+
+	if (bDefaultFocus && focusIndex < buttonCount) { 
+        uiManager->SetFocus(buttons[focusIndex]);
+		bDefaultFocus = false; //only focus once
+	} 
+
+	if (inputSystem->GetAction(EAction::Confirm)) {
+		if (focusIndex < buttonCount) {
+			buttons[focusIndex]->OnClick.BlockingBroadCast();
+		}
+	}
+    
+}
+
 
 
 //-------------------------
@@ -228,6 +262,9 @@ void UMainTitleUI::LateConstruct()
 			});
 
     }
+
+	this->buttons.push_back(startButton.get());
+	this->buttons.push_back(quitButton.get()); 
 }
 
 
@@ -313,6 +350,10 @@ void UPauseMenu::LateConstruct()
             gameState->RequestTransitGameState(GameStateId::MainTitle);
             });
     }
+
+	this->buttons.push_back(resumeButton.get());
+	this->buttons.push_back(retryButton.get());
+	this->buttons.push_back(returnButton.get()); 
 }
 
 
@@ -366,7 +407,7 @@ void UGoalingUI::LateConstruct()
         style.offsetX = UISize::Pc(0);
         style.offsetY = UISize::Pc(startY);
 
-        recordButton = canvas->CreateUIAsChild<UIButton>();
+        recordButton = canvas->CreateUIAsChild<UITextBlock>();
 
         recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
         recordButton->SetLayoutStyle(style);
@@ -407,6 +448,9 @@ void UGoalingUI::LateConstruct()
             gameState->RequestTransitGameState(GameStateId::MainTitle);
             });
     }
+ 
+	this->buttons.push_back(retryButton.get());
+	this->buttons.push_back(returnButton.get());
 }
 
 void UGoalingUI::OnRegister()

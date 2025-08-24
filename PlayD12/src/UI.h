@@ -183,18 +183,9 @@ public:
 		std::visit(overloaded{
 			[this](UIMouseMove& e) { OnMouseMove(e); },
 			[this](UIMouseButtonDown& e) { OnMouseButtonDown(e); },
-			[this](UIMouseButtonUp& e) { OnMouseButtonUp(e); },
-			[this](UIConfirm& e) { OnConfirm(e); },
+			[this](UIMouseButtonUp& e) { OnMouseButtonUp(e); }, 
 			}, evt);
-	}
-
-	virtual void OnConfirm(UIConfirm& e) {
-		//std::cout << "UI: confirm event received" << '\n';
-		if (e.confirmed && bFocused) {
-			//std::cout << "UI: confirm event confirmed" << '\n';
-			OnClick.BlockingBroadCast();
-		} 
-	}
+	} 
 
 	virtual void OnMouseMove(const UIMouseMove& e) {
 
@@ -461,6 +452,7 @@ private:
 	std::unordered_map<UIId, UIElement*> rootElements;
 	UIElement* captured = nullptr;
 
+public:
 	void SetFocus(UIElement* elem) {
 		if (captured && captured != elem) {
 			captured->OnBlur();
@@ -471,11 +463,12 @@ private:
 		}
 	}
 
+private:
 	void DispatchToRoots(UIEvent& evt) {
-		if (captured) {
-			DispatchToElement(captured, evt);
-			return;
-		}
+		//if (captured) {
+		//	DispatchToElement(captured, evt);
+		//	return;
+		//}
 
 		for (auto& [id, elem] : rootElements) {
 			if (DispatchRecursive(elem, evt)) {  
@@ -501,13 +494,13 @@ private:
 			return e.handled;
 			}, evt);
 
-		//if (handled) {
-		//	if (captured && captured != elem) {
-		//		captured->OnBlur();
-		//	}
-		//	captured = elem;
-		//	elem->OnFocus();
-		//}
+		if (handled) {
+			if (captured && captured != elem) {
+				captured->OnBlur();
+			}
+			captured = elem;
+			elem->OnFocus();
+		}
 
 		return handled;
 	}

@@ -131,7 +131,7 @@ public:
 		countDownAnim->onApply = [=](float nt) {
 			pc->SetInputMode(EInputMode::UIOnly);
 			countDown = 3.0f - 3.0f * nt;
-			std::cout << "count down: " << countDown << '\n';
+			//std::cout << "count down: " << countDown << '\n';
 			};
 	}
 

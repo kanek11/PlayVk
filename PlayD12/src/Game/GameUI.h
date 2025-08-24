@@ -24,7 +24,7 @@ using namespace Gameplay;
 
 class UGameplayUI : public UIElement {
 public:
-	UGameplayUI();
+	UGameplayUI(); 
 
 	UWorld* GetWorld() const {
 		assert(world != nullptr);
@@ -35,9 +35,7 @@ public:
 	//for valid world;
 	virtual void LateConstruct() = 0;
 
-	virtual void Tick(float delta) {
-		UIElement::Tick(delta);
-	};
+	virtual void Tick(float delta);
 
 private:
 	UWorld* world{ nullptr };
@@ -45,6 +43,13 @@ private:
 public:
 	//as feature, a full-screen, default canvas is given; but could be bypassed, resized, etc.
 	SharedPtr<UICanvasPanel> canvas;
+
+public:
+	std::vector<UIButton*> buttons;
+	int buttonCount{ 0 };
+	int focusIndex{ 0 };
+
+	bool bDefaultFocus{ true }; 
 };
 
 
@@ -122,7 +127,7 @@ public:
 
 	virtual void OnRegister() override;
 
-	SharedPtr<UIButton> recordButton;
+	SharedPtr<UITextBlock> recordButton;
 	SharedPtr<UIButton> retryButton;
 	SharedPtr<UIButton> returnButton;
 
