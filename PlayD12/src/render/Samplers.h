@@ -132,6 +132,24 @@ namespace Samplers {
         return desc;
     }
 
+    static D3D12_STATIC_SAMPLER_DESC ShadowPCFSampler(UINT shaderRegister = 0) {
+        D3D12_STATIC_SAMPLER_DESC s{};
+        s.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT; //linear comp, mip off;
+        s.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        s.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        s.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        s.MipLODBias = 0.0f;
+        s.MaxAnisotropy = 0;
+        s.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;          
+        s.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;        
+        s.MinLOD = 0.0f;
+        s.MaxLOD = 0.0f; //  SampleCmpLevelZero 
+        s.ShaderRegister = shaderRegister;  
+		s.RegisterSpace = 0;
+        s.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+        return s;
+    }
+
 
     static std::unordered_map<std::string, D3D12_STATIC_SAMPLER_DESC> samplerPool =
     {
@@ -140,6 +158,7 @@ namespace Samplers {
         { "depthSampler", DepthSampler()},
         { "pointClampSampler", PointClampSampler()},
         { "pointWrapSampler", PointWrapSampler()},
+		{ "shadowPCFSampler", ShadowPCFSampler()},
     };
      
 }

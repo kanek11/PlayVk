@@ -117,8 +117,7 @@ void D3D12HelloRenderer::OnInit()
 
     //for valid atlas
     UI::Init(Render::rendererContext, uiPassCtx);
-
-
+     
 
     //after graph ctx:
     DebugMesh::Init(Render::rendererContext, debugMeshCtx);

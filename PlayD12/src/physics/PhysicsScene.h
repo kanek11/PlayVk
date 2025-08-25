@@ -81,7 +81,7 @@ struct RigidBody {
 	}
 
 	void ApplyImpulse(const Float3& impulseRate) {
-		this->linearVelocity += impulseRate * 60.0f;
+		this->linearVelocity += impulseRate;
 	}
 
 	void ApplyTorque(const Float3& torque) {

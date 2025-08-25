@@ -8,4 +8,6 @@ SamplerState depthSampler : register(s1, space0);
 
 SamplerState pointClampSampler : register(s2, space0);
 SamplerState pointWrapSampler : register(s3, space0);
+
+SamplerComparisonState shadowPCFSampler : register(s4, space0);
 #endif

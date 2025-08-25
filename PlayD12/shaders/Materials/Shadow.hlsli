@@ -19,9 +19,14 @@ bool isInShadow(float4 lightSpacePos)
         shadowCoord.y >= 0.0f && shadowCoord.y <= 1.0f &&
         shadowCoord.z >= 0.0f && shadowCoord.z <= 1.0f)
     {
-        float shadowMapDepth = shadowMap.Sample(depthSampler, shadowCoord.xy).r;
+        //float shadowMapDepth = shadowMap.Sample(depthSampler, shadowCoord.xy, shadowCoord.xy).r;
+        //float bias = 0.001f; // Tweak 
+        //inShadow = (shadowCoord.z - bias) > shadowMapDepth;
+        
         float bias = 0.001f; // Tweak 
-        inShadow = (shadowCoord.z - bias) > shadowMapDepth;
+        float shadow = shadowMap.SampleCmpLevelZero(shadowPCFSampler, shadowCoord.xy, shadowCoord.z - bias);
+        return shadow;
+
     }
     
     return inShadow;

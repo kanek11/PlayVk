@@ -72,26 +72,33 @@ namespace Anim {
         }
 
         void Update(float dt) {
-            std::cout << "tweens num: " << tweens.size() << '\n';
+            //std::cout << "tweens num: " << tweens.size() << '\n';
+            std::vector<std::function<void()>> deferredComplete;
+
             for (auto& t : tweens) {
-				if (t == nullptr) continue;
-                if (t->finished) continue;
+                if (!t || t->finished) continue;
 
                 t->elapsed += dt;
-
                 float nt = std::clamp(t->elapsed / std::max(1e-6f, t->duration), 0.f, 1.f);
                 float et = t->ease ? t->ease(nt) : nt;
                 if (t->onApply) t->onApply(et);
 
                 if (t->elapsed >= t->duration) {
                     t->finished = true;
-                    if (t->onComplete) t->onComplete();
+                    if (t->onComplete)
+                        deferredComplete.push_back(t->onComplete);  
                 }
             }
 
-            //GC
+            // GC
             tweens.erase(std::remove_if(tweens.begin(), tweens.end(),
-                [](const std::unique_ptr<Tween>& t) { return t->finished; }), tweens.end());
+                [](const std::unique_ptr<Tween>& t) {
+                    return t->finished;
+                }), tweens.end());
+
+ 
+            for (auto& fn : deferredComplete)
+                fn();
         }
 
         void Clear() {

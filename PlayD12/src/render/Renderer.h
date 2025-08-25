@@ -236,8 +236,8 @@ private:
     SharedPtr<FD3D12Texture> m_shadowMap;
     FRenderPassAttachments m_shadowBindings;
 
-    UINT m_shadowMapWidth = 2048;
-    UINT m_shadowMapHeight = 2048;
+    UINT m_shadowMapWidth = 4096;
+    UINT m_shadowMapHeight = 4096;
 
 
     //---------

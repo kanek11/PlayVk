@@ -509,7 +509,7 @@ void APlayer::NormalStateBehavior(float delta)
 	if (bGroundedThisFrame)
 	{
 		if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
-			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, JUMP_SPEED, 0.0f) * delta);
+			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, JUMP_SPEED, 0.0f));
 		}
 
 		if (Length(shapeComponent->rigidBody->linearVelocity) <= NORMAL_MAXSPEED) {
@@ -560,7 +560,7 @@ void APlayer::CloneStateBehavior(float delta)
 	if (bGroundedThisFrame)
 	{
 		if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
-			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, JUMP_SPEED, 0.0f) * delta);
+			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, JUMP_SPEED, 0.0f));
 		}
 
 		if (Length(shapeComponent->rigidBody->linearVelocity) <= NORMAL_MAXSPEED) {
