@@ -45,15 +45,15 @@ InputSystem::InputSystem() {
     mouseButtonStateRaw.fill(false);
     mouseButtonState.fill(ButtonFrame{});
 
-	m_axisState.fill(0.f); 
+    m_axisState.fill(0.f);
 
-	m_gamepad = GamepadInput();
+    m_gamepad = GamepadInput();
 }
 
 
 
 void InputSystem::OnUpdate()
-{ 
+{
     m_gamepad.Update(); //update gamepad state 
 
     auto events = InputEventQueue::Get().Drain();
@@ -66,7 +66,7 @@ void InputSystem::OnUpdate()
        [this](const FKeyUp& e) { OnKeyUp(e.key); },
        [this](const FMouseButtonDown& e) { OnMouseButtonDown(e); },
        [this](const FMouseButtonUp& e) { OnMouseButtonUp(e); },
-       [this](const FMouseMove& e) { OnMouseMove(e); }, 
+       [this](const FMouseMove& e) { OnMouseMove(e); },
             }, event);
     }
 
@@ -80,24 +80,24 @@ void InputSystem::OnUpdate()
 
 
     //new:
-	for (auto& [axis, binds] : DefaultAxisBindings){ 
-		if (binds.empty()) continue;  
-		m_axisState[(size_t)axis] = 0.f;
+    for (auto& [axis, binds] : DefaultAxisBindings) {
+        if (binds.empty()) continue;
+        m_axisState[(size_t)axis] = 0.f;
 
         for (const auto& bind : binds) {
-            if (IsKeyDown(bind.key)) { 
+            if (IsKeyDown(bind.key)) {
                 m_axisState[(size_t)axis] += bind.buttonScale;
             }
-			if (m_gamepad.GetButtonState(bind.gamepadButton)) {
-				m_axisState[(size_t)axis] += bind.buttonScale;
-			} 
-			if (bind.gamepadAxis != GamepadAxis::COUNT) {
-				m_axisState[(size_t)axis] += m_gamepad.GetAxis(bind.gamepadAxis);
-			}   
+            if (bind.gamepadButton != GamepadButton::COUNT && m_gamepad.GetButtonState(bind.gamepadButton)) {
+                m_axisState[(size_t)axis] += bind.buttonScale;
+            }
+            if (bind.gamepadAxis != GamepadAxis::COUNT) {
+                m_axisState[(size_t)axis] += m_gamepad.GetAxis(bind.gamepadAxis);
+            }
             //clamp the value to [-1, 1]
             m_axisState[(size_t)axis] = std::clamp(m_axisState[(size_t)axis], -1.f, 1.f);
         }
-    
+
     }
 
     //action:
@@ -108,12 +108,14 @@ void InputSystem::OnUpdate()
             if (IsKeyJustPressed(bind.key)) {
                 actionState = true;
             }
-            if (m_gamepad.IsButtonPressed(bind.gamepadButton)) {
+            if(bind.gamepadButton != GamepadButton::COUNT && m_gamepad.IsButtonPressed(bind.gamepadButton)) {
                 actionState = true;
             }
         }
-		m_actionState[static_cast<size_t>(action)] = actionState;
+        m_actionState[static_cast<size_t>(action)] = actionState;
     }
+
+
 }
 
 void InputSystem::OnKeyDown(KeyCode key)
@@ -123,7 +125,7 @@ void InputSystem::OnKeyDown(KeyCode key)
 
 void InputSystem::OnKeyUp(KeyCode key)
 {
-    keyStateRaw[static_cast<size_t>(key)] = false; 
+    keyStateRaw[static_cast<size_t>(key)] = false;
 }
 
 bool InputSystem::IsKeyJustPressed(KeyCode key) const
@@ -191,8 +193,8 @@ bool InputSystem::IsMouseButtonJustPressed(MouseButtonCode button)
 
 float InputSystem::GetAxis(EAxis axis) const
 {
-	//std::cout << "get axis value :" << m_axisState[static_cast<size_t>(axis)] << '\n';
-	return m_axisState[static_cast<size_t>(axis)];
+    //std::cout << "get axis value :" << m_axisState[static_cast<size_t>(axis)] << '\n';
+    return m_axisState[static_cast<size_t>(axis)];
 }
 
 

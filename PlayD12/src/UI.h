@@ -34,7 +34,7 @@ inline FRect CenterRect(const FRect& parentRect, const FRect& childRect) {
 
 
 inline void CenterRectX(FRect& childRect, const FRect& parentRect) {
-	childRect.x = (parentRect.w - childRect.w) / 2; 
+	childRect.x = (parentRect.w - childRect.w) / 2;
 }
 
 
@@ -98,7 +98,7 @@ namespace UI {
 		UIMargins   margin{};
 		// pivot if needed..
 	};
-	 
+
 	[[nodiscard]]
 	inline int Eval(const UISize& l, int span) {
 		return
@@ -175,6 +175,8 @@ public:
 	virtual bool HitTest(int x, int y) const { return false; };
 
 	void OnEvent(UIEvent& evt) {
+		if (!bRevInput) return;
+
 		std::visit([this](auto& e) {
 			//std::cerr << "UIEvent holds: " << typeid(e).name() << '\n';
 			if (HitTest(e.x, e.y)) e.handled = true; // mark as handled 
@@ -183,9 +185,9 @@ public:
 		std::visit(overloaded{
 			[this](UIMouseMove& e) { OnMouseMove(e); },
 			[this](UIMouseButtonDown& e) { OnMouseButtonDown(e); },
-			[this](UIMouseButtonUp& e) { OnMouseButtonUp(e); }, 
+			[this](UIMouseButtonUp& e) { OnMouseButtonUp(e); },
 			}, evt);
-	} 
+	}
 
 	virtual void OnMouseMove(const UIMouseMove& e) {
 
@@ -233,7 +235,8 @@ public:
 	virtual void OnMouseButtonUp(const UIMouseButtonUp& e) {
 		//std::cout << "UI: handle hit release, curr state:" << (int)state << '\n';
 		if (state == UIState::PressedInside) {
-			OnClick.BlockingBroadCast();
+			//OnClick.BlockingBroadCast();
+			this->InvokeClick();
 			state = UIState::Hovered;
 		}
 
@@ -273,12 +276,12 @@ public:
 
 public:
 	Float3 baseColor = Color::White.xyz();
-	Float4 backAlpha = { 1.0f, 0.0f, 0.0f, 0.0f };
+	Float4 backAlpha = { 0.0f, 0.0f, 0.0f, 0.0f };
 	float opacity = 1.0f;
 
 	std::optional<std::string> backTex;
 
-	void SetOpacityHierarchy(float opacity) { 
+	void SetOpacityHierarchy(float opacity) {
 		//new: 
 		this->opacity = opacity;
 
@@ -299,10 +302,10 @@ public:
 	void SetLayout(const FRect& rect) {
 		layout = rect;
 	}
-	std::optional<FRect> GetLayout() { 
+	std::optional<FRect> GetLayout() {
 		return layout;
 	}
-	std::optional<FRect> layout; 
+	std::optional<FRect> layout;
 
 	void SetLayoutStyle(const UI::LayoutStyle& layoutStyle) {
 		style = layoutStyle;
@@ -312,7 +315,7 @@ public:
 	virtual void ResolvePixelRect() {
 
 		if (m_parent && m_parent->GetLayout().has_value())
-		layout = UI::ResolvePixelRect(style, m_parent->GetLayout().value());
+			layout = UI::ResolvePixelRect(style, m_parent->GetLayout().value());
 	}
 
 	UI::LayoutStyle GetLayoutStyle() {
@@ -321,7 +324,7 @@ public:
 
 	UI::LayoutStyle style{};
 
-	std::string name = "UIElement"; 
+	std::string name = "UIElement";
 public:
 	UIId id{ 0 };
 	static std::atomic<uint32_t> GIdGenerator;
@@ -336,7 +339,14 @@ public:
 		this->OnHoverExit.BlockingBroadCast();
 		bFocused = false;
 	}
-	bool bFocused{ false }; 
+	bool bFocused{ false };
+
+
+public: 
+	bool bRevInput{ true };
+
+public:
+	void InvokeClick(bool vibrate = false);
 };
 
 
@@ -377,7 +387,7 @@ public:
 			//baseColor = Color::White.xyz();
 			backAlpha = { 0.0f, 0.0f, 0.0f, 0.0f };
 			});
-		 
+
 		backAlpha = { 0.0f,0.0f, 0.0f, 0.0f };
 	}
 };
@@ -471,8 +481,9 @@ private:
 		//}
 
 		for (auto& [id, elem] : rootElements) {
-			if (DispatchRecursive(elem, evt)) {  
-				 break;
+			if (!elem->bRevInput)  continue;
+			if (DispatchRecursive(elem, evt)) {
+				break;
 			}
 		}
 	}
@@ -490,7 +501,7 @@ private:
 
 		DispatchToElement(elem, evt);
 
-		bool handled = std::visit([=](auto const& e) { 
+		bool handled = std::visit([=](auto const& e) {
 			return e.handled;
 			}, evt);
 

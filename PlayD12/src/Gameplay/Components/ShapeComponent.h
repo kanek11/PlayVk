@@ -12,7 +12,7 @@ namespace Gameplay {
     class UShapeComponent : public UPrimitiveComponent {
     public:
         UShapeComponent();
-		virtual ~UShapeComponent() = default;
+        virtual ~UShapeComponent() = default;
 
         virtual void OnRegister() override;
 
@@ -35,7 +35,7 @@ namespace Gameplay {
         void SetColliderShape(const ShapeType& shape);
 
         void SetIsTrigger(bool isTrigger) { this->bIsTrigger = isTrigger; }
-
+        bool IsTrigger() { return bIsTrigger; }
 
         void SetCollisionEnabled(bool bEnabled) { collider->bEnabled = bEnabled; }
         bool IsCollisionEnabled() const { return collider->bEnabled; }

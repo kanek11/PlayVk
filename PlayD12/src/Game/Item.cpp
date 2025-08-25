@@ -21,7 +21,7 @@ void AItem::BeginPlay()
 	//this->staticMeshComponent->SetMaterial(Materials::GetDebugMesh());
 
 	//
-	auto overlapCb = [=](AActor*) {
+	auto overlapCb = [=](AActor*, Contact) {
 		std::cout << "item: callback overlap\n";
 		this->shapeComponent->SetCollisionEnabled(false);
 
@@ -37,7 +37,7 @@ void AItem::BeginPlay()
 			};
 
 		//game thread flag is more predictable than physics?
-		this->bConsumed = true;
+		//this->bConsumed = true;
 		};
 
 	this->shapeComponent->onOverlap.Add(overlapCb);
@@ -73,7 +73,7 @@ void ATriggerVolume::BeginPlay()
 
 
 	auto gameState = GetWorld()->GetGameState<AGameState>();
-	this->shapeComponent->onOverlap.Add([=](AActor* other) {
+	this->shapeComponent->onOverlap.Add([=](AActor* other, Contact contact) {
 		if (other->tag == "player") {
 			gameState->onGoal.BlockingBroadCast();
 			this->shapeComponent->SetCollisionEnabled(false);
@@ -138,6 +138,14 @@ ACloneItem::ACloneItem()
 
 
 //----
+//void URotateComponent::TickComponent(float delta)
+//{
+//	auto RootComponent = this->GetOwner().lock()->RootComponent;
+//	auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, MMath::ToRadians(rotationSpeed * delta), 0.0f));
+//	RootComponent->SetRelativeRotation(targetRot);
+//}
+
+
 ARotateBox::ARotateBox() : AStaticMeshActor()
 {
 	this->tag = "env";
@@ -153,4 +161,36 @@ void ARotateBox::OnTick(float delta)
 	AStaticMeshActor::OnTick(delta);
 	auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, MMath::ToRadians(rotationSpeed * delta), 0.0f));
 	RootComponent->SetRelativeRotation(targetRot);
+}
+
+
+//void UOscillateComponent::TickComponent(float delta)
+//{
+//	phase += MMath::ToRadians(delta);
+//	auto offset = std::sin(phase) * mag;
+//	
+//	auto targetPos = basePos + Float3(0.0f, offset, 0.0f);
+//	//RootComponent->SetRelativeRotate(targetRot);
+//}
+
+AOscillateBox::AOscillateBox()
+{
+	this->tag = "env";
+	this->shapeComponent->SetSimulatePhysics(false);
+	Mesh::SetBox(this, Float3{ 1.0f,1.0f,1.0f });
+}
+
+void AOscillateBox::BeginPlay()
+{
+}
+
+void AOscillateBox::OnTick(float delta)
+{
+	phase += MMath::ToRadians(delta);
+	auto offset = std::sin(phase) * mag;
+
+	auto targetPos = basePos + Float3(0.0f, offset, 0.0f);
+	RootComponent->SetRelativePosition(targetPos);
+
+	std::cout << "target pos:" << ToString(targetPos) << '\n';
 }

@@ -75,6 +75,15 @@ public:
 };
 
 
+
+//class URotateComponent : UActorComponent {
+//public:
+//	virtual void TickComponent(float delta);
+//
+//	float rotationSpeed{ 10.0f };
+//};
+
+
 class ARotateBox : public AStaticMeshActor {
 public:
 	ARotateBox();
@@ -84,4 +93,27 @@ public:
 
 private:
 	float rotationSpeed{ 10.0f };
+};
+
+
+//class UOscillateComponent : UActorComponent {
+//public:
+//	virtual void TickComponent(float delta);
+//
+//	float phase{ 0.0f };
+//	float mag{ 1.0f };
+//
+//	Float3 basePos{};
+//};
+
+class AOscillateBox : public AStaticMeshActor {
+public:
+	AOscillateBox();
+	virtual void BeginPlay() override;
+	virtual void OnTick(float delta) override; 
+
+	float phase{ 0.0f };
+	float mag{ 1.0f };
+
+	Float3 basePos{};
 };

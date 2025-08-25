@@ -1,6 +1,9 @@
 #pragma once
 
-#include "Gameplay/Level.h"
+#include "Gameplay/Level.h" 
+ 
+constexpr float LANE_WIDTH = 20; 
+
 
 using namespace Gameplay;
 
@@ -19,16 +22,9 @@ public:
 	virtual void OnUnload() override;
 	virtual void OnTick(float delta) override;
 
-	void LoadPlayer();
-	void LoadActors(); 
-
+	void LoadPlayer(); 
 	void LoadMap0();
 
-public:
-	//void GenerateObstacles(float roadWidth, float roadLength, uint32_t obstacleCount);
-	float roadWidth = 20;
-	float refLength = 100; 
-
-	Float3 playerSpawnPos = { 0.0f, 2.0f, 1.0f }; 
+public: 
+	Float3 playerSpawnPos = { 0.0f, 1.1f, 2.0f };
 };
-

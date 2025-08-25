@@ -54,7 +54,7 @@ public:
 public:
 	//todo: might need more general predicate/timer?  
 	//FDelegate<void()> startGame;
-	bool startGame{ false };
+	bool startPlaying{ false };
 	float timeCount{ 0.0f };
 
 
@@ -74,11 +74,11 @@ public:
 		this->currentState = targetState;
 		Anim::WaitFor(desiredDelay, [=]() {
 			m_gameManager->RequestTransitState(targetState);
-			});  
+			});
 
-		
+
 	}
-	
+
 	GameStateId lastState{};
 	GameStateId currentState{};
 
@@ -86,7 +86,7 @@ public:
 		this->lastState = this->currentState;
 		this->currentState = targetState;
 		m_gameManager->RequestTransitState(targetState);
-		  
+
 	}
 
 	//public:
@@ -108,10 +108,10 @@ public:
 			arm->LocalOffset = Anim::Lerp(currOffset, inGameCamOff, nt);
 			arm->LocalRotationEuler = Anim::Lerp(currEuler, inGameCamRot, nt);
 
-			mainTitle->SetOpacityHierarchy(1.0f - nt);
+			mainTitle->SetOpacityHierarchy(1.0f - nt); 
 			};
 
-	} 
+	}
 
 
 	void OnStartPlay(float duration) {
@@ -126,7 +126,7 @@ public:
 		countDownAnim->onComplete = [=] {
 			pc->SetInputMode(EInputMode::None);
 			this->timeCount = 0.0f;
-			startGame = true;
+			startPlaying = true;
 			};
 		countDownAnim->onApply = [=](float nt) {
 			pc->SetInputMode(EInputMode::UIOnly);
@@ -135,5 +135,5 @@ public:
 			};
 	}
 
-	bool paused{ false }; 
+	bool paused{ false };
 };

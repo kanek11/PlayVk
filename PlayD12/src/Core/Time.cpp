@@ -8,7 +8,6 @@
 /*
 * intended for fixed update:
 * 
-
 */
 
 namespace System {
@@ -65,14 +64,12 @@ namespace System {
         }
 
         for (int i = 0; i < steps; ++i) {
-
-            //std::cout << "pump sim step" << '\n'; 
-
             for (auto& entry : m_fixedCB) {
                 // e.t->TickFixed(m_policy.fixedDt);
                 entry((float)m_policy.fixedDt);
             }
 
+            //std::cout << "pump sim step" << '\n';
             m_info.simTime += m_policy.fixedDt;
         }
     }
@@ -85,7 +82,7 @@ namespace System {
 
     void TimeSystem::RegisterFixedFrame(const EntryFixed& fixed)
     {
-         m_fixedCB.push_back(fixed);
+        m_fixedCB.push_back(fixed);
     }
 
     double TimeSystem::GetFixedAlpha() const
@@ -97,29 +94,29 @@ namespace System {
     void TimeSystem::AdvanceFixedSteps(int st) { if (m_info.paused) m_pendingFixedSteps += std::max(0, st); }
 
 
-        //void TimeSystem::RegisterFixed(ITickFixed* t, int order) {
-    //    m_fixed.push_back({ t, order });
-    //    m_dirtyOrder = true;
-    //}
-    //void TimeSystem::RegisterFrame(ITickFrame* t, int order) {
-    //    m_frame.push_back({ t, order });
-    //    m_dirtyOrder = true;
-    //}
-    //void TimeSystem::UnregisterFixed(ITickFixed* t) {
-    //    m_fixed.erase(std::remove_if(m_fixed.begin(), m_fixed.end(),
-    //        [&](auto& e) {return e.t == t;}), m_fixed.end());
-    //}
-    //void TimeSystem::UnregisterFrame(ITickFrame* t) {
-    //    m_frame.erase(std::remove_if(m_frame.begin(), m_frame.end(),
-    //        [&](auto& e) {return e.t == t;}), m_frame.end());
-    //}
+    //void TimeSystem::RegisterFixed(ITickFixed* t, int order) {
+//    m_fixed.push_back({ t, order });
+//    m_dirtyOrder = true;
+//}
+//void TimeSystem::RegisterFrame(ITickFrame* t, int order) {
+//    m_frame.push_back({ t, order });
+//    m_dirtyOrder = true;
+//}
+//void TimeSystem::UnregisterFixed(ITickFixed* t) {
+//    m_fixed.erase(std::remove_if(m_fixed.begin(), m_fixed.end(),
+//        [&](auto& e) {return e.t == t;}), m_fixed.end());
+//}
+//void TimeSystem::UnregisterFrame(ITickFrame* t) {
+//    m_frame.erase(std::remove_if(m_frame.begin(), m_frame.end(),
+//        [&](auto& e) {return e.t == t;}), m_frame.end());
+//}
 
-    //void TimeSystem::sortRegistriesIfNeeded() {
-    //    if (!m_dirtyOrder) return;
-    //    std::sort(m_fixed.begin(), m_fixed.end(), [](auto& a, auto& b) {return a.order < b.order;});
-    //    std::sort(m_frame.begin(), m_frame.end(), [](auto& a, auto& b) {return a.order < b.order;});
-    //    m_dirtyOrder = false;
-    //}
+//void TimeSystem::sortRegistriesIfNeeded() {
+//    if (!m_dirtyOrder) return;
+//    std::sort(m_fixed.begin(), m_fixed.end(), [](auto& a, auto& b) {return a.order < b.order;});
+//    std::sort(m_frame.begin(), m_frame.end(), [](auto& a, auto& b) {return a.order < b.order;});
+//    m_dirtyOrder = false;
+//}
 
 
 }

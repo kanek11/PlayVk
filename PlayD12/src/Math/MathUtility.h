@@ -464,30 +464,7 @@ namespace MMath {
 	}
 
 
-	inline std::vector<Float3> GenSpherePattern(
-		float innerRadius,
-		float outerRadius,
-		float particleRadius,
-		float spacing
-	) {
-		std::vector<Float3> positions;
 
-		// Step size ensures no overlap
-		float step = 2.0f * particleRadius + spacing;
-
-		for (float x = -outerRadius; x <= outerRadius; x += step) {
-			for (float y = -outerRadius; y <= outerRadius; y += step) {
-				for (float z = -outerRadius; z <= outerRadius; z += step) {
-					float r2 = x * x + y * y + z * z;
-					if (r2 >= innerRadius * innerRadius && r2 <= outerRadius * outerRadius) {
-						positions.push_back({ x, y, z });
-					}
-				}
-			}
-		}
-
-		return positions;
-	}
 
 
 	template <FLOP_t Scalar_t, std::size_t Rows, std::size_t Cols>
@@ -520,7 +497,10 @@ namespace MMath {
 		return R;
 	}
 
-
+	struct AABB2D { float xmin{}, xmax{}, zmin{}, zmax{}; };
+	inline bool PointInAABB2D(const AABB2D& r, float px, float pz) {
+		return px >= r.xmin && px <= r.xmin && pz >= r.zmin && pz <= r.zmax;
+	}
 
 }
 
@@ -565,4 +545,52 @@ namespace Random {
 
 
 	 
+}
+
+
+namespace MMath {
+
+	inline std::vector<Float3> GenSpherePattern(
+		float innerRadius,
+		float outerRadius,
+		float particleRadius,
+		float spacing
+	) {
+		std::vector<Float3> positions;
+
+		// Step size ensures no overlap
+		float step = 2.0f * particleRadius + spacing;
+
+		for (float x = -outerRadius; x <= outerRadius; x += step) {
+			for (float y = -outerRadius; y <= outerRadius; y += step) {
+				for (float z = -outerRadius; z <= outerRadius; z += step) {
+					float r2 = x * x + y * y + z * z;
+					if (r2 >= (innerRadius + particleRadius) * (innerRadius + particleRadius) && r2 <= (outerRadius + particleRadius) * (outerRadius + particleRadius)) {
+						x += Random::Uniform01() * spacing * 0.05f;
+						z += Random::Uniform01() * spacing * 0.05f;
+						positions.push_back({ x, y, z });
+					}
+				}
+			}
+		}
+
+		return positions;
+	}
+
+
+
+	inline float Normalize01(float value, float min, float max, float deadzone = 0.0f)
+	{
+		if (min == max) return 0.0f; // avoid divide by zero
+
+		// Clamp into range
+		float t = (value - min) / (max - min);
+		t = std::clamp(t, 0.0f, 1.0f);
+
+		if (t < deadzone) { t = 0.0f; } 
+
+		return t;
+	}
+
+
 }

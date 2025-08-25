@@ -27,7 +27,15 @@ void D3D12HelloRenderer::ConsumeCmdBuffer()
     cmdBuffer.SwapBuffers();
     cmdBuffer.Execute();
 }
- 
+
+
+//void D3D12HelloRenderer::SubmitCamera(const FCameraProxy& camera)
+//{
+//    sceneCBData.pvMatrix = camera.pvMatrix;
+//    sceneCBData.invProj = camera.invProjMatrix;
+//    sceneCBData.invView = camera.invViewMatrix;
+//    sceneCBData.cameraPos = camera.position;
+//}
 
 void D3D12HelloRenderer::SubmitCamera(const FSceneView& sceneView)
 {
@@ -47,7 +55,7 @@ void D3D12HelloRenderer::OnUpdate(float delta)
     //new:
     auto timeSystem = GameApplication::GetInstance()->GetTimeSystem();
     sceneCBData.OnTick();
-    sceneCBData.time = timeSystem->GetTimeInfo().engineTime;
+    sceneCBData.time = static_cast<float>(timeSystem->GetTimeInfo().engineTime);
     sceneCBData.deltaTime = delta;
     sceneCBData.viewportSize = { (float)m_width, (float)m_height };
     //this->sceneCB->UploadData(&sceneCBData, sizeof(SceneCB));
@@ -611,10 +619,10 @@ void D3D12HelloRenderer::EndFrame()
     m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     // Present the frame.
-    //ThrowIfFailed(m_swapChain->Present(1, 0));
+    ThrowIfFailed(m_swapChain->Present(1, 0));
 
     //donot use vsync
-    ThrowIfFailed(m_swapChain->Present(0, 0));
+    //ThrowIfFailed(m_swapChain->Present(0, 0));
 
     WaitForPreviousFrame();
 

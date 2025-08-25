@@ -11,8 +11,8 @@
 #include "Physics/PhysicsScene.h"
 #include "Delegate.h"
 
-namespace Gameplay { 
-    using OverlapEvent = FDelegate<void(AActor*)>;
+namespace Gameplay {
+    using OverlapEvent = FDelegate<void(AActor*, Contact)>;
 
 
     using FPrimitiveComponentId = uint32_t;
@@ -21,7 +21,7 @@ namespace Gameplay {
     class UPrimitiveComponent : public USceneComponent {
     public:
         UPrimitiveComponent();
-		virtual ~UPrimitiveComponent() = default;
+        virtual ~UPrimitiveComponent() = default;
 
         virtual void OnRegister() override;
         virtual void EndPlay() override;
@@ -35,7 +35,7 @@ namespace Gameplay {
         //virtual AABB GetBounds() const;
 
         void SetSimulatePhysics(bool bSimulate) { bSimulatePhysics = bSimulate; }
-        bool IsSimulatingPhysics() const { return bSimulatePhysics;  }
+        bool IsSimulatingPhysics() const { return bSimulatePhysics; }
         //Set/Get CollisionResponse
 
         ////for the editor

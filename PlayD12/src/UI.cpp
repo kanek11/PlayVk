@@ -7,6 +7,8 @@
 #include "Render/Renderer.h"
 #include "Render/Text.h"
 
+#include "Math/AnimUtils.h"
+
 
 using namespace UI;
 
@@ -39,6 +41,13 @@ void UIElement::RenderBack()
 	renderer->AddQuad(desc);
 }
 
+void UIElement::InvokeClick(bool vibrate)
+{
+	OnClick.BlockingBroadCast();
+
+	//if(vibrate)
+	//Anim::VibrateFor(0.4f, 0.4f, 0.2f);
+}
 
 UITextBlock::UITextBlock() : UIElement()
 {
@@ -65,7 +74,9 @@ void UITextBlock::RenderText()
 		return;
 	}
 
-	Float2 size = { static_cast<float>(layout.h), static_cast<float>(layout.h) };
+	float offset = static_cast<float>(layout.h);
+
+	Float2 size = { static_cast<float>(layout.h) , static_cast<float>(layout.h) };
 	float advance = static_cast<float>(layout.h);
 
 	Float2 cursor = { static_cast<float>(layout.x), static_cast<float>(layout.y) };
@@ -116,12 +127,12 @@ void UITextBlock::ApplyAutoText()
 	assert(layout.has_value());
 	auto layoutV = this->layout.value();
 
-	float lineHeightPx = layoutV.h;
-	float targetW = (float)text.size() * lineHeightPx;
-	 
+	float lineHeightPx = (float)layoutV.h;
+	float targetW = (float)text.size() * lineHeightPx ;
+
 	//if (targetW > layoutV.w)  
 	this->layout.value().w = static_cast<int>(targetW);
- 
+
 
 	//if (text.size() > 0) {
 	//	this->style.width = 
@@ -130,7 +141,7 @@ void UITextBlock::ApplyAutoText()
 	//		UISize{ Unit::Pixel, style.height.value * text.size() }
 	//	;
 	//}
-	
+
 }
 
 
@@ -143,15 +154,15 @@ void UITextBlock::Tick(float delta)
 }
 
 void UITextBlock::ResolvePixelRect()
-{  
+{
 	UIElement::ResolvePixelRect();
 
 	this->ApplyAutoText();
 
 
 	if (style.alignment == Alignment::Center) {
-		if(this->layout.has_value() && m_parent && m_parent->GetLayout().has_value())
-		CenterRectX(this->layout.value(), m_parent->GetLayout().value());
+		if (this->layout.has_value() && m_parent && m_parent->GetLayout().has_value())
+			CenterRectX(this->layout.value(), m_parent->GetLayout().value());
 	}
 }
 

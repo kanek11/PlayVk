@@ -30,37 +30,52 @@ UGameplayUI::UGameplayUI() : UIElement()
 void UGameplayUI::Tick(float delta)
 {
     UIElement::Tick(delta);
-	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
-	auto uiManager = GameApplication::GetInstance()->GetUIManager();
+
+    if (!bRevInput) return;
+
+    auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
+    auto uiManager = GameApplication::GetInstance()->GetUIManager();
 
     //very simple navigation/ focus system
-	if (buttons.empty()) {
-		return; 
-	}
-	buttonCount = static_cast<int>(buttons.size()); 
-	////std::cout << "axis: " << axis << '\n';
-	if (inputSystem->GetAction(EAction::NavigateUp)) {
-		focusIndex = (focusIndex - 1 + buttonCount) % buttonCount;
+    if (buttons.empty()) {
+        return;
+    }
+    buttonCount = static_cast<int>(buttons.size());
+    ////std::cout << "axis: " << axis << '\n';
+    if (inputSystem->GetAction(EAction::NavigateUp)) {
+        focusIndex = (focusIndex - 1 + buttonCount) % buttonCount;
         uiManager->SetFocus(buttons[focusIndex]);
-	}
-	else if (inputSystem->GetAction(EAction::NavigateDown)) {
-		focusIndex = (focusIndex + 1) % buttonCount; 
+    }
+    else if (inputSystem->GetAction(EAction::NavigateDown)) {
+        focusIndex = (focusIndex + 1) % buttonCount;
         uiManager->SetFocus(buttons[focusIndex]);
-	} 
+    } 
 
-	if (bDefaultFocus && focusIndex < buttonCount) { 
-        uiManager->SetFocus(buttons[focusIndex]);
-		bDefaultFocus = false; //only focus once
-	} 
+    if (inputSystem->GetAction(EAction::Confirm)) {
+        if (focusIndex < buttonCount) {
+            buttons[focusIndex]->InvokeClick(true);
+            std::cout << "confirm index:" << focusIndex << '\n';
+        }
+    }
 
-	if (inputSystem->GetAction(EAction::Confirm)) {
-		if (focusIndex < buttonCount) {
-			buttons[focusIndex]->OnClick.BlockingBroadCast();
-		}
-	}
-    
 }
 
+void UGameplayUI::OnRegister()
+{
+    UIElement::OnRegister();
+
+    this->bRevInput = true;
+
+    auto uiManager = GameApplication::GetInstance()->GetUIManager();
+
+    buttonCount = static_cast<int>(buttons.size());
+    if (focusIndex < buttonCount) {
+        uiManager->SetFocus(buttons[focusIndex]);
+        std::cout << "\tdefault index:" << focusIndex << '\n';
+        //bDefaultFocus = false; //only focus once
+    }
+}
+ 
 
 
 //-------------------------
@@ -90,9 +105,10 @@ void UPlayerHUD::Tick(float delta)
     auto& ability = playerState.abilitiesRT;
 
     int index{ 0 };
-    for (auto& hud : abilityRT) {
+    for (auto& hud : abilityRTs) {
 
         EPlayerForm form = static_cast<EPlayerForm>(index + 1);
+        if(ability.contains(form))
         hud->text = std::format("{:.1f}", ability.at(form).remaining);
         index++;
     }
@@ -103,6 +119,7 @@ void UPlayerHUD::Tick(float delta)
 void UPlayerHUD::LateConstruct()
 {
     auto uiManager = GameApplication::GetInstance()->GetUIManager();
+    auto aspectRatio = GameApplication::GetInstance()->getAspectRatio();
 
     float speedH = 0.1f;
     {
@@ -125,18 +142,20 @@ void UPlayerHUD::LateConstruct()
     }
 
 
-    float iconW = 0.05f;
-    float abilityH = 0.05f;
+    float iconW = 0.1f / aspectRatio;
+    float abilityH = 0.1f;  
 
+    std::array<std::string, 3> textures = {
+        "metal.tif",
+        "crystal.tif",
+        "break.tif",
+    };
 
     {
         int index{ 0 };
         for (auto& hud : abilityIcon) {
 
             hud = canvas->CreateUIAsChild<UITextBlock>();
-            hud->backAlpha = { 1.0f,1.0f,1.0f,1.0f };
-            hud->backTex = "Checkerboard";
-            hud->text = "";
 
             LayoutStyle style{};
             style.width = UISize::Pc(iconW);
@@ -148,6 +167,12 @@ void UPlayerHUD::LateConstruct()
             style.alignment = Alignment::Left;
 
             hud->SetLayoutStyle(style);
+
+
+            hud->backAlpha = { 1.0f,1.0f,1.0f,1.0f };
+            hud->text = "";
+            hud->backTex = textures[index];
+
             index++;
         }
     }
@@ -155,7 +180,7 @@ void UPlayerHUD::LateConstruct()
 
     {
         int index{ 0 };
-        for (auto& hud : abilityRT) {
+        for (auto& hud : abilityRTs) {
 
             hud = canvas->CreateUIAsChild<UITextBlock>();
 
@@ -171,8 +196,11 @@ void UPlayerHUD::LateConstruct()
             hud->text = "";
             hud->SetLayoutStyle(style);
             index++;
-        }
+        }  
+         
     }
+
+
 
 
 
@@ -237,6 +265,7 @@ void UMainTitleUI::LateConstruct()
             float duration = 1.0f;
             gameState->RequestTransitGameState(GameStateId::Playing, duration);
             gameState->CameraToPlay(duration);
+            this->bRevInput = false;
             });
     }
 
@@ -256,16 +285,18 @@ void UMainTitleUI::LateConstruct()
         quitButton->text = "Quit";
         quitButton->SetLayoutStyle(style);
 
-		quitButton->OnClick.Add([=]() {
-			std::cout << "click quit" << '\n';
-			GameApplication::GetInstance()->GetMainWindow()->RequestClose();
-			});
+        quitButton->OnClick.Add([=]() {
+            std::cout << "click quit" << '\n';
+            GameApplication::GetInstance()->GetMainWindow()->RequestClose();
+            });
 
     }
 
-	this->buttons.push_back(startButton.get());
-	this->buttons.push_back(quitButton.get()); 
+    this->buttons.push_back(startButton.get());
+    this->buttons.push_back(quitButton.get());
 }
+
+
 
 
 //-------------------------
@@ -294,14 +325,14 @@ void UPauseMenu::LateConstruct()
         style.offsetY = UISize::Pc(startY);
 
         style.policy = SizePolicy::AutoText;
-        style.alignment = Alignment::Center;
+        //style.alignment = Alignment::Center;
 
         resumeButton = canvas->CreateUIAsChild<UIButton>();
         resumeButton->text = "Resume";
 
         resumeButton->SetLayoutStyle(style);
 
-        resumeButton->OnClick.Add([=]() { 
+        resumeButton->OnClick.Add([=]() {
             gameState->RequestTransitGameState(GameStateId::Playing);
             });
     }
@@ -314,7 +345,7 @@ void UPauseMenu::LateConstruct()
         style.offsetY = UISize::Pc(startY + spacingH + buttonH);
 
         style.policy = SizePolicy::AutoText;
-        style.alignment = Alignment::Center;
+        //style.alignment = Alignment::Center;
 
         retryButton = canvas->CreateUIAsChild<UIButton>();
 
@@ -323,10 +354,10 @@ void UPauseMenu::LateConstruct()
 
 
         retryButton->OnClick.Add([=]() {
-            gameState->OnResetGameplay(); 
+            gameState->OnResetGameplay();
 
             float duration = 0.1f;
-            gameState->RequestTransitGameState(GameStateId::Playing); 
+            gameState->RequestTransitGameState(GameStateId::Playing);
             });
     }
 
@@ -338,7 +369,7 @@ void UPauseMenu::LateConstruct()
         style.offsetY = UISize::Pc(startY + spacingH + buttonH + spacingH + buttonH);
 
         style.policy = SizePolicy::AutoText;
-        style.alignment = Alignment::Center;
+        //style.alignment = Alignment::Center;
 
         returnButton = canvas->CreateUIAsChild<UIButton>();
 
@@ -351,9 +382,9 @@ void UPauseMenu::LateConstruct()
             });
     }
 
-	this->buttons.push_back(resumeButton.get());
-	this->buttons.push_back(retryButton.get());
-	this->buttons.push_back(returnButton.get()); 
+    this->buttons.push_back(resumeButton.get());
+    this->buttons.push_back(retryButton.get());
+    this->buttons.push_back(returnButton.get());
 }
 
 
@@ -390,13 +421,15 @@ void UGoalingUI::LateConstruct()
     {
         LayoutStyle style{};
         style.width = UISize::Pc(1.0f);
-        style.height = UISize::Pc(buttonH);
+        style.height = UISize::Pc(buttonH * 0.5f);
         style.offsetX = UISize::Pc(0);
-        style.offsetY = UISize::Pc(0.1f);
+        style.offsetY = UISize::Pc(0.2f);
 
         newRecordButton = canvas->CreateUIAsChild<UITextBlock>();
         newRecordButton->text = "";
         newRecordButton->SetLayoutStyle(style);
+
+        newRecordButton->baseColor = Color::Yellow.xyz();
     }
 
 
@@ -409,7 +442,7 @@ void UGoalingUI::LateConstruct()
 
         recordButton = canvas->CreateUIAsChild<UITextBlock>();
 
-        recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
+        recordButton->text = std::format("Record:{:.2f}", gameState->timeCount);
         recordButton->SetLayoutStyle(style);
 
     }
@@ -428,7 +461,7 @@ void UGoalingUI::LateConstruct()
 
         retryButton->OnClick.Add([=]() {
             gameState->OnResetGameplay();
-            gameState->RequestTransitGameState(GameStateId::Playing);
+            gameState->RequestTransitGameState(GameStateId::Playing); 
             });
     }
 
@@ -442,22 +475,22 @@ void UGoalingUI::LateConstruct()
         returnButton = canvas->CreateUIAsChild<UIButton>();
         returnButton->text = "title";
 
-        returnButton->SetLayoutStyle(style); 
+        returnButton->SetLayoutStyle(style);
 
         returnButton->OnClick.Add([=]() {
             gameState->RequestTransitGameState(GameStateId::MainTitle);
             });
     }
- 
-	this->buttons.push_back(retryButton.get());
-	this->buttons.push_back(returnButton.get());
+
+    this->buttons.push_back(retryButton.get());
+    this->buttons.push_back(returnButton.get());
 }
 
 void UGoalingUI::OnRegister()
-{ 
+{
     auto gameState = GetWorld()->GetGameState<AGameState>();
 
-    recordButton->text = std::format("Record :{:.2f}", gameState->timeCount);
+    recordButton->text = std::format("Record:{:.2f}", gameState->timeCount);
 }
 
 
@@ -473,9 +506,9 @@ void UGameStatsHUD::Tick(float delta)
     {
         timeHUD->text = std::format("{:.2f}", gameState->timeCount);
 
-        if (!gameState->startGame && gameState->countDown >= 0) {
+        if (!gameState->startPlaying && gameState->countDown >= 0) {
 
-			//std::cout << "count down: " << gameState->countDown << '\n';
+            //std::cout << "count down: " << gameState->countDown << '\n';
             countDown->text = std::format("{:d}", static_cast<int>(std::ceil(gameState->countDown)));
         }
         else
@@ -489,8 +522,7 @@ void UGameStatsHUD::Tick(float delta)
 void UGameStatsHUD::LateConstruct()
 {
 
-    float timeH = 0.1f;
-
+    float timeH = 0.05f; 
     {
         timeHUD = canvas->CreateUIAsChild<UITextBlock>();
 

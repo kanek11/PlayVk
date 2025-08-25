@@ -28,81 +28,81 @@
 //void RegisterFrame(ITickFrame* t, int order = 0);
 //void UnregisterFixed(ITickFixed* t);
 //void UnregisterFrame(ITickFrame* t);
- 
+
 // helpers
 //void sortRegistriesIfNeeded();
 //bool m_dirtyOrder = false;
 
-namespace System{
- 
-struct FrameTimeInfo {
-    double realDelta;    // Real/WALL delta (seconds)
-    double engineDelta;  // affected by timeScale, pause
-    double engineTime;   // accumulated engine time
-    double simTime;      // accumulated fixed-sim time
-    bool   paused{ false };
-    double timeScale{ 1.0 }; //engine scale
-};
+namespace System {
 
-struct FixedStepPolicy {
-    double fixedDt = 1.0 / 144.0; 
-    int    maxCatchupSteps = 4;   // prevent spiral-of-death
-}; 
+    struct FrameTimeInfo {
+        double realDelta;    // Real/WALL delta (seconds)
+        double engineDelta;  // affected by timeScale, pause
+        double engineTime;   // accumulated engine time
+        double simTime;      // accumulated fixed-sim time
+        bool   paused{ false };
+        double timeScale{ 1.0 }; //engine scale
+    };
 
-class TimeSystem {
+    struct FixedStepPolicy {
+        double fixedDt = 1.0 / 60.0;
+        int    maxCatchupSteps = 4;   // prevent spiral-of-death
+    };
 
-    using EntryFixed = std::function<void(float)>;
+    class TimeSystem {
 
-public:
-    TimeSystem();
+        using EntryFixed = std::function<void(float)>;
 
-    // frame boundaries
-    void BeginFrame();
-    void EndFrame();
+    public:
+        TimeSystem();
 
-    // per-frame pump for physics
-    void PumpFixedSteps();
+        // frame boundaries
+        void BeginFrame();
+        void EndFrame();
 
-    // controls
-    void SetPaused(bool p);
-    void TogglePaused();
-    void SetTimeScale(double s); // [0..]
+        // per-frame pump for physics
+        void PumpFixedSteps();
 
-    void AdvanceFrames(int frames = 1);     // advance Engine/Frame N frames when paused
-    void AdvanceFixedSteps(int steps = 1);  // advance Sim N fixed-steps when paused
+        // controls
+        void SetPaused(bool p);
+        void TogglePaused();
+        void SetTimeScale(double s); // [0..]
 
-    // policy
-    void SetFixedStepPolicy(const FixedStepPolicy& p);
+        void AdvanceFrames(int frames = 1);     // advance Engine/Frame N frames when paused
+        void AdvanceFixedSteps(int steps = 1);  // advance Sim N fixed-steps when paused
 
-    // query
-    const FrameTimeInfo& GetTimeInfo() const { return m_info; }  
+        // policy
+        void SetFixedStepPolicy(const FixedStepPolicy& p);
 
-    void RegisterFixedFrame(const EntryFixed& fixed);
+        // query
+        const FrameTimeInfo& GetTimeInfo() const { return m_info; }
 
-    double GetFixedAlpha() const;
-private:
-    // policy & state
-    FixedStepPolicy m_policy;
+        void RegisterFixedFrame(const EntryFixed& fixed);
 
-    // stepping in pause mode
-    int m_pendingFixedSteps = 0; 
-    int m_pendingFrameSteps = 0;
+        double GetFixedAlpha() const;
+    private:
+        // policy & state
+        FixedStepPolicy m_policy;
 
-    // registries
-    //struct EntryF { ITickFixed* t; int order; };
-    //struct EntryV { ITickFrame* t; int order; };
-    std::vector<EntryFixed> m_fixedCB;
-    //std::vector<EntryV> m_frameCB;
+        // stepping in pause mode
+        int m_pendingFixedSteps = 0;
+        int m_pendingFrameSteps = 0;
 
-private:
-    using clock = std::chrono::steady_clock;
+        // registries
+        //struct EntryF { ITickFixed* t; int order; };
+        //struct EntryV { ITickFrame* t; int order; };
+        std::vector<EntryFixed> m_fixedCB;
+        //std::vector<EntryV> m_frameCB;
 
-    // clocks
-    clock::time_point m_lastRealTP;
-    double m_accumulator = 0.0;
+    private:
+        using clock = std::chrono::steady_clock;
 
-    FrameTimeInfo m_info{};
-};
+        // clocks
+        clock::time_point m_lastRealTP;
+        double m_accumulator = 0.0;
 
- 
+        FrameTimeInfo m_info{};
+    };
+
+
 }

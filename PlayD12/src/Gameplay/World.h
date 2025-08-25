@@ -44,17 +44,17 @@ namespace Gameplay {
 			persistentLevel = level;
 			if (persistentLevel) {
 				persistentLevel->owningWorld = this;
-			} 
+			}
 		}
 
 
 		void RequestReloadLevel(const std::string& name) {
-			 
+
 			this->levelToLoad = name;
 		}
 
 
-		void EndFrame() { 
+		void EndFrame() {
 			if (!levelToLoad.empty()) {
 				LoadOrResetLevel(levelToLoad);
 				levelToLoad.clear();
@@ -69,11 +69,11 @@ namespace Gameplay {
 			if (currentLevelName == name) {
 				std::cout << "reloading level:" << name << '\n';
 				//return;
-			} 
+			}
 
-			if (currentLevel) { 
+			if (currentLevel) {
 				currentLevel->RouteActorEndPlay();
-				currentLevel->OnUnload(); 
+				currentLevel->OnUnload();
 
 				//in-case
 				//this->m_primtiveMap.clear();
@@ -82,6 +82,8 @@ namespace Gameplay {
 				this->physicsScene->ClearRigidBodySync();
 				this->physicsScene->ClearColliderSync();
 				this->physicsScene->ClearBufferSync();
+
+				VibrateController(0, 0.0f, 0.0f);
 			}
 
 			if (!levels.contains(name)) {
@@ -95,8 +97,8 @@ namespace Gameplay {
 
 			if (currentLevel) {
 				currentLevel->OnLoad();
-				if(bGameBegined)
-				currentLevel->RouteActorBeginPlay();
+				if (bGameBegined)
+					currentLevel->RouteActorBeginPlay();
 			}
 		}
 
@@ -118,7 +120,7 @@ namespace Gameplay {
 		SharedPtr<ULevel> currentLevel;
 		std::unordered_map<std::string, SharedPtr<ULevel>> levels;
 
-		SharedPtr<ULevel> persistentLevel; 
+		SharedPtr<ULevel> persistentLevel;
 
 	public:
 		PhysicsScene* physicsScene = new PhysicsScene();
@@ -128,9 +130,9 @@ namespace Gameplay {
 			m_primtiveMap[comp->id] = comp;
 		}
 
-		void RemovePrimitiveComponent(UPrimitiveComponent* comp) { 
+		void RemovePrimitiveComponent(UPrimitiveComponent* comp) {
 			m_primtiveMap.erase(comp->id);
-		} 
+		}
 
 		//todo: so verbose..
 		AActor* PrimitiveIdToActor(FPrimitiveComponentId id) {
@@ -194,7 +196,7 @@ namespace Gameplay {
 		AActor* GetActivePlayer() {
 			auto controller = this->GetFirstPlayerController();
 			if (!controller) return nullptr;
-			 
+
 			AActor* viewer = controller->GetViewTarget();
 			if (!viewer) return nullptr;
 
@@ -204,7 +206,7 @@ namespace Gameplay {
 		USpringArmComponent* GetActiveCameraArm() {
 			auto controller = this->GetFirstPlayerController();
 			if (!controller) return nullptr;
-			 
+
 			AActor* viewer = controller->GetViewTarget();
 			if (!viewer) return nullptr;
 
@@ -214,7 +216,7 @@ namespace Gameplay {
 			return armComp.get();
 		}
 
-		 
+
 	};
 
 

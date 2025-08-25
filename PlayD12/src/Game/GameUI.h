@@ -37,6 +37,8 @@ public:
 
 	virtual void Tick(float delta);
 
+	virtual void OnRegister();
+
 private:
 	UWorld* world{ nullptr };
 
@@ -49,7 +51,9 @@ public:
 	int buttonCount{ 0 };
 	int focusIndex{ 0 };
 
-	bool bDefaultFocus{ true }; 
+	bool bDefaultFocus{ true };
+
+
 };
 
 
@@ -83,6 +87,7 @@ public:
 	UMainTitleUI();
 	virtual void Tick(float delta) override;
 	virtual void LateConstruct() override;
+	 
 
 	SharedPtr<UITextBlock> titleHUD;
 	SharedPtr<UIButton> startButton;
@@ -99,7 +104,7 @@ public:
 
 	SharedPtr<UITextBlock> speedHUD;
 
-	std::array<SharedPtr<UITextBlock>, 3> abilityRT;
+	std::array<SharedPtr<UITextBlock>, 3> abilityRTs;
 
 	std::array<SharedPtr<UITextBlock>, 3> abilityIcon;
 };

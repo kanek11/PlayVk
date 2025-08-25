@@ -75,6 +75,8 @@ void GameApplication::run()
 		auto& timeInfo = gTime->GetTimeInfo();
 		float delta = (float)timeInfo.engineDelta;
 		float FPS = 1.0f / delta;
+
+#if (defined(DEBUG) || defined(_DEBUG)) 
 		std::string text =
 			std::format(" rDelta: {:.4f}", timeInfo.realDelta)
 			+ std::format(" eDelta: {:.4f}", timeInfo.engineDelta)
@@ -82,80 +84,67 @@ void GameApplication::run()
 			+ std::format(" eTime: {:.4f}", timeInfo.engineTime)
 			+ std::format(" simTime: {:.4f}", timeInfo.simTime);
 		m_mainWindow->SetCustomWindowText(text);
-
+#endif
 
 
 		//todo: physics interpolation;  
 		//=======
-		m_mainWindow->onUpdate();
+		//m_mainWindow->onUpdate();
 
-		m_inputSystem->OnUpdate();
+		//m_inputSystem->OnUpdate();
 
-		m_uiManager->RouteEvents();
+		//m_uiManager->RouteEvents();
 
-		m_uiManager->Tick(delta);
+		//m_uiManager->Tick(delta);
 
-		m_world->OnTick(delta);
+		//m_world->OnTick(delta);
 
-		m_world->SyncGameToPhysics();
-
-
-		//=======
-		gTime->PumpFixedSteps();  
+		//m_world->SyncGameToPhysics();
 
 
-		//=======
-		m_renderer->OnUpdate(delta);
-		m_renderer->OnRender();
+		////=======
+		//gTime->PumpFixedSteps(); 
+
+		////=======
+		//m_renderer->OnUpdate(delta);
+		//m_renderer->OnRender();
 
 
-		//m_taskSystem.AddTask(
-		//	"main",
-		//	[=]() {
-		//		m_mainWindow->onUpdate();
+		m_taskSystem.AddTask(
+			"main",
+			[=]() {
+				m_mainWindow->onUpdate(); 
+				m_inputSystem->OnUpdate(); 
+				m_uiManager->RouteEvents(); 
+				m_uiManager->Tick(delta); 
+				m_world->OnTick(delta); 
+				m_world->SyncGameToPhysics();
+			},
+			System::ETaskDomain::MainThread,
+			{}
+		); 
 
-		//		m_inputSystem->OnUpdate();
+		m_taskSystem.AddTask(
+			"physics",
+			[=]() { 
+				gTime->PumpFixedSteps();
+			},
+			System::ETaskDomain::PhysicsThread,
+			{}
+		);
 
-		//		m_uiManager->RouteEvents();
+		m_taskSystem.AddTask(
+		"renderThread",
+		[=]() {  
+			m_renderer->OnUpdate(delta);
+			m_renderer->OnRender();
+		},
+		System::ETaskDomain::RenderThread,
+		{}
+		);
 
-		//		m_uiManager->Tick(delta);
-
-		//		//todo: physics interpolation;  
-
-		//		m_world->OnTick(delta);
-
-		//		m_world->SyncGameToPhysics();
-		//	},
-		//	System::ETaskDomain::MainThread,
-		//	{}
-		//);
-
-
-
-		//m_taskSystem.AddTask(
-		//	"physics",
-		//	[=]() {
-		//		//std::cout << "dummy task\n" ;   
-		//		gTime->PumpFixedSteps();
-		//	},
-		//	System::ETaskDomain::PhysicsThread,
-		//	{}
-		//);
-
-		//m_taskSystem.AddTask(
-		//"renderThread",
-		//[=]() {
-		//	//std::cout << "dummy task\n" ;   
-		//	m_renderer->OnUpdate(delta);
-		//	m_renderer->OnRender();
-		//},
-		//System::ETaskDomain::RenderThread,
-		//{}
-		//);
-
-		//m_taskSystem.ExecuteAll();
-		// 
-		// 
+		m_taskSystem.ExecuteAll();
+		 
 		m_world->EndFrame();
 
 	}//while
@@ -169,7 +158,7 @@ void GameApplication::onBeginGame()
 	auto globalLevel = m_world->CreateAndRegisterLevel<GlobalLevel>("global");
 	m_world->SetPersistentLevel(globalLevel);
 	//
-	m_world->CreateAndRegisterLevel<GamePlayLevel>("gameplay"); 
+	m_world->CreateAndRegisterLevel<GamePlayLevel>("gameplay");
 
 	m_world->Init();
 	m_world->BeginPlay();

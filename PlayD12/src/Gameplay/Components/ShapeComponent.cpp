@@ -5,7 +5,7 @@
 
 
 //----------------
-namespace Gameplay {
+namespace Gameplay { 
 
 
     UShapeComponent::UShapeComponent() :UPrimitiveComponent()
@@ -20,15 +20,15 @@ namespace Gameplay {
 
         std::cout << " shape on register\n";
 
-		this->UploadStateToPhysics(); 
+        this->UploadStateToPhysics();
     }
-     
+
 
     void UShapeComponent::SetShape(const ShapeType& shape)
     {
         this->shape = shape;
 
-		this->UploadStateToPhysics(); 
+        this->UploadStateToPhysics();
     }
 
 
@@ -52,24 +52,24 @@ namespace Gameplay {
             std::cout << "owning world not set; could be unexpected?" << '\n';
             return;
         }
-        auto id = this->id;   
+        auto id = this->id;
 
         owningWorld->physicsScene->SetColliderShape(id, shape);
     }
 
     void UShapeComponent::UploadStateToPhysics()
     {
-         
+
         auto owningWorld = this->GetWorld();
-		if (!owningWorld) {
-			//std::cout << "owning world not set; could be unexpected?" << '\n';
-			return;
-		}
+        if (!owningWorld) {
+            //std::cout << "owning world not set; could be unexpected?" << '\n';
+            return;
+        }
 
         auto id = this->id;
         auto rb = this->rigidBody.get();
 
-        collider->SetIsTrigger(this->bIsTrigger); 
+        collider->SetIsTrigger(this->bIsTrigger);
 
         owningWorld->physicsScene->AddRigidBody(rb, id);
         owningWorld->physicsScene->AddCollider(collider.get(), id);

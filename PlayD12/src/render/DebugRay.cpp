@@ -9,12 +9,12 @@ using namespace Buffer;
 
 void DebugDraw::Init(const RendererContext* ctx, PassContext& passCtx)
 {
-	auto& res = passCtx.res;
+    auto& res = passCtx.res;
 
     size_t MaxVertices = 2 * MaxLines;
 
 
-    { 
+    {
         ShaderPermutationKey key = {
            Materials::DebugRayMaterialDesc.shaderTag,
            Passes::DebugRayPassDesc.passTag,
@@ -26,23 +26,23 @@ void DebugDraw::Init(const RendererContext* ctx, PassContext& passCtx)
 
         passCtx.res.baseHeapOffset = shader->RequestAllocationOnHeap(MaxVertices);
     }
-     
+
 
     {
         //input 
         auto inputDesc = InputLayoutBuilder::Build<Vertex>();
 
-		auto& pso = passCtx.res.pso;
+        auto& pso = passCtx.res.pso;
         // Create PSO for debug rendering
         pso = ctx->psoManager->GetOrCreate(
-			Materials::DebugRayMaterialDesc,
-			Passes::DebugRayPassDesc,
+            Materials::DebugRayMaterialDesc,
+            Passes::DebugRayPassDesc,
             inputDesc
         );
 
     }
 
-     
+
     {
         auto& vb = passCtx.res.batchVB;
         // Create vertex buffer for debug lines
@@ -67,42 +67,42 @@ void DebugDraw::BeginFrame(PassContext& passCtx) noexcept
     //attach the debug mesh to transparent meshes:
     auto& frameData = Render::frameContext;
 
-	auto& debugMeshes = passCtx.debugMeshes;
-	 
+    auto& debugMeshes = passCtx.debugMeshes;
+
     frameData->transparentMeshes.insert(
         frameData->transparentMeshes.end(),
-           debugMeshes.begin(),
-           debugMeshes.end()
-       );
+        debugMeshes.begin(),
+        debugMeshes.end()
+    );
 }
 
 void DebugDraw::EndFrame(PassContext& passCtx) noexcept
 {
-	//passCtx.data.ResetFrame();
+    //passCtx.data.ResetFrame();
 }
 
 void DebugDraw::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassContext& passCtx) noexcept
 {
-	auto& res = passCtx.res;
-	auto& data = passCtx.data;
-	auto& shader = res.shader;
+    auto& res = passCtx.res;
+    auto& data = passCtx.data;
+    auto& shader = res.shader;
 
-    auto& frameData = Render::frameContext;   
+    auto& frameData = Render::frameContext;
 
     res.batchVB->UploadData(data.vertices.data(), data.vertices.size() * sizeof(Vertex));
-     
+
     //
-	cmdList->SetPipelineState(res.pso.Get());
-	cmdList->SetGraphicsRootSignature(res.shader->GetRootSignature().Get());
-     
+    cmdList->SetPipelineState(res.pso.Get());
+    cmdList->SetGraphicsRootSignature(res.shader->GetRootSignature().Get());
+
 
     // Set the descriptor heap for the command list
-    shader->SetDescriptorHeap(cmdList); 
+    shader->SetDescriptorHeap(cmdList);
     shader->SetSceneRootCBV(
         cmdList,
         frameData->sceneCB->GetRawResource()
     );
-     
+
     //or, e.g., cmd->SetGraphicsRootConstantBufferView(...)  
 
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -113,10 +113,11 @@ void DebugDraw::FlushAndRender(ID3D12GraphicsCommandList* cmdList, const PassCon
 }
 
 
-void DebugDraw::AddLine(const Float3& start, const Float3& end, 
-    const Float4& color0, 
+void DebugDraw::AddLine(const Float3& start, const Float3& end,
+    const Float4& color0,
     std::optional<Float4> color1)
 {
+#if (defined(DEBUG) || defined(_DEBUG)) 
     auto renderer = GameApplication::GetInstance()->GetRenderer();
 
     Vertex vert0 = {
@@ -125,11 +126,11 @@ void DebugDraw::AddLine(const Float3& start, const Float3& end,
     };
     Vertex vert1 = {
        .position = end,
-	   .color = color1.has_value() ? color1.value() : color0,
+       .color = color1.has_value() ? color1.value() : color0,
     };
 
-	renderer->AddLine(vert0, vert1);
- 
+    renderer->AddLine(vert0, vert1);
+#endif
 }
 
 void DebugDraw::AddRay(const Float3& origin, const Float3& direction, const Float4& color0, std::optional<Float4> color1)
@@ -139,27 +140,28 @@ void DebugDraw::AddRay(const Float3& origin, const Float3& direction, const Floa
 
 void DebugDraw::ClearFrame()
 {
-	auto renderer = GameApplication::GetInstance()->GetRenderer();
-	renderer->ClearDebugDraw();
-} 
+    auto renderer = GameApplication::GetInstance()->GetRenderer();
+    renderer->ClearDebugDraw();
+}
 
 void DebugDraw::AddCube(const Float3& center, float size, std::optional<Float4> color)
 {
+#if (defined(DEBUG) || defined(_DEBUG)) 
     auto renderer = GameApplication::GetInstance()->GetRenderer();
- 
+
     auto& ctx = renderer->debugRayCtx;
- 
-	auto S = MMath::MatrixScaling(size, size, size);
-	auto T = MMath::MatrixTranslation(center.x(), center.y(), center.z()); 
+
+    auto S = MMath::MatrixScaling(size, size, size);
+    auto T = MMath::MatrixTranslation(center.x(), center.y(), center.z());
 
     Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
-    modelMatrix = MatrixMultiply(S, modelMatrix); 
-    modelMatrix = MatrixMultiply(T, modelMatrix); 
+    modelMatrix = MatrixMultiply(S, modelMatrix);
+    modelMatrix = MatrixMultiply(T, modelMatrix);
 
     auto& mat = ctx.debugCubeMat;
     mat->transparent = true;
-	if (color.has_value())
-	mat->transparentColor = color.value();
+    if (color.has_value())
+        mat->transparentColor = color.value();
 
     //new
     auto newProxy = FStaticMeshProxy();
@@ -168,6 +170,7 @@ void DebugDraw::AddCube(const Float3& center, float size, std::optional<Float4> 
     newProxy.material = ctx.debugCubeMat.get();
     newProxy.instanceData = ctx.debugCubeInstances.data();
     newProxy.instanceCount = ctx.debugCubeInstances.size();
-     
-	renderer->AddDebugMesh(newProxy);
+
+    renderer->AddDebugMesh(newProxy);
+#endif
 }

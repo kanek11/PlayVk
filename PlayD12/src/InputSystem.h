@@ -11,69 +11,71 @@
 enum class EAxis { MoveX, MoveY, MoveZ, COUNT };
 constexpr size_t MAX_Axis = static_cast<size_t>(EAxis::COUNT);
 
-enum class EAction { Jump , Normal ,Metal, Ice, Clone, 
-	NavigateUp, NavigateDown, 
-	Confirm, Cancel,
-    COUNT };
-
-struct Binding { 
-	KeyCode key;  
-
-    GamepadButton gamepadButton;  
-    float buttonScale = 1.0f;
-
-	GamepadAxis gamepadAxis;  
+enum class EAction {
+	Jump, Normal, Metal, Ice, Clone,
+	NavigateUp, NavigateDown,
+	Confirm, Cancel, 
+	Pause,
+	COUNT
 };
 
-inline std::unordered_map<EAxis, std::vector<Binding>> DefaultAxisBindings = {
-    
-{
-    EAxis::MoveX,
-    {
-       Binding{ .key = KeyCode::A, .buttonScale =-1.0f },
-       Binding{ .key = KeyCode::D, .buttonScale =1.0f }, 
-	   Binding {.key = KeyCode::Left, .buttonScale = -1.0f }, 
-	   Binding {.key = KeyCode::Right, .buttonScale = 1.0f }, 
-      
-	   Binding {.gamepadButton = GamepadButton::DPadLeft, .buttonScale = -1.0f },
-	   Binding {.gamepadButton = GamepadButton::DPadRight, .buttonScale = 1.0f }, 
-  //   	{ GamepadAxis::LX },
-		//{ GamepadAxis::RX },  
+struct Binding {
+	KeyCode key;
 
-    },
-},
+	GamepadButton gamepadButton{ GamepadButton::COUNT };
+	float buttonScale = 1.0f;
 
-{
-    EAxis::MoveZ,
-    {
-        Binding{ .key = KeyCode::W, .buttonScale = 1.0f },
-        Binding{ .key = KeyCode::S, .buttonScale = -1.0f },
-		Binding{.key = KeyCode::Up, .buttonScale = 1.0f },
-		Binding{.key = KeyCode::Down, .buttonScale = -1.0f }, 
+	GamepadAxis gamepadAxis{ GamepadAxis::COUNT }; //invalid;
+};
 
-		Binding{.gamepadButton = GamepadButton::DPadUp, .buttonScale = 1.0f },
-		Binding{.gamepadButton = GamepadButton::DPadDown, .buttonScale = -1.0f }, 
-		//{ GamepadAxis::LY },
-		//{ GamepadAxis::RY },
-    },
-},
+inline std::unordered_map<EAxis, std::vector<Binding>> DefaultAxisBindings = { 
+	{
+		EAxis::MoveX,
+		{
+			Binding{.key = KeyCode::A, .buttonScale = -1.0f },
+			Binding{.key = KeyCode::D, .buttonScale = 1.0f },
+			Binding {.key = KeyCode::Left, .buttonScale = -1.0f },
+			Binding {.key = KeyCode::Right, .buttonScale = 1.0f },
+
+			Binding {.gamepadButton = GamepadButton::DPadLeft, .buttonScale = -1.0f },
+			Binding {.gamepadButton = GamepadButton::DPadRight, .buttonScale = 1.0f },
+			Binding { .gamepadAxis = GamepadAxis::LX },
+					//{ GamepadAxis::RX },  
+
+		},
+	},
+
+	 {
+		 EAxis::MoveZ,
+		 {
+			 Binding{.key = KeyCode::W, .buttonScale = 1.0f },
+			 Binding{.key = KeyCode::S, .buttonScale = -1.0f },
+			 Binding{.key = KeyCode::Up, .buttonScale = 1.0f },
+			 Binding{.key = KeyCode::Down, .buttonScale = -1.0f },
+
+			 Binding{.gamepadButton = GamepadButton::DPadUp, .buttonScale = 1.0f },
+			 Binding{.gamepadButton = GamepadButton::DPadDown, .buttonScale = -1.0f },
+			 Binding {.gamepadAxis = GamepadAxis::LY },
+			 //{ GamepadAxis::RY },
+		 },
+	 },
 
 };
 
 
 inline std::unordered_map<EAction, std::vector<Binding>> DefaultActionBindings = {
-    {
-        EAction::Jump,
-        {
-            Binding{.key = KeyCode::Space },
-            Binding{.gamepadButton = GamepadButton::A,  },
-        },
+	{
+		EAction::Jump,
+		{
+			Binding{.key = KeyCode::Space },
+			Binding{.gamepadButton = GamepadButton::RightShoulder,  },
+		},
 	},
 	{
 		EAction::Normal,
 		{
 			Binding{.key = KeyCode::Num1 },
-			Binding{.gamepadButton = GamepadButton::Start,  },
+			Binding{.gamepadButton = GamepadButton::A,  },
 		},
 	},
 	{
@@ -130,88 +132,96 @@ inline std::unordered_map<EAction, std::vector<Binding>> DefaultActionBindings =
 		},
 	},
 
+	{
+		EAction::Pause,
+		{
+			Binding{.key = KeyCode::Escape },
+			Binding{.gamepadButton = GamepadButton::Start,  },
+		},
+	},
+
 };
 
 
 struct FPointer
 {
-    int x, y;
+	int x, y;
 };
- 
+
 
 enum class ButtonFrameState {
-    Down,
-    Up,
-    Pressed, // just pressed
-    Released // just released
+	Down,
+	Up,
+	Pressed, // just pressed
+	Released // just released
 };
 
 struct ButtonFrame {
 
-    void Update(bool pressed) {
-        edgeDetector.Update(pressed);
-        if (edgeDetector.risingEdge) {
-            state = ButtonFrameState::Pressed;
-            //std::cout << "KeyFrame state updated: " << static_cast<int>(state) << '\n';
-        }
-        else if (edgeDetector.fallingEdge) {
-            state = ButtonFrameState::Released;
-            //std::cout << "KeyFrame state updated: " << static_cast<int>(state) << '\n';
-        }
-        else {
-            state = edgeDetector.Get() ? ButtonFrameState::Down : ButtonFrameState::Up;
-            //std::cout << "KeyFrame state updated: " << static_cast<int>(state) << '\n';
-        }
-    }
-    ButtonFrameState state = ButtonFrameState::Up;
+	void Update(bool pressed) {
+		edgeDetector.Update(pressed);
+		if (edgeDetector.risingEdge) {
+			state = ButtonFrameState::Pressed;
+			//std::cout << "KeyFrame state updated: " << static_cast<int>(state) << '\n';
+		}
+		else if (edgeDetector.fallingEdge) {
+			state = ButtonFrameState::Released;
+			//std::cout << "KeyFrame state updated: " << static_cast<int>(state) << '\n';
+		}
+		else {
+			state = edgeDetector.Get() ? ButtonFrameState::Down : ButtonFrameState::Up;
+			//std::cout << "KeyFrame state updated: " << static_cast<int>(state) << '\n';
+		}
+	}
+	ButtonFrameState state = ButtonFrameState::Up;
 private:
-    BoolEdgeDetector edgeDetector;
+	BoolEdgeDetector edgeDetector;
 };
 
 
 class InputSystem
 {
 public:
-    InputSystem();
+	InputSystem();
 
-    void OnUpdate();
+	void OnUpdate();
 
-    void OnKeyDown(KeyCode key);
-    void OnKeyUp(KeyCode key);
+	void OnKeyDown(KeyCode key);
+	void OnKeyUp(KeyCode key);
 
-    bool IsKeyJustPressed(KeyCode key) const;
-    bool IsKeyJustReleased(KeyCode key) const;
-    bool IsKeyDown(KeyCode key) const;
-    bool IsKeyUp(KeyCode key) const;
+	bool IsKeyJustPressed(KeyCode key) const;
+	bool IsKeyJustReleased(KeyCode key) const;
+	bool IsKeyDown(KeyCode key) const;
+	bool IsKeyUp(KeyCode key) const;
 
 
-    void OnMouseButtonDown(FMouseButtonDown e);
-    void OnMouseButtonUp(FMouseButtonUp e);
-    void OnMouseMove(FMouseMove e);
+	void OnMouseButtonDown(FMouseButtonDown e);
+	void OnMouseButtonUp(FMouseButtonUp e);
+	void OnMouseMove(FMouseMove e);
 
-    FPointer GetMousePointer();
+	FPointer GetMousePointer();
 
-    bool IsMouseButtonJustPressed(MouseButtonCode button);
+	bool IsMouseButtonJustPressed(MouseButtonCode button);
 
 
 
 private:
-    std::array<ButtonFrame, MAX_KeyCode> keyState;
-    std::array<bool, MAX_KeyCode> keyStateRaw;
-    //SharedPtr<IInputSource> inputSource; 
+	std::array<ButtonFrame, MAX_KeyCode> keyState;
+	std::array<bool, MAX_KeyCode> keyStateRaw;
+	//SharedPtr<IInputSource> inputSource; 
 
-    std::array<ButtonFrame, MAX_MouseCode> mouseButtonState;
-    std::array<bool, MAX_MouseCode> mouseButtonStateRaw;
-    int MouseX, MouseY;
+	std::array<ButtonFrame, MAX_MouseCode> mouseButtonState;
+	std::array<bool, MAX_MouseCode> mouseButtonStateRaw;
+	int MouseX, MouseY;
 
 
-//new:controller:
+	//new:controller:
 	GamepadInput m_gamepad;
 
-//new:
+	//new:
 public:
-    float GetAxis(EAxis axis) const;
-    std::array<float, (size_t)EAxis::COUNT> m_axisState{};
+	float GetAxis(EAxis axis) const;
+	std::array<float, (size_t)EAxis::COUNT> m_axisState{};
 
 
 	bool GetAction(EAction action) const {
@@ -222,24 +232,24 @@ public:
 
 
 struct IInputSource {
-    virtual ~IInputSource() = default;
+	virtual ~IInputSource() = default;
 };
 
 
 struct WindowsInputSource : IInputSource {
 public:
-    virtual ~WindowsInputSource() = default;
-    WindowsInputSource() = default;;
-    //WindowsInputSource(InputSystem* input):
-    //    inputSystem(input)
-    //{}
+	virtual ~WindowsInputSource() = default;
+	WindowsInputSource() = default;;
+	//WindowsInputSource(InputSystem* input):
+	//    inputSystem(input)
+	//{}
 
-    void OnKeyUp(int key);
+	void OnKeyUp(int key);
 
-    void OnKeyDown(int key);
+	void OnKeyDown(int key);
 
-    //void OnMouseButtonDown();
+	//void OnMouseButtonDown();
 
-    //InputSystem* inputSystem;
-    //static std::unordered_map<int, KeyCode> windowsKeyMap;
+	//InputSystem* inputSystem;
+	//static std::unordered_map<int, KeyCode> windowsKeyMap;
 };

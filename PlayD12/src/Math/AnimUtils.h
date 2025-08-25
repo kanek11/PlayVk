@@ -7,6 +7,8 @@
 
 #include "Gameplay/SceneComponent.h"
 
+#include "Controller.h"
+
 namespace Anim {
 
     template<typename T>
@@ -31,11 +33,11 @@ namespace Anim {
         inline float Linear(float t) { return t; }
         inline float QuadInOut(float t) { return (t < 0.5f) ? 2 * t * t : 1 - std::pow(-2 * t + 2, 2.0f) / 2; }
 
-        inline float CubicInOut(float t) { return (t < 0.5f) ? 4 * t * t * t : 1 - std::pow(-2 * t + 2, 3.0f) / 2; } 
+        inline float CubicInOut(float t) { return (t < 0.5f) ? 4 * t * t * t : 1 - std::pow(-2 * t + 2, 3.0f) / 2; }
 
- 
-        inline float SmoothPulse(float t) { 
-            return std::sin(t * MMath::PI); 
+
+        inline float SmoothPulse(float t) {
+            return std::sin(t * MMath::PI);
         }
     }
 
@@ -91,9 +93,9 @@ namespace Anim {
                 [](const std::unique_ptr<Tween>& t) { return t->finished; }), tweens.end());
         }
 
-		void Clear() {
-			tweens.clear();
-		}
+        void Clear() {
+            tweens.clear();
+        }
 
     private:
         std::vector<std::unique_ptr<Tween>> tweens;
@@ -104,11 +106,11 @@ namespace Anim {
     inline Tween* WaitFor(
         float duration,
         std::function<void()> then = {})
-    { 
+    {
         auto tw = std::make_unique<Tween>();
 
-        tw->duration = std::max( 0.0f ,duration);
-   
+        tw->duration = std::max(0.0f, duration);
+
         if (then) tw->OnComplete(std::move(then));
 
         return TweenRunner::Get().Add(std::move(tw));
@@ -173,5 +175,15 @@ namespace Anim {
             };
         return TweenRunner::Get().Add(std::move(tw));
     }
+
+    
+    inline void VibrateFor(float leftMotor, float rightMotor, float time) {
+        VibrateController(0, leftMotor, rightMotor);
+
+        Anim::WaitFor(time, []() {
+            VibrateController(0, 0.0f, 0.0f);
+            });
+    }
+
 
 }

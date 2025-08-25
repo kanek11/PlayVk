@@ -196,6 +196,7 @@
     <ClInclude Include="src\Game\Player.h" />
     <ClInclude Include="src\InputSystem.h" />
     <ClInclude Include="src\Math\AnimUtils.h" />
+    <ClInclude Include="src\Math\GenericUtils.h" />
     <ClInclude Include="src\Math\Graph.h" />
     <ClInclude Include="src\Math\Matrix.h" />
     <ClInclude Include="src\Math\MMath.h" />

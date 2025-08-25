@@ -10,22 +10,22 @@ namespace Gameplay {
 
 	void UWorld::Init()
 	{
-		auto gTime = GameApplication::GetInstance()->GetTimeSystem(); 
+		auto gTime = GameApplication::GetInstance()->GetTimeSystem();
 		physicsScene->OnInit();
 
 		//physics update is handled by time system;
 		gTime->RegisterFixedFrame([=](float delta) {
-			physicsScene->Tick(delta); 
+			physicsScene->Tick(delta);
 			this->SyncPhysicsToGame();
 			});
 
 		//new understanding:  controllers are managed by world itself; 
 		auto dftPlayerController = CreateActor<AController>();
-		this->AddPlayerController(dftPlayerController); 
+		this->AddPlayerController(dftPlayerController);
 	}
 
 	void UWorld::BeginPlay()
-	{ 
+	{
 		this->persistentLevel->OnLoad();
 		this->persistentLevel->RouteActorBeginPlay();
 
@@ -55,21 +55,21 @@ namespace Gameplay {
 
 	void UWorld::SyncPhysicsToGame()
 	{
-	
+
 		for (auto& [id, prim] : this->m_primtiveMap) {
 
 			//std::cout << "prim id:" << id << '\n';
 			prim->onPrePhysicsEvents.BlockingBroadCast();
-		} 
+		}
 
-		this->DispatchPhysicsEvents(); 
+		this->DispatchPhysicsEvents();
 
 		// 
 		auto& transformBuffer = physicsScene->GetTransformBuffer();
 		for (auto& [id, trans] : transformBuffer) {
 
 			if (!this->m_primtiveMap.contains(id)) continue;
-			auto& primitive = this->m_primtiveMap.at(id); 
+			auto& primitive = this->m_primtiveMap.at(id);
 
 			if (!primitive->IsSimulatingPhysics()) continue;
 
@@ -84,10 +84,10 @@ namespace Gameplay {
 
 	void UWorld::SyncGameToPhysics() {
 
-		for (auto& [id, primitive] : this->m_primtiveMap) { 
+		for (auto& [id, primitive] : this->m_primtiveMap) {
 
-		    physicsScene->SetPosition(id, primitive->GetWorldPosition()); 
-            physicsScene->SetRotation(id, primitive->GetWorldRotation()); 
+			physicsScene->SetPosition(id, primitive->GetWorldPosition());
+			physicsScene->SetRotation(id, primitive->GetWorldRotation());
 			//std::cout << "primitive component set id:" << id << " position: " << ToString(primitive->GetWorldPosition()) << '\n';
 		}
 	}
@@ -99,16 +99,16 @@ namespace Gameplay {
 			auto actorA = this->PrimitiveIdToActor(event.a_ID);
 			auto actorB = this->PrimitiveIdToActor(event.b_ID);
 
-			if (m_primtiveMap.contains(event.a_ID)) { 
+			if (m_primtiveMap.contains(event.a_ID)) {
 				//std::cout << "prim id:" << event.a_ID << '\n';
 
-				m_primtiveMap[event.a_ID]->onOverlap.BlockingBroadCast(actorB);
+				m_primtiveMap[event.a_ID]->onOverlap.BlockingBroadCast(actorB, event.contact);
 			}
 
 			if (m_primtiveMap.contains(event.b_ID)) {
 				//std::cout << "prim id:" << event.b_ID << '\n';
 
-				m_primtiveMap[event.b_ID]->onOverlap.BlockingBroadCast(actorA);
+				m_primtiveMap[event.b_ID]->onOverlap.BlockingBroadCast(actorA, event.contact);
 			}
 		}
 	}
@@ -176,7 +176,7 @@ namespace Gameplay {
 
 		for (auto& controller : playerControllers) {
 			controller->OnTick(delta);
-		} 
+		}
 
 		//
 		this->ConstructSceneView();

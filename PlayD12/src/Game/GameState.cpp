@@ -13,7 +13,7 @@ AGameState::AGameState() : AGameStateBase()
 
 void AGameState::OnTick(float delta)
 {
-	m_gameManager->Update(delta); 
+	m_gameManager->Update(delta);
 }
 
 void AGameState::BeginPlay()
@@ -78,41 +78,42 @@ void AGameState::SetupGameStates()
 				//world->TransitLevel("gameplay");
 				//world->LoadOrResetLevel("gameplay");
 				//this->OnResetGameplay();
-				if(lastState!= GameStateId::Paused)
-				this->OnStartPlay(3.0f);
+				if (lastState != GameStateId::Paused)
+					this->OnStartPlay(3.0f);
 				else {
 					this->OnStartPlay(0.0f);
 				}
-				 
+
 				uiManager->RegisterRootElement(playerHUD.get());
 				uiManager->RegisterRootElement(gameStats.get());
 
-				 
+
 			});
 
 		playingState->OnUpdate.Add(
 			[=](float dt) {
-				if (startGame)
-					this->timeCount += dt;
+				if (!startPlaying) return;
+
+				this->timeCount += dt;
 
 				if (shouldRespawn) {
 					this->OnResetGameplay();
 					this->RequestForceTransitGameState(GameStateId::Playing);
 					shouldRespawn = false;
-				} 
+				}
 
 				//std::cout << " tick playing: " << dt << "\n";
-				if (inputSystem->IsKeyJustPressed(KeyCode::Escape)) {
+				if (inputSystem->GetAction(EAction::Pause)) {
 					this->RequestTransitGameState(GameStateId::Paused);
-					/*timeSystem->TogglePaused();*/ 
-	 
+					/*timeSystem->TogglePaused();*/
+
 					paused = true;
-				} 
-
-
-				if (inputSystem->IsKeyJustPressed(KeyCode::P)) {
-					this->OnResetGameplay();
 				}
+
+
+				//if (inputSystem->IsKeyJustPressed(KeyCode::P)) {
+				//	this->OnResetGameplay();
+				//}
 
 			});
 
@@ -120,9 +121,9 @@ void AGameState::SetupGameStates()
 			[=]() {
 				std::cout << "state: exit playing" << "\n";
 				uiManager->UnregisterRootElement(playerHUD.get());
-				uiManager->UnregisterRootElement(gameStats.get()); 
+				uiManager->UnregisterRootElement(gameStats.get());
 				//
-				startGame = false;
+				startPlaying = false;
 			});
 	}
 
@@ -144,7 +145,7 @@ void AGameState::SetupGameStates()
 		pausedState->OnUpdate.Add(
 			[=](float dt) {
 				//std::cout << " tick pause: " << dt << "\n";
-				if (inputSystem->IsKeyJustPressed(KeyCode::Escape)) {
+				if (inputSystem->GetAction(EAction::Pause)) {
 					this->RequestTransitGameState(GameStateId::Playing);
 				}
 

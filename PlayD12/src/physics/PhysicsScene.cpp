@@ -222,24 +222,24 @@ void PhysicsScene::SolveConstraints(float delta)
 
 		//generate event
 		if (contact.a->bIsTrigger || contact.b->bIsTrigger
-			|| contact.a->bNeedsEvent || contact.b->bNeedsEvent) 
-		{ 
+			|| contact.a->bNeedsEvent || contact.b->bNeedsEvent)
+		{
 			FCollisionEvent event = {
 				.a_ID = contact.a->actorId,
 				.b_ID = contact.b->actorId,
 				.contact = contact,
 			};
-			PhysicsEventQueue::Get().Push(event); 
+			PhysicsEventQueue::Get().Push(event);
 		}
 
 		//skip physics
-		if (contact.a->bIsTrigger || contact.b->bIsTrigger) {  
+		if (contact.a->bIsTrigger || contact.b->bIsTrigger) {
 			continue;
 		}
 
 		RigidBody* A = contact.a->body;
-		RigidBody* B = contact.b->body; 
-	 
+		RigidBody* B = contact.b->body;
+
 		//new: the architecture now assumes valid rigidbody;
 		assert(A != nullptr && B != nullptr);
 
@@ -273,9 +273,10 @@ void PhysicsScene::SolveConstraints(float delta)
 
 
 
-		////band-aid tech: if C is small ,dial down compliance
-		if (C < 0.001f) {
-			compliance = 0.00001f;
+		////band-aid tech: if C is small , dial down compliance
+		//std::cout << "C: " << C << '\n';
+		if (C < 0.015f) {
+			compliance = 0.000001f;
 		}
 		else {
 			//compliance = 0.001f;
@@ -373,7 +374,8 @@ void PhysicsScene::PostPBD(float delta)
 		Float3 v = { dq.m128_f32[0], dq.m128_f32[1], dq.m128_f32[2] };
 		float  w = dq.m128_f32[3];
 		if (w < 0.f) v = -v;
-		if (body->bFastStable && LengthSq(v) < 1e-10f / body->mass) {
+		//std::cout << "v:" << LengthSq(v) << '\n';
+		if (body->bFastStable && LengthSq(v) < 1e-6f / body->mass) {
 			v = Float3{};
 		}
 		body->angularVelocity = (2.f / delta) * v;
@@ -557,28 +559,7 @@ void PhysicsScene::VelocityPass(float delta)
 
 void PhysicsScene::PostSimulation(float delta)
 {
-	//for (auto& [actor, rb] : m_bodies) {
-	//	 
-	//	//::cout << "draw for rb:" << rb->debugName << '\n'; 
-	//	if (!rb->simulatePhysics) continue;
-	//	rb->owner->SetWorldPosition(rb->position); 
-
-	//	DebugDraw::Get().AddRay(rb->position, rb->linearVelocity, Color::Purple); 
-
-	//	if (!rb->simulateRotation) continue;
-	//	rb->owner->SetWorldRotation(rb->rotation);  
-
-	//	DebugDraw::Get().AddRay(rb->position, rb->angularVelocity, Color::Yellow);
-
-	//	//XMVECTOR axis;
-	//	//float angle;
-	//	//XMQuaternionToAxisAngle(&axis, &angle, rb->rotation);
-	//	//XMFLOAT3 axisVec;
-	//	//XMStoreFloat3(&axisVec, axis); 
-
-	//	//DebugDraw::Get().AddRay(rb->position, { axisVec.x,axisVec.y,axisVec.z }, Color::Cyan);
-
-	//}
+ 
 
 	//write to transform buffer:
 	auto& writeBuffer = m_transformBuffer.GetWriteBuffer();
@@ -676,12 +657,12 @@ void PhysicsScene::SetShape(ActorId owner, ShapeType shape)
 	m_commandBuffer.Enqueue([=]() {
 		this->m_bodies[owner]->SetShape(shape);
 		this->m_colliders[owner]->SetShape(shape);
-		}); 
+		});
 }
 
 void PhysicsScene::SetColliderShape(ActorId owner, ShapeType shape)
 {
-	m_commandBuffer.Enqueue([=]() { 
+	m_commandBuffer.Enqueue([=]() {
 		this->m_colliders[owner]->SetShape(shape);
 		});
 }

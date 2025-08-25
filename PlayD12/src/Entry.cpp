@@ -1,4 +1,4 @@
-﻿#include "PCH.h"
+#include "PCH.h"
 #include "Application.h" 
 
 #include "Math/MMath.h"
@@ -8,7 +8,7 @@
 
 
 void TestMath()
-{  
+{
 	using Float2 = MMath::Float2;
 	using Float3 = MMath::Float3;
 	using Float4 = MMath::Float4;
@@ -19,18 +19,18 @@ void TestMath()
 
 	//init:
 	{
-		Float3 v1; 
+		Float3 v1;
 		Float3 v2({ 1.f, 2.f, 3.f });
-		
+
 		std::array<float, 3> stdArr = { 1.f, 2.f, 3.f };
-		Float3 v3(stdArr);  
+		Float3 v3(stdArr);
 
 		//c-array:
 		float c_array[3] = { 1.f, 2.f, 3.f };
-		Float3 v4(c_array);    
+		Float3 v4(c_array);
 
 
-		Float3 v5( 1.f, 2.f, 3.f ); // uniform initialization)
+		Float3 v5(1.f, 2.f, 3.f); // uniform initialization)
 		assert(v1[0] == 0.f && v1[1] == 0.f && v1[2] == 0.f); // default init 
 	}
 
@@ -40,16 +40,16 @@ void TestMath()
 		assert(v1[0] == 1.f && v1[1] == 2.f && v1[2] == 3.f);
 		assert(v1.x() == 1.f && v1.y() == 2.f && v1.z() == 3.f);
 
-		assert(v1.get<0>() == 1.f && v1.get<1>() == 2.f && v1.get<2>() == 3.f);  
+		assert(v1.get<0>() == 1.f && v1.get<1>() == 2.f && v1.get<2>() == 3.f);
 
 		//v1.get<4>();  //fail at compiling; static assertion
 		//v1[4];  //fail at execution;
 		//v1.w(); //fail at compiling;
 
-		Float2 v2 = v1.xy();   
+		Float2 v2 = v1.xy();
 		assert(v2[0] == 1.f && v2[1] == 2.f);
 
-		
+
 	}
 
 
@@ -77,12 +77,12 @@ void TestMath()
 
 	}
 
- 
+
 	//copy-move behavior
 	{
 		Float3 v1({ 1.f, 2.f, 3.f });
-		Float3 v2 = v1; 
-		Float3 v3 = std::move(v1); 
+		Float3 v2 = v1;
+		Float3 v3 = std::move(v1);
 		assert(v2[0] == 1.f && v2[1] == 2.f && v2[2] == 3.f);
 		assert(v3[0] == 1.f && v3[1] == 2.f && v3[2] == 3.f);
 
@@ -121,8 +121,8 @@ void TestMath()
 		Float3 v7 = { 1.f, 2.f, 3.f };
 		Float3 v8 = { 1.f, 2.f, 3.f };
 		Float3 v9 = { 4.f, 5.f, 6.f };
-		assert(v7 == v8);   
-		assert(!(v7 == v9));  
+		assert(v7 == v8);
+		assert(!(v7 == v9));
 
 	}
 
@@ -131,9 +131,9 @@ void TestMath()
 	{
 		Float3 v1 = { 3.f, 4.f, 0.f };
 		auto length = Length(v1);
-		assert(length == 5.f);  
+		assert(length == 5.f);
 
-		auto normalized = Normalize(v1); 
+		auto normalized = Normalize(v1);
 		assert((Length(normalized) - 1.0f) < 1e-6f); // Check if normalized length is close to 1
 
 	}
@@ -158,9 +158,9 @@ void TestMath()
 			{7.f, 8.f, 9.f}
 		};
 
-		assert(mat2[0][0] == 1.f && mat2[0][1] == 2.f && mat2[0][2] == 3.f); 
-		 
-		 
+		assert(mat2[0][0] == 1.f && mat2[0][1] == 2.f && mat2[0][2] == 3.f);
+
+
 		auto mat3 = MMath::MatrixIdentity<float, 3>();
 
 		auto col0 = Float3{ 1.f, 2.f, 3.f };
@@ -175,8 +175,8 @@ void TestMath()
 		assert(mat3[0][0] == 1.f && mat3[0][1] == 2.f && mat3[0][2] == 3.f);
 		assert(mat3[1][0] == 4.f && mat3[1][1] == 5.f && mat3[1][2] == 6.f);
 		assert(mat3[2][0] == 7.f && mat3[2][1] == 8.f && mat3[2][2] == 9.f);
-		 
-		 
+
+
 
 	}
 
@@ -187,19 +187,19 @@ void TestMath()
 			{1.f, 2.f, 3.f},
 			{4.f, 5.f, 6.f},
 			{7.f, 8.f, 9.f}
-		}; 
+		};
 
 		// read access first column
-		auto& col0 = mat1[0]; 
-		assert(col0[0] == 1.f && col0[1] == 2.f && col0[2] == 3.f); 
+		auto& col0 = mat1[0];
+		assert(col0[0] == 1.f && col0[1] == 2.f && col0[2] == 3.f);
 
 
 		// Modify first column
-		mat1[0] = { 10.f, 20.f, 30.f }; 
+		mat1[0] = { 10.f, 20.f, 30.f };
 		assert(mat1[0][0] == 10.f && mat1[0][1] == 20.f && mat1[0][2] == 30.f);
-		 
 
-		mat1[0] = Float3{ 10.f, 20.f, 30.f };  
+
+		mat1[0] = Float3{ 10.f, 20.f, 30.f };
 		assert(mat1[0][0] == 10.f && mat1[0][1] == 20.f && mat1[0][2] == 30.f);
 
 	}
@@ -222,20 +222,27 @@ void TestMath()
 	}
 
 
-	std::cout << "Math tests passed!" << std::endl; 
-} 
+	std::cout << "Math tests passed!" << std::endl;
+}
 
 
 
 
 int main(int argc, char** argv)
-{  
+{
 #if TESTMATH
 	TestMath();
 #endif
 
 
 #if RunApplication
+#if (!defined(DEBUG) && !defined(_DEBUG)) || defined(NDEBUG)
+	if (HWND consoleHwnd = ::GetConsoleWindow())
+	{
+		::ShowWindow(consoleHwnd, SW_HIDE);
+	}
+#endif
+
 	auto app = std::make_shared<GameApplication>();
 
 	try {
@@ -246,9 +253,9 @@ int main(int argc, char** argv)
 	}
 	catch (const std::runtime_error& e) {
 		std::cerr << "Runtime error: " << e.what() << std::endl;
-		 
+
 		return -1;
-	} 
+	}
 #endif
 
 	return 0;

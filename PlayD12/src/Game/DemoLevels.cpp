@@ -67,11 +67,63 @@
 
     }
 
-    
+
+        //plane:
+
+    //
+    //auto sphereActor = Mesh::CreateSphereActor( 1.0f, Float3{ 2.0f, 2.0f, 0.0f });
+
+    //auto& sphereRB = sphereActor->shapeComponent->rigidBody;
+    //sphereRB->simulatePhysics = false;
+    //sphereRB->simulateRotation = false;
+    //sphereActor->shapeComponent->SetIsTrigger(true);
+    //sphereActor->staticMeshComponent->SetMaterial(Materials::GetRustyIron());
+
+
+    //auto itemActor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, { 0.0f, 2.0f, 4.0f });
+    //auto itemActor = CreateShared<AItem>();
+    //itemActor->RootComponent->SetRelativePosition({ 0.0f, 1.0f, 4.0f });
+    //itemActor->RootComponent->UpdateWorldTransform();
+
+
+
+
+
+
+    //  {
+
+          //Float3 pos{ 0.0f, 2.0f, 0.0f };
+    //      auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
+    //
+    //      auto rotation = XMQuaternionRotationRollPitchYaw(0.0f,0.0f, XMConvertToRadians(30.0f));
+    //      actor->RootComponent->SetRelativeRotation(rotation);
+    //      actor->RootComponent->UpdateWorldTransform();
+
+    //      auto& rb = actor->shapeComponent->rigidBody;
+    //      rb->simulatePhysics = true;
+    //      rb->simulateRotation = false;
+    //      this->AddActor(actor);
+    //  }
+
+    //  {
+    //      Float3 pos{ 0.0f, 4.0f, 0.0f };
+    //      auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
+
+    //      auto rotation = XMQuaternionRotationRollPitchYaw(0.0f, XMConvertToRadians(90.0f), XMConvertToRadians(45.0f));
+    //      actor->RootComponent->SetRelativeRotation(rotation);
+    //      actor->RootComponent->UpdateWorldTransform();
+
+    //      auto& rb = actor->shapeComponent->rigidBody;
+    //      rb->simulatePhysics = true;
+    //      rb->simulateRotation = false;
+    //      this->AddActor(actor);
+    //  }
+
+
 */
 
 
-void MarkAsFloor(SharedPtr<AStaticMeshActor> actor) { 
+void MarkAsFloor(SharedPtr<AStaticMeshActor> actor) {
     actor->tag = "floor";
     actor->shapeComponent->collider->bNeedsEvent = true;
 }
@@ -103,9 +155,7 @@ void GlobalLevel::OnUnload()
 void GlobalLevel::OnTick(float delta)
 {
     ULevel::OnTick(delta);
-}
-
-
+} 
 
 void GamePlayLevel::OnLoad()
 {
@@ -115,69 +165,12 @@ void GamePlayLevel::OnLoad()
 
     //this->Load1();
     this->LoadPlayer();
-    this->LoadMap0();
-    this->LoadActors();
+    this->LoadMap0(); 
 }
 
-
-void GamePlayLevel::LoadActors()
-{
-    //plane:
-
-    // 
-    //auto sphereActor = Mesh::CreateSphereActor( 1.0f, Float3{ 2.0f, 2.0f, 0.0f });
-
-    //auto& sphereRB = sphereActor->shapeComponent->rigidBody;
-    //sphereRB->simulatePhysics = false;
-    //sphereRB->simulateRotation = false; 
-    //sphereActor->shapeComponent->SetIsTrigger(true); 
-    //sphereActor->staticMeshComponent->SetMaterial(Materials::GetRustyIron()); 
-
-
-    //auto itemActor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, { 0.0f, 2.0f, 4.0f }); 
-    //auto itemActor = CreateShared<AItem>();
-    //itemActor->RootComponent->SetRelativePosition({ 0.0f, 1.0f, 4.0f });
-    //itemActor->RootComponent->UpdateWorldTransform();
-
-
-
-
-
-
-    //  {
-
-          //Float3 pos{ 0.0f, 2.0f, 0.0f };
-    //      auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
-    //       
-    //      auto rotation = XMQuaternionRotationRollPitchYaw(0.0f,0.0f, XMConvertToRadians(30.0f));
-    //      actor->RootComponent->SetRelativeRotation(rotation);  
-    //      actor->RootComponent->UpdateWorldTransform();
-
-    //      auto& rb = actor->shapeComponent->rigidBody; 
-    //      rb->simulatePhysics = true;
-    //      rb->simulateRotation = false;  
-    //      this->AddActor(actor);
-    //  }
-
-    //  {
-    //      Float3 pos{ 0.0f, 4.0f, 0.0f };
-    //      auto actor = Mesh::CreateBoxActor(Float3{ 1.0f, 1.0f, 1.0f }, pos);
-
-    //      auto rotation = XMQuaternionRotationRollPitchYaw(0.0f, XMConvertToRadians(90.0f), XMConvertToRadians(45.0f));
-    //      actor->RootComponent->SetRelativeRotation(rotation);
-    //      actor->RootComponent->UpdateWorldTransform();
-
-    //      auto& rb = actor->shapeComponent->rigidBody;
-    //      rb->simulatePhysics = true;
-    //      rb->simulateRotation = false;   
-    //      this->AddActor(actor);
-    //  } 
-
-}
  
 
-
-Float3 RotateAroundXAxis(SharedPtr<AActor> actor, Float3 pivot, float radius, float angle) {
+static Float3 RotateAroundXAxis(AActor* actor, Float3 pivot, float radius, float angle) {
 
     auto rotation = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(angle), 0.0f, 0.0f);
     actor->RootComponent->SetRelativeRotation(rotation);
@@ -192,83 +185,148 @@ Float3 RotateAroundXAxis(SharedPtr<AActor> actor, Float3 pivot, float radius, fl
     return { 0.0f, pivot.y() + 2 * offsetY , pivot.z() + 2 * offsetZ };
 };
 
+
 void GamePlayLevel::LoadMap0()
 {
-    
+
     float step0 = 20.0f;
     Float3 end0{};
     {
-        auto actor = Mesh::CreatePlaneActor((uint32_t)roadWidth, (uint32_t)step0);
-        ApplySnow(actor);  
+        auto actor = Mesh::CreatePlaneActor((uint32_t)LANE_WIDTH, (uint32_t)step0);
+        ApplySnow(actor);
         MarkAsFloor(actor);
 
         //actor->RootComponent->SetRelativePosition(Float3{ 0.0f, 0.0f, step0 / 2 });
-        end0 = RotateAroundXAxis(actor, { 0.f,0.f,0.f }, step0, 0.0f);
+        end0 = RotateAroundXAxis(actor.get(), {0.f,0.f,0.f}, step0, 0.0f);
 
         this->AddActor(actor);
     }
 
-
-    {
-        auto& grid = MMath::GenerateGrid3D({ 1,1,3 }, { 1,1,5.0f });
-        Float3 offset = { 0.0 ,1.0f, 0.0f };
-        {
-            Float3 basePos = grid.back();
-            grid.pop_back();
-
-            auto iceItem = CreateShared<AIceItem>();
-            iceItem->RootComponent->SetRelativePosition(basePos + offset);
-            iceItem->RootComponent->UpdateWorldTransform();
-
-            //this->AddActor(sphereActor);
-            this->AddActor(iceItem); 
-        }
-
-        {
-            Float3 basePos = grid.back();
-            grid.pop_back();
-
-            auto iceItem = CreateShared<AMetalItem>();
-            iceItem->RootComponent->SetRelativePosition(basePos + offset);
-            iceItem->RootComponent->UpdateWorldTransform();
-
-            //this->AddActor(sphereActor);
-            this->AddActor(iceItem);
-        }
-
-    }
-
-
-
-    //
-     
-    float step1 = 50.0f;
+    // 
+    float step1 = 100.0f;
     Float3 end1{};
     {
-        auto actor = Mesh::CreatePlaneActor((uint32_t)roadWidth, (uint32_t)step1);
+        auto actor = Mesh::CreatePlaneActor((uint32_t)LANE_WIDTH, (uint32_t)step1);
         ApplySnow(actor);
         MarkAsFloor(actor);
 
         //actor->RootComponent->SetRelativePosition(Float3{ 0.0f, 0.0f, step0 / 2 });
-        end1 = RotateAroundXAxis(actor, end0, step1, 20.0f);
+        end1 = RotateAroundXAxis(actor.get(), end0, step1, 20.0f);
 
         this->AddActor(actor);
     }
 
 
-    float step2 = 500;
+    float step2 = 100;
     Float3 end2{};
     {
-        auto actor = Mesh::CreatePlaneActor((uint32_t)roadWidth, (uint32_t)step2);
+        auto actor = Mesh::CreatePlaneActor((uint32_t)LANE_WIDTH, (uint32_t)step2);
         ApplySnow(actor);
         MarkAsFloor(actor);
 
         //actor->RootComponent->SetRelativePosition(Float3{ 0.0f, 0.0f, step0 / 2 });
-        end2 = RotateAroundXAxis(actor, end1, step2, 0.0f);
+        end2 = RotateAroundXAxis(actor.get(), end1, step2, 0.0f);
 
         this->AddActor(actor);
     }
 
+    float step3 = 100;
+    Float3 end3{};
+    {
+        auto actor = Mesh::CreatePlaneActor((uint32_t)LANE_WIDTH, (uint32_t)step3);
+        ApplySnow(actor);
+        MarkAsFloor(actor);
+
+        //actor->RootComponent->SetRelativePosition(Float3{ 0.0f, 0.0f, step0 / 2 });
+        end3 = RotateAroundXAxis(actor.get(), end2, step3, 20.0f);
+
+        this->AddActor(actor);
+    }
+
+    float step4 = 100;
+    Float3 end4{};
+    {
+        auto actor = Mesh::CreatePlaneActor((uint32_t)LANE_WIDTH, (uint32_t)step4);
+        ApplySnow(actor);
+        MarkAsFloor(actor);
+
+        //actor->RootComponent->SetRelativePosition(Float3{ 0.0f, 0.0f, step0 / 2 });
+        end4 = RotateAroundXAxis(actor.get(), end3, step4, 0.0f);
+
+        this->AddActor(actor);
+    }
+
+
+    float step5 = 100;
+    Float3 end5{};
+    {
+        auto actor = Mesh::CreatePlaneActor((uint32_t)LANE_WIDTH, (uint32_t)step5);
+        ApplySnow(actor);
+        MarkAsFloor(actor);
+
+        //actor->RootComponent->SetRelativePosition(Float3{ 0.0f, 0.0f, step0 / 2 });
+        end5 = RotateAroundXAxis(actor.get(), end4, step5, 20.0f);
+
+        this->AddActor(actor);
+    }
+
+
+    float step6 = 100;
+    Float3 end6{};
+    {
+        auto actor = Mesh::CreatePlaneActor((uint32_t)LANE_WIDTH, (uint32_t)step6);
+        ApplySnow(actor);
+        MarkAsFloor(actor);
+
+        //actor->RootComponent->SetRelativePosition(Float3{ 0.0f, 0.0f, step0 / 2 });
+        end6 = RotateAroundXAxis(actor.get(), end5, step6, 0.0f);
+
+        this->AddActor(actor);
+    }
+
+
+    //level 0================= 
+    {
+        auto& grid = MMath::GenerateGrid3D({ 1,1,3 }, { 1,1,4.0f });
+        Float3 offset = { 0.0 , 1.0f, 6.0f };
+        {
+            Float3 basePos = grid.back();
+            grid.pop_back();
+
+            auto item = CreateShared<ACloneItem>();
+            item->RootComponent->SetRelativePosition(basePos + offset);
+            item->RootComponent->UpdateWorldTransform();
+             
+            this->AddActor(item);
+        }
+
+        {
+            Float3 basePos = grid.back();
+            grid.pop_back();
+
+            auto item = CreateShared<AMetalItem>();
+            item->RootComponent->SetRelativePosition(basePos + offset);
+            item->RootComponent->UpdateWorldTransform();
+             
+            this->AddActor(item);
+        }
+         
+        {
+            Float3 basePos = grid.back();
+            grid.pop_back();
+
+            auto item = CreateShared<AIceItem>();
+            item->RootComponent->SetRelativePosition(basePos + offset);
+            item->RootComponent->UpdateWorldTransform();
+             
+            this->AddActor(item);
+        }
+
+    }
+
+
+
+    //level 1=================  
 
     //if(false)
     float gimmick1_0 = 10.0f;
@@ -298,23 +356,30 @@ void GamePlayLevel::LoadMap0()
             rb->simulateRotation = true;
             //actor->staticMeshComponent->SetMaterial(Materials::GetIron()); 
 
+            rb->linearDamping = 0.98f;
+            rb->angularDamping = 0.98f;
+
+            rb->compliance = 0.0001f;
+
+            rb->bFastStable = true;
+
             this->AddActor(actor);
         }
     }
 
 
-    float gimmick1_1 = gimmick1_0_e + 100.0f;
+    float gimmick1_1 = gimmick1_0_e + 20.0f;
     float gimmick1_1_e{};
     {
         float height = 3.0f;
         float depth = 0.5f;
         float spacingZ = 20.0f;
 
-        float width = roadWidth;
+        float width = LANE_WIDTH;
 
-        gimmick1_1_e = gimmick1_1 + spacingZ * 10.0f;
+        gimmick1_1_e = gimmick1_1 + spacingZ * 5.0f;
 
-        float sideOffset = 1.3;
+        float sideOffset = 1.3f;
 
 
         auto& gridPatternR = MMath::GenerateGrid3D({ 1,1,3 }, { 1.00f, 1.00f, spacingZ });
@@ -347,12 +412,51 @@ void GamePlayLevel::LoadMap0()
         }
     }
 
-  
+
+    float gimmick1_2 = gimmick1_1_e + 10.0f;
+    float gimmick1_2_e{};
+    {
+
+       float height = 1.0f;
+       float width = LANE_WIDTH;
+
+       Float3 refPos = end1 + Float3(0.0f, height, gimmick1_1_e);
+       Float3 refShape = { width, height, 5.0f };
+
+       auto actor = CreateActor<AOscillateBox>(); 
+ 
+       Mesh::SetBox(actor.get(), refShape); 
+
+       actor->basePos = refPos;
+       actor->RootComponent->SetRelativePosition(refPos);
+       actor->RootComponent->UpdateWorldTransform();
+
+       //actor->staticMeshComponent->SetMaterial(Materials::GetIron());
+ 
+       this->AddActor(actor);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     //
     {
-        Float3 goalPos = end2 + Float3(0.0f, 0.0f, -0.2f);
-        Float3 refShape = { roadWidth, 10.0f, 1.0f };
+        Float3 goalPos = end6 + Float3(0.0f, 0.0f, -0.2f);
+        Float3 refShape = { LANE_WIDTH, 10.0f, 1.0f };
 
         auto checkPt = CreateShared<ATriggerVolume>();
 
@@ -373,8 +477,8 @@ void GamePlayLevel::LoadPlayer()
     //auto dftPlayer = CreateActor<APawn>(); 
     auto actor = CreateActor<APlayer>();
 
-    actor->RootComponent->SetRelativePosition(playerSpawnPos); 
-    actor->RootComponent->SetRelativeRotation(XMQuaternionRotationRollPitchYaw(0, MMath::ToRadians(-90.0f), 0));  
+    actor->RootComponent->SetRelativePosition(playerSpawnPos);
+    actor->RootComponent->SetRelativeRotation(XMQuaternionRotationRollPitchYaw(0, MMath::ToRadians(-90.0f), 0));
     actor->RootComponent->UpdateWorldTransform();
 
     //dftPlayer->staticMeshComponent->SetVisible(false);
@@ -393,7 +497,7 @@ void GamePlayLevel::OnUnload()
 {
     ULevel::OnUnload();
 
-    std::cout << "unload game world" << '\n'; 
+    std::cout << "unload game world" << '\n';
 }
 
 void GamePlayLevel::OnTick(float delta)
