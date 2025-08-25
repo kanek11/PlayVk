@@ -74,9 +74,7 @@ public:
 		this->currentState = targetState;
 		Anim::WaitFor(desiredDelay, [=]() {
 			m_gameManager->RequestTransitState(targetState);
-			});
-
-
+			}); 
 	}
 
 	GameStateId lastState{};
@@ -85,7 +83,7 @@ public:
 	void RequestForceTransitGameState(const GameStateId& targetState, float desiredDelay = 0.0f) {
 		this->lastState = this->currentState;
 		this->currentState = targetState;
-		m_gameManager->RequestTransitState(targetState);
+		m_gameManager->TransitState(targetState);
 
 	}
 

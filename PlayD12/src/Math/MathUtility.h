@@ -499,7 +499,7 @@ namespace MMath {
 
 	struct AABB2D { float xmin{}, xmax{}, zmin{}, zmax{}; };
 	inline bool PointInAABB2D(const AABB2D& r, float px, float pz) {
-		return px >= r.xmin && px <= r.xmin && pz >= r.zmin && pz <= r.zmax;
+		return px >= r.xmin && px <= r.xmax && pz >= r.zmin && pz <= r.zmax;
 	}
 
 }
@@ -509,8 +509,14 @@ namespace Random {
 
 	using namespace MMath;
 
-	inline float Uniform01() {
-		static thread_local std::mt19937 gen{ std::random_device{}() };
+	constexpr uint32_t gSeed = 20;
+
+	inline float Uniform01(std::optional<uint32_t> seed = gSeed) {
+		thread_local std::mt19937 gen{ [&seed] {
+			if (seed.has_value()) return seed.value();
+			else return std::random_device{}();
+		}() };
+
 		static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 		return dist(gen);
 	}

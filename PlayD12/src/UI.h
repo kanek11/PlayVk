@@ -276,7 +276,7 @@ public:
 
 public:
 	Float3 baseColor = Color::White.xyz();
-	Float4 backAlpha = { 0.0f, 0.0f, 0.0f, 0.0f };
+	Float4 backAlpha = { 1.0f, 0.0f, 0.0f, 0.0f };
 	float opacity = 1.0f;
 
 	std::optional<std::string> backTex;

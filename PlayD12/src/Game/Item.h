@@ -96,15 +96,6 @@ private:
 };
 
 
-//class UOscillateComponent : UActorComponent {
-//public:
-//	virtual void TickComponent(float delta);
-//
-//	float phase{ 0.0f };
-//	float mag{ 1.0f };
-//
-//	Float3 basePos{};
-//};
 
 class AOscillateBox : public AStaticMeshActor {
 public:
@@ -112,8 +103,12 @@ public:
 	virtual void BeginPlay() override;
 	virtual void OnTick(float delta) override; 
 
-	float phase{ 0.0f };
-	float mag{ 1.0f };
+	float m_elapsedTime{ 0 };
 
-	Float3 basePos{};
+	//
+	float m_amplitude = 1.0f;   // 
+	float m_frequency = 2.0f;    // rad/s 
+	float m_phase = 0.0f;        // 
+
+	Float3 m_startPos{};
 };

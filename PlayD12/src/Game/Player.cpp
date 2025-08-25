@@ -11,10 +11,10 @@
 
 #include "Controller.h"
 
-constexpr float JUMP_SPEED = 6.4f;
+constexpr float JUMP_SPEED = 6.0f;
 
 constexpr float NORMAL_MAXSPEED = 15.0f;
-constexpr float NORMAL_RATE_X = 5.0f;
+constexpr float NORMAL_RATE_X = 10.0f;
 constexpr float NORMAL_RATE_Z = 5.0f;
  
 constexpr float METAL_RATE_X = 5.0f;
@@ -85,17 +85,17 @@ void APlayer::DuringFormTransition(float nt, float startSize)
 
 void APlayer::RequestTransitForm(EPlayerForm targetForm)
 {
-	if (currForm == targetForm) return;
-
+	if (currForm == targetForm) return; 
+	if (this->bDisableTransition) return;
 
 	assert(playerForms.contains(targetForm));
 	auto& targetState = playerForms.at(targetForm);
 
-	this->bDuringTransition = true;
+	this->bDisableTransition = true;
 
 	auto tween = Anim::WaitFor(emitDuration, [=] {
 		this->TransitForm(targetForm);
-		this->bDuringTransition = false;
+		this->bDisableTransition = false;
 		});
 
 	Float3 scale{};
@@ -432,10 +432,16 @@ void APlayer::UploadPlayerState()
 	playerState.abilitiesRT = abilities;  
 
 	auto& pos = this->RootComponent->GetWorldPosition();
-	if (MMath::PointInAABB2D({-10.5, 10.5, 0.0, MMath::FLOAT_MAX }, pos.x(), pos.z()))
+	//std::cout << "player pos:" << ToString(pos) << '\n';
+	if (!bToReset && !MMath::PointInAABB2D({-10.1f, 10.1f, 0.0f, MMath::FLOAT_MAX }, pos.x(), pos.z()))
 	{
 		std::cout << "player out of bound, try respawn" << '\n';
+		//Anim::WaitFor(1.0f, [=]() {
+		//	gameState->shouldRespawn = true;
+		//	bToReset = true;
+		//	});
 		gameState->shouldRespawn = true;
+		bToReset = true;
 	}
 
 }
@@ -449,12 +455,11 @@ void APlayer::TickPlayingPersistent(float delta)
 
 	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
 
-	if (!this->bDuringTransition) {
+	if (!this->bDisableTransition) {
 
 		//
 		if (inputSystem->GetAction(EAction::Normal))
-		{
-
+		{ 
 			RequestTransitForm(EPlayerForm::Normal);
 		}
 		else if (inputSystem->GetAction(EAction::Metal))
@@ -503,26 +508,37 @@ void APlayer::NormalStateBehavior(float delta)
 
 	if (bGroundedThisFrame)
 	{
-		if (inputSystem->GetAction(EAction::Jump)) {
+		if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
 			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, JUMP_SPEED, 0.0f) * delta);
 		}
 
-		if (Length(shapeComponent->rigidBody->linearVelocity) <= NORMAL_MAXSPEED ) {
+		if (Length(shapeComponent->rigidBody->linearVelocity) <= NORMAL_MAXSPEED) {
 			float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-			shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * NORMAL_RATE_Z * form.mass) * delta);
-		} 
+			float axisX = inputSystem->GetAxis(EAxis::MoveX);
 
-		float axisX = inputSystem->GetAxis(EAxis::MoveX);
-		shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * NORMAL_RATE_X * form.mass, 0.0f, 0.0f) * delta);
+			//normalized direction:
+			if (LengthSq(Float3(axisX, 0.0f, axisZ)) < 1e-6f) return;
+			auto dir3D = MMath::Normalize(Float3(axisX, 0.0f, axisZ));
+
+			shapeComponent->rigidBody->ApplyForceRate(dir3D * NORMAL_RATE_Z * form.mass * delta);
+
+		}
+		else {
+			float axisX = inputSystem->GetAxis(EAxis::MoveX);
+			shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * NORMAL_RATE_X * form.mass, 0.0f, 0.0f) * delta);
+		}
+
+
 	}
 	else {
 
-		//float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-		//shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 1.0f * form.mass) * delta);
+		float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
+		shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * 1.0f * form.mass) * delta);
 
-		//float axisX = inputSystem->GetAxis(EAxis::MoveX);
-		//shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 2.0f * form.mass, 0.0f, 0.0f) * delta);
-	} 
+		float axisX = inputSystem->GetAxis(EAxis::MoveX);
+		shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * 2.0f * form.mass, 0.0f, 0.0f) * delta);
+
+	}
 
 }
 
@@ -549,11 +565,21 @@ void APlayer::CloneStateBehavior(float delta)
 
 		if (Length(shapeComponent->rigidBody->linearVelocity) <= NORMAL_MAXSPEED) {
 			float axisZ = inputSystem->GetAxis(EAxis::MoveZ);
-			shapeComponent->rigidBody->ApplyForceRate(Float3(0.0f, 0.0f, axisZ * NORMAL_RATE_Z * form.mass) * delta);
+			float axisX = inputSystem->GetAxis(EAxis::MoveX);
+
+			//normalized direction:
+			if (LengthSq(Float3(axisX, 0.0f, axisZ)) < 1e-6f) return;
+			auto dir3D = MMath::Normalize(Float3(axisX, 0.0f, axisZ));
+
+			shapeComponent->rigidBody->ApplyForceRate(dir3D * NORMAL_RATE_Z * form.mass * delta);
+			
+		}
+		else {
+			float axisX = inputSystem->GetAxis(EAxis::MoveX);
+			shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * NORMAL_RATE_X * form.mass, 0.0f, 0.0f) * delta);
 		}
 
-		float axisX = inputSystem->GetAxis(EAxis::MoveX);
-		shapeComponent->rigidBody->ApplyForceRate(Float3(axisX * NORMAL_RATE_X * form.mass, 0.0f, 0.0f) * delta);
+
 	}
 	else {
 

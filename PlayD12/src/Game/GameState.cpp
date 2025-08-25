@@ -79,7 +79,7 @@ void AGameState::SetupGameStates()
 				//world->LoadOrResetLevel("gameplay");
 				//this->OnResetGameplay();
 				if (lastState != GameStateId::Paused)
-					this->OnStartPlay(3.0f);
+					this->OnStartPlay(1.0f);
 				else {
 					this->OnStartPlay(0.0f);
 				}
@@ -97,8 +97,9 @@ void AGameState::SetupGameStates()
 				this->timeCount += dt;
 
 				if (shouldRespawn) {
+
 					this->OnResetGameplay();
-					this->RequestForceTransitGameState(GameStateId::Playing);
+					this->RequestTransitGameState(GameStateId::Playing); 
 					shouldRespawn = false;
 				}
 

@@ -17,12 +17,12 @@ namespace UI {
         //----------------------
         auto& font = passCtx.font;
         font = CreateShared<FontAtlas>();
-        if (auto& tex = graphCtx->loadedTextures["ASCII_16x6.png"]; tex) {
+        if (auto& tex = graphCtx->loadedTextures["ASCII_10x10.png"]; tex) {
             font->texture = tex;
             auto& desc = tex->GetDesc();
-            float cellWidth = (desc.width - 1) / 16.0f;
-            float cellHeight = (desc.height - 1) / 6.0f;
-            font->LoadGridAtlas(cellWidth, cellHeight, 16, 6);
+            float cellWidth = (desc.width - 1) / 10.0f;
+            float cellHeight = (desc.height - 1) / 10.0f;
+            font->LoadGridAtlas(cellWidth, cellHeight, 10, 10);
         }
         else
         {
@@ -132,7 +132,8 @@ namespace UI {
             shader->SetCBV("UISettingsCB", Buffer::MakeCBVDesc(bufferView), objectHeapOffset);
 
             if (proxy.useTexture) {
-                auto& baseColorTex = graphCtx->loadedTextures[proxy.texName];
+                auto baseColorTex = graphCtx->loadedTextures[proxy.texName];
+                if(baseColorTex)
                 shader->SetSRV("baseColorMap", baseColorTex->GetRawResource(), baseColorTex->GetSRVDesc(), objectHeapOffset);
             }
 

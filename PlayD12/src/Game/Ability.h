@@ -54,7 +54,7 @@ public:
 
 
 struct FAbilityRuntime {
-	float remaining{ 100000.0f };
+	float remaining{ 10.0f };
 };
 
 

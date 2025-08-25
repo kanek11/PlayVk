@@ -72,8 +72,9 @@ namespace Anim {
         }
 
         void Update(float dt) {
-            //std::cout << "tweens num: " << tweens.size() << '\n';
+            std::cout << "tweens num: " << tweens.size() << '\n';
             for (auto& t : tweens) {
+				if (t == nullptr) continue;
                 if (t->finished) continue;
 
                 t->elapsed += dt;

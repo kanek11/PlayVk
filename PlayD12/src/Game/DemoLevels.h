@@ -2,8 +2,7 @@
 
 #include "Gameplay/Level.h" 
  
-constexpr float LANE_WIDTH = 20; 
-
+constexpr float LANE_WIDTH = 20.0f;  
 
 using namespace Gameplay;
 

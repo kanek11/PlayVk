@@ -924,7 +924,7 @@ void D3D12HelloRenderer::AddQuadChar(const FRect& rect,
         .color = color,
         .opacity = opacity,
         .useTexture = true,
-        .texName = "ASCII_16x6.png",
+        .texName = "ASCII_10x10.png",
     };
 
     AddQuad(desc);

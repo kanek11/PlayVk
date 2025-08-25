@@ -106,7 +106,7 @@ void UITextBlock::RenderText()
 .alpha = {1.0f,1.0f,1.0f,1.0f},
 .opacity = opacity,
 .useTexture = true,
-.texName = "ASCII_16x6.png"
+.texName = "ASCII_10x10.png"
 		};
 
 		renderer->AddQuad(desc);

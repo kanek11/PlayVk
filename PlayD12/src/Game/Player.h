@@ -100,5 +100,7 @@ public:
 
 	float emitDuration = 0.5f;
 
-	float bDuringTransition{ false };
+	float bDisableTransition{ false };
+
+	bool bToReset{ false };
 };

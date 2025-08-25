@@ -173,7 +173,7 @@ void ARotateBox::OnTick(float delta)
 //	//RootComponent->SetRelativeRotate(targetRot);
 //}
 
-AOscillateBox::AOscillateBox()
+AOscillateBox::AOscillateBox() : AStaticMeshActor()
 {
 	this->tag = "env";
 	this->shapeComponent->SetSimulatePhysics(false);
@@ -182,15 +182,26 @@ AOscillateBox::AOscillateBox()
 
 void AOscillateBox::BeginPlay()
 {
+	AStaticMeshActor::BeginPlay();
+
+	if (RootComponent)
+		m_startPos = RootComponent->GetWorldPosition();
 }
 
 void AOscillateBox::OnTick(float delta)
 {
-	phase += MMath::ToRadians(delta);
-	auto offset = std::sin(phase) * mag;
+	AStaticMeshActor::OnTick(delta);
 
-	auto targetPos = basePos + Float3(0.0f, offset, 0.0f);
-	RootComponent->SetRelativePosition(targetPos);
+	m_elapsedTime += delta;
+ 
+	float offsetY = m_amplitude * std::sin(m_frequency * m_elapsedTime + m_phase);
 
-	std::cout << "target pos:" << ToString(targetPos) << '\n';
+	if (RootComponent)
+	{
+		Float3 newPos = m_startPos + Float3(0.0f, offsetY, 0.0f);
+		RootComponent->SetRelativePosition(newPos);
+		RootComponent->UpdateWorldTransform();
+
+		//std::cout << "oscillate to:" << ToString(newPos) << '\n';
+	}
 }

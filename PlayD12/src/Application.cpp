@@ -89,61 +89,61 @@ void GameApplication::run()
 
 		//todo: physics interpolation;  
 		//=======
-		//m_mainWindow->onUpdate();
+		m_mainWindow->onUpdate();
 
-		//m_inputSystem->OnUpdate();
+		m_inputSystem->OnUpdate();
 
-		//m_uiManager->RouteEvents();
+		m_uiManager->RouteEvents();
 
-		//m_uiManager->Tick(delta);
+		m_uiManager->Tick(delta);
 
-		//m_world->OnTick(delta);
+		m_world->OnTick(delta);
 
-		//m_world->SyncGameToPhysics();
-
-
-		////=======
-		//gTime->PumpFixedSteps(); 
-
-		////=======
-		//m_renderer->OnUpdate(delta);
-		//m_renderer->OnRender();
+		m_world->SyncGameToPhysics();
 
 
-		m_taskSystem.AddTask(
-			"main",
-			[=]() {
-				m_mainWindow->onUpdate(); 
-				m_inputSystem->OnUpdate(); 
-				m_uiManager->RouteEvents(); 
-				m_uiManager->Tick(delta); 
-				m_world->OnTick(delta); 
-				m_world->SyncGameToPhysics();
-			},
-			System::ETaskDomain::MainThread,
-			{}
-		); 
+		//=======
+		gTime->PumpFixedSteps(); 
 
-		m_taskSystem.AddTask(
-			"physics",
-			[=]() { 
-				gTime->PumpFixedSteps();
-			},
-			System::ETaskDomain::PhysicsThread,
-			{}
-		);
+		//=======
+		m_renderer->OnUpdate(delta);
+		m_renderer->OnRender();
 
-		m_taskSystem.AddTask(
-		"renderThread",
-		[=]() {  
-			m_renderer->OnUpdate(delta);
-			m_renderer->OnRender();
-		},
-		System::ETaskDomain::RenderThread,
-		{}
-		);
 
-		m_taskSystem.ExecuteAll();
+		//m_taskSystem.AddTask(
+		//	"main",
+		//	[=]() {
+		//		m_mainWindow->onUpdate(); 
+		//		m_inputSystem->OnUpdate(); 
+		//		m_uiManager->RouteEvents(); 
+		//		m_uiManager->Tick(delta); 
+		//		m_world->OnTick(delta); 
+		//		m_world->SyncGameToPhysics();
+		//	},
+		//	System::ETaskDomain::MainThread,
+		//	{}
+		//); 
+
+		//m_taskSystem.AddTask(
+		//	"physics",
+		//	[=]() { 
+		//		gTime->PumpFixedSteps();
+		//	},
+		//	System::ETaskDomain::PhysicsThread,
+		//	{}
+		//);
+
+		//m_taskSystem.AddTask(
+		//"renderThread",
+		//[=]() {  
+		//	m_renderer->OnUpdate(delta);
+		//	m_renderer->OnRender();
+		//},
+		//System::ETaskDomain::RenderThread,
+		//{}
+		//);
+
+		//m_taskSystem.ExecuteAll();
 		 
 		m_world->EndFrame();
 
