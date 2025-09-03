@@ -97,11 +97,11 @@ namespace Materials {
 
         auto Mat = CreateShared<UMaterial>();
 
-        Mat->textures["baseColorMap"] = "rusty_metal_04_diff_1k.png";
-        Mat->textures["normalMap"] = "rusty_metal_04_nor_dx_1k.png";
-        Mat->textures["metallicMap"] = "rusty_metal_04_metal_1k.png";
-        Mat->textures["RoughnessMap"] = "rusty_metal_04_rough_1k.png";
-        Mat->textures["AOMap"] = "rusty_metal_04_ao_1k.png";
+        Mat->textures["baseColorMap"] = "rusty_metal_04_diff_2k.png";
+        Mat->textures["normalMap"]    = "rusty_metal_04_nor_dx_2k.png";
+        Mat->textures["metallicMap"]  = "rusty_metal_04_metal_2k.png";
+        Mat->textures["RoughnessMap"] = "rusty_metal_04_rough_2k.png";
+        Mat->textures["AOMap"]        = "rusty_metal_04_ao_2k.png";
 
         Mat->materialCB.useBaseColorMap = true;
         Mat->materialCB.useNormalMap = true;
@@ -111,6 +111,86 @@ namespace Materials {
 
         return Mat;
     }
+
+    inline SharedPtr<UMaterial> GetMetalPlate() {
+
+        auto Mat = CreateShared<UMaterial>();
+
+        Mat->textures["baseColorMap"] = "MetalPlates013_2K-JPG_Color.jpg";
+        Mat->textures["normalMap"] = "MetalPlates013_2K-JPG_NormalDX.jpg";
+        Mat->textures["metallicMap"] = "MetalPlates013_2K-JPG_Metalness.jpg";
+        Mat->textures["RoughnessMap"] = "MetalPlates013_2K-JPG_Roughness.jpg";
+        Mat->textures["AOMap"] = "MetalPlates013_2K-JPG_AmbientOcclusion.jpg";
+
+        Mat->materialCB.useBaseColorMap = true;
+        Mat->materialCB.useNormalMap = true;
+        Mat->materialCB.useMetallicMap = true;
+        Mat->materialCB.useRoughnessMap = true;
+        Mat->materialCB.useAOMap = true;
+
+        return Mat;
+    }
+
+
+    inline SharedPtr<UMaterial> GetStoneWall() {
+
+        auto Mat = CreateShared<UMaterial>();
+
+        Mat->textures["baseColorMap"] = "Bricks059_4K-JPG_Color.jpg";
+        Mat->textures["normalMap"] = "Bricks059_4K-JPG_NormalDX.jpg";
+        //Mat->textures["metallicMap"] = "MetalPlates013_2K-JPG_Metalness.jpg";
+        Mat->textures["RoughnessMap"] = "Bricks059_4K-JPG_Roughness.jpg";
+        Mat->textures["AOMap"] = "Bricks059_4K-JPG_AmbientOcclusion.jpg";
+
+        Mat->materialCB.useBaseColorMap = true;
+        Mat->materialCB.useNormalMap = true;
+        Mat->materialCB.useMetallicMap = false;
+        Mat->materialCB.metallic = 0.0f;
+        Mat->materialCB.useRoughnessMap = true;
+        Mat->materialCB.useAOMap = true;
+
+        return Mat;
+    }
+
+    inline SharedPtr<UMaterial> GetBumpyGold() {
+
+        auto Mat = CreateShared<UMaterial>();
+
+        Mat->textures["baseColorMap"] = "Metal048C_2K-JPG_Color.jpg";
+        Mat->textures["normalMap"] = "Metal048C_2K-JPG_NormalDX.jpg";
+        Mat->textures["metallicMap"] = "Metal048C_2K-JPG_Metalness.jpg";
+        Mat->textures["RoughnessMap"] = "Metal048C_2K-JPG_Roughness.jpg";
+       // Mat->textures["AOMap"] = "Bricks059_4K-JPG_AmbientOcclusion.jpg";
+
+        Mat->materialCB.useBaseColorMap = true;
+        Mat->materialCB.useNormalMap = true;
+        Mat->materialCB.useMetallicMap = true;
+        Mat->materialCB.useRoughnessMap = true;
+        Mat->materialCB.useAOMap = false;
+
+        return Mat;
+    }
+
+
+    inline SharedPtr<UMaterial> GetSmoothIron() {
+
+        auto Mat = CreateShared<UMaterial>();
+
+        Mat->textures["baseColorMap"] = "Metal062B_4K-JPG_Color.jpg";
+        Mat->textures["normalMap"] = "Metal062B_4K-JPG_NormalDX.jpg";
+        Mat->textures["metallicMap"] = "Metal062B_4K-JPG_Metalness.jpg";
+        Mat->textures["RoughnessMap"] = "Metal062B_4K-JPG_Roughness.jpg";
+        //Mat->textures["AOMap"] = "snow_02_ao_1k.png";
+
+        Mat->materialCB.useBaseColorMap = true;
+        Mat->materialCB.useNormalMap = true;
+        Mat->materialCB.useMetallicMap = true;
+        Mat->materialCB.useRoughnessMap = true;
+        Mat->materialCB.useAOMap = false;
+
+        return Mat;
+    }
+
 
 
     inline SharedPtr<UMaterial> GetSnowSurface() {

@@ -4,6 +4,8 @@
 #include <vector>
 #include <mutex>
 
+#include "Math/MMath.h"
+
 //#include "Gameplay/Components/PrimitiveComponent.h"
 
 //using ActorId = Gameplay::FPrimitiveComponentId;
@@ -49,7 +51,7 @@ private:
 
 struct PhysicsTransform {
     Float3 position;
-    DirectX::XMVECTOR rotation;
+    Quaternion rotation;
 };
 
 using PhysicsTransformBuffer = std::unordered_map<ActorId, PhysicsTransform>;
@@ -57,16 +59,16 @@ using PhysicsTransformBuffer = std::unordered_map<ActorId, PhysicsTransform>;
 class PhysicsTransformSyncBuffer {
 public:
     PhysicsTransformSyncBuffer() : m_writeIndex(0), m_readIndex(1) {}
-      
-    void MarkToRemove(ActorId actor) { 
+
+    void MarkToRemove(ActorId actor) {
 
         if (m_Buffers[m_writeIndex].contains(actor)) {
             //std::lock_guard<std::mutex> lock(m_mutex);
             m_Buffers[m_writeIndex].erase(actor);
 
             removeList.push_back(actor);
-        } 
-    } 
+        }
+    }
 
     void Write(ActorId actor, const PhysicsTransform& transform) {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -79,10 +81,10 @@ public:
 
         if (!removeList.empty()) {
             for (auto& id : removeList) {
-				if (m_Buffers[m_readIndex].contains(id)) {
-					m_Buffers[m_readIndex].erase(id);
-				} 
-            }   
+                if (m_Buffers[m_readIndex].contains(id)) {
+                    m_Buffers[m_readIndex].erase(id);
+                }
+            }
             removeList.clear();
         }
     }
@@ -103,7 +105,7 @@ private:
     PhysicsTransformBuffer m_Buffers[2];
     int m_writeIndex;
     int m_readIndex;
-    std::mutex m_mutex; 
+    std::mutex m_mutex;
 
     std::vector<ActorId> removeList;
 };

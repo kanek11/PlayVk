@@ -28,11 +28,11 @@ void AItem::BeginPlay()
 		auto tween = Anim::WaitFor(0.2f, [=]() {
 			this->staticMeshComponent->SetVisible(false);
 			});
-		tween->onApply = [=](float nt) { 
+		tween->onApply = [=](float nt) {
 			auto mat = this->staticMeshComponent->GetMaterial();
 			mat->materialCB.useEmissiveMap = false;
-			mat->materialCB.emissiveColor = Color::Yellow.xyz(); 
-			mat->materialCB.emissiveStrength = Anim::Easing::QuadInOut(nt); 
+			mat->materialCB.emissiveColor = Color::Yellow.xyz();
+			mat->materialCB.emissiveStrength = Anim::Easing::QuadInOut(nt);
 
 			};
 
@@ -49,9 +49,11 @@ void AItem::OnTick(float delta)
 
 	float angle = MMath::ToRadians(delta * 100);
 
-	auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, angle, 0.0f));
-	RootComponent->SetRelativeRotation(targetRot);
+	//auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, angle, 0.0f));
+	//RootComponent->SetRelativeRotation(targetRot);
 
+	auto targetRot = QuaternionMultiply(QuaternionRotationRollPitchYaw(0.0f, angle, 0.0f),  RootComponent->GetRelativeRotation());
+	RootComponent->SetRelativeRotation(targetRot);
 }
 
 ATriggerVolume::ATriggerVolume() :AStaticMeshActor()
@@ -101,7 +103,7 @@ AIceItem::AIceItem() : AItem()
 	this->staticMeshComponent->SetMaterial(mat);
 
 	payload.formType = EPlayerForm::IceCube;
-	payload.duration = 1.0f;
+	payload.duration = 5.0f;
 }
 
 
@@ -117,7 +119,7 @@ AMetalItem::AMetalItem()
 	Mesh::SetSphere(this, 0.5f);
 
 	payload.formType = EPlayerForm::MetalBall;
-	payload.duration = 1.0f;
+	payload.duration = 3.0f;
 }
 
 
@@ -127,12 +129,12 @@ ACloneItem::ACloneItem()
 	auto mat = Materials::GetPlayerMat();
 	//mat->materialCB.emissiveColor = Color::Yellow.xyz();
 
-	this->staticMeshComponent->SetMaterial(mat); 
+	this->staticMeshComponent->SetMaterial(mat);
 
 	Mesh::SetSphere(this, 0.5f);
 
 	payload.formType = EPlayerForm::Clone;
-	payload.duration = 1.0f;
+	payload.duration = 3.0f;
 }
 
 
@@ -159,7 +161,10 @@ void ARotateBox::BeginPlay()
 void ARotateBox::OnTick(float delta)
 {
 	AStaticMeshActor::OnTick(delta);
-	auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, MMath::ToRadians(rotationSpeed * delta), 0.0f));
+	//auto targetRot = DirectX::XMQuaternionMultiply(RootComponent->GetRelativeRotation(), DirectX::XMQuaternionRotationRollPitchYaw(0.0f, MMath::ToRadians(rotationSpeed * delta), 0.0f));
+	//RootComponent->SetRelativeRotation(targetRot);
+
+	auto targetRot = QuaternionMultiply(QuaternionRotationRollPitchYaw(0.0f, ToRadians(rotationSpeed * delta), 0.0f), RootComponent->GetRelativeRotation());
 	RootComponent->SetRelativeRotation(targetRot);
 }
 
@@ -193,7 +198,7 @@ void AOscillateBox::OnTick(float delta)
 	AStaticMeshActor::OnTick(delta);
 
 	m_elapsedTime += delta;
- 
+
 	float offsetY = m_amplitude * std::sin(m_frequency * m_elapsedTime + m_phase);
 
 	if (RootComponent)

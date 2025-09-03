@@ -89,61 +89,61 @@ void GameApplication::run()
 
 		//todo: physics interpolation;  
 		//=======
-		m_mainWindow->onUpdate();
+		//m_mainWindow->onUpdate();
 
-		m_inputSystem->OnUpdate();
+		//m_inputSystem->OnUpdate();
 
-		m_uiManager->RouteEvents();
+		//m_uiManager->RouteEvents();
 
-		m_uiManager->Tick(delta);
+		//m_uiManager->Tick(delta);
 
-		m_world->OnTick(delta);
+		//m_world->OnTick(delta);
 
-		m_world->SyncGameToPhysics();
-
-
-		//=======
-		gTime->PumpFixedSteps(); 
-
-		//=======
-		m_renderer->OnUpdate(delta);
-		m_renderer->OnRender();
+		//m_world->SyncGameToPhysics();
 
 
-		//m_taskSystem.AddTask(
-		//	"main",
-		//	[=]() {
-		//		m_mainWindow->onUpdate(); 
-		//		m_inputSystem->OnUpdate(); 
-		//		m_uiManager->RouteEvents(); 
-		//		m_uiManager->Tick(delta); 
-		//		m_world->OnTick(delta); 
-		//		m_world->SyncGameToPhysics();
-		//	},
-		//	System::ETaskDomain::MainThread,
-		//	{}
-		//); 
+		////=======
+		//gTime->PumpFixedSteps(); 
 
-		//m_taskSystem.AddTask(
-		//	"physics",
-		//	[=]() { 
-		//		gTime->PumpFixedSteps();
-		//	},
-		//	System::ETaskDomain::PhysicsThread,
-		//	{}
-		//);
+		////=======
+		//m_renderer->OnUpdate(delta);
+		//m_renderer->OnRender();
 
-		//m_taskSystem.AddTask(
-		//"renderThread",
-		//[=]() {  
-		//	m_renderer->OnUpdate(delta);
-		//	m_renderer->OnRender();
-		//},
-		//System::ETaskDomain::RenderThread,
-		//{}
-		//);
 
-		//m_taskSystem.ExecuteAll();
+		m_taskSystem.AddTask(
+			"main",
+			[=]() {
+				m_mainWindow->onUpdate(); 
+				m_inputSystem->OnUpdate(); 
+				m_uiManager->RouteEvents(); 
+				m_uiManager->Tick(delta); 
+				m_world->OnTick(delta); 
+				m_world->SyncGameToPhysics();
+			},
+			System::ETaskDomain::MainThread,
+			{}
+		); 
+
+		m_taskSystem.AddTask(
+			"physics",
+			[=]() { 
+				gTime->PumpFixedSteps();
+			},
+			System::ETaskDomain::PhysicsThread,
+			{}
+		);
+
+		m_taskSystem.AddTask(
+		"renderThread",
+		[=]() {  
+			m_renderer->OnUpdate(delta);
+			m_renderer->OnRender();
+		},
+		System::ETaskDomain::RenderThread,
+		{}
+		);
+
+		m_taskSystem.ExecuteAll();
 		 
 		m_world->EndFrame();
 
@@ -168,14 +168,14 @@ void GameApplication::onBeginGame()
 bool GameApplication::initWorkingDirectory()
 {
 
-	auto src_path = std::source_location::current();
-	std::filesystem::path this_file = src_path.file_name(); //required conversion
+	//auto src_path = std::source_location::current();
+	//std::filesystem::path this_file = src_path.file_name(); //required conversion
 
-	//set the current path 
-	std::filesystem::current_path(this_file.parent_path().parent_path());
-	this->m_workingDirectory = std::filesystem::current_path().string();
+	////set the current path 
+	//std::filesystem::current_path(this_file.parent_path().parent_path());
+	//this->m_workingDirectory = std::filesystem::current_path().string();
 
-	std::cout << "Current working directory: " << this->m_workingDirectory << "\n";
+	//std::cout << "Current working directory: " << this->m_workingDirectory << "\n";
 
 
 	return true;
@@ -198,7 +198,28 @@ GameApplication* GameApplication::GetInstance()
 	return s_instance;
 }
 
+ 
 std::string GameApplication::GetAssetFullPath(std::string assetName)
 {
-	return m_workingDirectory + "\\" + assetName;
+	std::string baseDir;
+
+	//if (!m_workingDirectory.empty())
+	//{
+	//	baseDir = m_workingDirectory;
+	//}
+	//else
+	{
+		// Buffer for the current working directory
+		char buffer[MAX_PATH];
+		DWORD length = GetCurrentDirectoryA(MAX_PATH, buffer);
+		if (length == 0 || length > MAX_PATH)
+		{
+			// fallback failed, return just the asset name
+			return assetName;
+		}
+		baseDir = buffer;
+	}
+
+	// Combine base directory with asset name
+	return baseDir + "\\" + assetName;
 }

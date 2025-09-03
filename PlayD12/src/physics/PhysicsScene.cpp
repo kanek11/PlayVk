@@ -7,7 +7,7 @@
 
 #include "PhysicsEvent.h"
 
-using namespace DirectX;
+//using namespace DirectX;
 
 void PhysicsScene::Tick(float delta)
 {
@@ -111,24 +111,43 @@ void PhysicsScene::Integrate(float delta)
 		//
 		body->prevRot = body->rotation;
 
-		XMVECTOR omegaW = XMVectorSet(body->angularVelocity.x(), body->angularVelocity.y(), body->angularVelocity.z(), 0.0f);
-		XMVECTOR dq = XMQuaternionMultiply(body->rotation, omegaW);
-		dq = XMVectorScale(dq, 0.5f * delta);
-		body->predRot = XMQuaternionNormalize(XMVectorAdd(dq, body->predRot));
+
+		//mark:
+		//XMVECTOR omegaW = XMVectorSet(body->angularVelocity.x(), body->angularVelocity.y(), body->angularVelocity.z(), 0.0f);
+		//XMVECTOR dq = XMQuaternionMultiply(body->rotation, omegaW);
+		//dq = XMVectorScale(dq, 0.5f * delta);
+		//body->predRot = XMQuaternionNormalize(XMVectorAdd(dq, body->predRot));
+
+		// Build "pure quaternion" from angular velocity
+		Quaternion omegaQ = { body->angularVelocity.x(),
+							  body->angularVelocity.y(),
+							  body->angularVelocity.z(),
+							  0.0f };
+
+		// dq = q * omega
+		Quaternion dq = QuaternionMultiply(omegaQ, body->rotation);
+
+		// scale by 0.5 * delta
+		dq = QuaternionScale(dq, 0.5f * delta);
+
+		// integrate: predRot = normalize(predRot + dq)
+		body->predRot = QuaternionNormalize(QuaternionAdd(body->predRot, dq));
+
 
 		/*	std::cout << "integrate for rb : " << rb->debugName << '\n';
 			std::cout << "dq: " << MMath::XMToString(dq) << '\n';*/
 
 			//update pose;
 			//XMMATRIX R_ = XMMatrixRotationQuaternion(rb->predRot);
-		XMMATRIX R_ = XMMatrixRotationQuaternion(body->predRot);
-		XMMATRIX invR_ = XMMatrixTranspose(R_);
+		//XMMATRIX R_ = XMMatrixRotationQuaternion(body->predRot);
+		//XMMATRIX invR_ = XMMatrixTranspose(R_);
 
-		Float3x3 R;
-		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
-		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
-		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
+		//Float3x3 R;
+		//R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
+		//R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
+		//R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
 
+		Float3x3 R = MatrixRotationQuaternion(body->predRot);
 		body->RotationMatrix = R;
 
 
@@ -333,11 +352,21 @@ void PhysicsScene::SolveConstraints(float delta)
 				// dω = invI (r × Δp)
 				Float3 dOmega = rb->invWorldInertia * Vector3Cross(r, dir);
 				//std::cout << "dOmega: " << ToString(dOmega) << '\n';
-				XMVECTOR q = rb->predRot;
-				XMVECTOR dq = XMQuaternionMultiply(q,
-					XMVectorSet(dOmega.x(), dOmega.y(), dOmega.z(), 0.f));
-				dq = XMVectorScale(dq, 0.5f * dLambda);
-				rb->predRot = XMQuaternionNormalize(q + sign * dq);
+				//XMVECTOR q = rb->predRot;
+				//XMVECTOR dq = XMQuaternionMultiply(q,
+				//	XMVectorSet(dOmega.x(), dOmega.y(), dOmega.z(), 0.f));
+				//dq = XMVectorScale(dq, 0.5f * dLambda);
+				//rb->predRot = XMQuaternionNormalize(q + sign * dq);
+
+				Quaternion omegaQ = { dOmega.x(), dOmega.y(), dOmega.z(), 0.0f };
+
+				// Swap arguments to match DXMath
+				Quaternion dq = QuaternionMultiply(omegaQ, rb->predRot);
+
+				dq = QuaternionScale(dq, 0.5f * dLambda);
+
+				// integrate: predRot = normalize(predRot + sign*dq)
+				rb->predRot = QuaternionNormalize(QuaternionAdd(rb->predRot, QuaternionScale(dq, sign)));
 			};
 
 		if (A && A->simulateRotation)
@@ -367,12 +396,21 @@ void PhysicsScene::PostPBD(float delta)
 
 		if (!body->simulateRotation) continue; //skip if not enabled
 		body->rotation = body->predRot;
+		 
+		//XMVECTOR dq = XMQuaternionMultiply(XMQuaternionInverse(body->prevRot), body->predRot);
 
-		//XMVECTOR dq = XMQuaternionMultiply(rb->predRot, XMQuaternionInverse(rb->prevRot));
-		XMVECTOR dq = XMQuaternionMultiply(XMQuaternionInverse(body->prevRot), body->predRot);
+		//Float3 v = { dq.m128_f32[0], dq.m128_f32[1], dq.m128_f32[2] };
+		//float  w = dq.m128_f32[3];
 
-		Float3 v = { dq.m128_f32[0], dq.m128_f32[1], dq.m128_f32[2] };
-		float  w = dq.m128_f32[3];
+		// Compute inverse of previous quaternion
+		Quaternion invPrev = QuaternionInverse(body->prevRot);
+
+		// Multiply: dq = invPrev * predRot
+		Quaternion dq = QuaternionMultiply(body->predRot, invPrev);
+
+		// Extract vector and scalar parts
+		Float3 v = { dq.x, dq.y, dq.z };
+		float  w = dq.w;
 		if (w < 0.f) v = -v;
 		//std::cout << "v:" << LengthSq(v) << '\n';
 		if (body->bFastStable && LengthSq(v) < 1e-6f / body->mass) {
@@ -387,12 +425,14 @@ void PhysicsScene::PostPBD(float delta)
 		//std::cout << "post pbd for rb: " << rb->debugName << '\n';
 		//std::cout <<  " ang vel: " << ToString(rb->angularVelocity) << '\n';
 
-		XMMATRIX R_ = XMMatrixRotationQuaternion(body->rotation);
-		Float3x3 R;
-		R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
-		R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
-		R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
+		//XMMATRIX R_ = XMMatrixRotationQuaternion(body->rotation);
+		//Float3x3 R;
+		//R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] };
+		//R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] };
+		//R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] };
 
+		//body->RotationMatrix = R;
+		Float3x3 R = MatrixRotationQuaternion(body->rotation); 
 		body->RotationMatrix = R;
 
 		body->worldInertia = MatrixMultiply(MatrixMultiply(R, body->localInertia), Transpose(R));
@@ -595,7 +635,7 @@ void PhysicsScene::SetPosition(ActorId handle, Float3 position)
 
 }
 
-void PhysicsScene::SetRotation(ActorId handle, DirectX::XMVECTOR rotation)
+void PhysicsScene::SetRotation(ActorId handle, Quaternion rotation)
 {
 	m_commandBuffer.Enqueue([=]() {
 		auto it = this->m_bodies.find(handle);

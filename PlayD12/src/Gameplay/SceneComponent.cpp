@@ -1,7 +1,7 @@
 #include "PCH.h"
 #include "SceneComponent.h"
 
-using namespace DirectX;
+//using namespace DirectX;
 
 FTransform FTransform::CombineWith(const FTransform& Parent) const
 {
@@ -13,18 +13,18 @@ FTransform FTransform::CombineWith(const FTransform& Parent) const
         scale.z() * Parent.scale.z()
     };
     // warn: the order of multiplication matters
-    DirectX::XMVECTOR outRot = DirectX::XMQuaternionMultiply(rotation, Parent.rotation);
+    //DirectX::XMVECTOR outRot = DirectX::XMQuaternionMultiply(rotation, Parent.rotation);
 
-    DirectX::XMFLOAT3 xmPos = DirectX::XMFLOAT3{ position.x(), position.y(), position.z() };
-    DirectX::XMVECTOR localPos = DirectX::XMVector3Rotate(DirectX::XMLoadFloat3(&xmPos), Parent.rotation);
-    DirectX::XMFLOAT3 xmOutPos;
-    DirectX::XMStoreFloat3(&xmOutPos, localPos);
+    //DirectX::XMFLOAT3 xmPos = DirectX::XMFLOAT3{ position.x(), position.y(), position.z() };
+    //DirectX::XMVECTOR localPos = DirectX::XMVector3Rotate(DirectX::XMLoadFloat3(&xmPos), Parent.rotation);
+    //DirectX::XMFLOAT3 xmOutPos;
+    //DirectX::XMStoreFloat3(&xmOutPos, localPos);
 
-    Float3 outPos = {
-        xmOutPos.x * Parent.scale.x() + Parent.position.x(),
-        xmOutPos.y * Parent.scale.y() + Parent.position.y(),
-        xmOutPos.z * Parent.scale.z() + Parent.position.z()
-    };
+    Quaternion outRot = QuaternionMultiply(Parent.rotation, rotation);
+
+    Float3 localPos = Vector3Rotate(Parent.rotation, position);
+    Float3 outPos = Parent.position + localPos;
+
     return FTransform{ outPos, outRot, outScale };
 }
 
@@ -33,12 +33,16 @@ Float4x4 FTransform::ToMatrix() const
     auto S = MMath::MatrixScaling(scale.x(), scale.y(), scale.z());
     auto T = MMath::MatrixTranslation(position.x(), position.y(), position.z());
 
-    XMMATRIX R_ = XMMatrixRotationQuaternion(rotation);
-    Float4x4 R;
-    R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
-    R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
-    R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
-    R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    //XMMATRIX R_ = XMMatrixRotationQuaternion(rotation);
+    //Float4x4 R;
+    //R[0] = { R_.r[0].m128_f32[0], R_.r[0].m128_f32[1], R_.r[0].m128_f32[2] , 0.0f };
+    //R[1] = { R_.r[1].m128_f32[0], R_.r[1].m128_f32[1], R_.r[1].m128_f32[2] , 0.0f };
+    //R[2] = { R_.r[2].m128_f32[0], R_.r[2].m128_f32[1], R_.r[2].m128_f32[2] , 0.0f };
+    //R[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+    Float3x3 R_ = MatrixRotationQuaternion(rotation);
+    Float4x4 R = ToFloat4x4(R_);
+
 
     Float4x4 modelMatrix = MMath::MatrixIdentity<float, 4>();
     modelMatrix = MatrixMultiply(S, modelMatrix);
@@ -78,10 +82,13 @@ void Gameplay::USceneComponent::UpdateChildTransforms()
 
 Float3 Gameplay::USceneComponent::GetForwardVector() const
 {
-    DirectX::XMVECTOR forward_ = DirectX::XMVector3Rotate(DirectX::XMVECTOR{ 0.0f, 0.0f, 1.0f }, this->GetWorldRotation());
-    DirectX::XMFLOAT3 xmOut;
-    DirectX::XMStoreFloat3(&xmOut, forward_);
-    Float3 forward = { xmOut.x, xmOut.y, xmOut.z };
+    //DirectX::XMVECTOR forward_ = DirectX::XMVector3Rotate(DirectX::XMVECTOR{ 0.0f, 0.0f, 1.0f }, this->GetWorldRotation());
+    //DirectX::XMFLOAT3 xmOut;
+    //DirectX::XMStoreFloat3(&xmOut, forward_);
+    //Float3 forward = { xmOut.x, xmOut.y, xmOut.z }; 
+ 
+    Float3 forward =  Vector3Rotate(this->GetWorldRotation(), { 0.0f, 0.0f, 1.0f }); 
+
     return forward;
 }
 

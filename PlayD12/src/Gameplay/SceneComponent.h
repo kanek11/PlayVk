@@ -5,9 +5,11 @@
 
 #include "ActorComponent.h"
 
+using namespace MMath;
+
 struct FTransform {
 	Float3 position{ 0.0f, 0.0f, 0.0f };
-	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity() };
+	Quaternion rotation{ QuaternionIdentity() };
 	Float3 scale{ 1.0f, 1.0f, 1.0f };
 
 	FTransform CombineWith(const FTransform& Parent) const;
@@ -32,20 +34,20 @@ namespace Gameplay {
 
 	public:
 		Float3 GetWorldPosition() const { return m_worldTransform.position; }
-		DirectX::XMVECTOR GetWorldRotation() const { return m_worldTransform.rotation; }
+		Quaternion GetWorldRotation() const { return m_worldTransform.rotation; }
 		Float3 GetWorldScale() const { return m_worldTransform.scale; }
 
 		void SetWorldPosition(const Float3& pos) { m_worldTransform.position = pos; MarkDirty(); }
-		void SetWorldRotation(const DirectX::XMVECTOR& rot) { m_worldTransform.rotation = rot; MarkDirty(); }
+		void SetWorldRotation(const Quaternion& rot) { m_worldTransform.rotation = rot; MarkDirty(); }
 		void SetWorldScale(const Float3& scl) { m_worldTransform.scale = scl; MarkDirty(); }
 
 
 		Float3 GetRelativePosition() const { return m_relativeTransform.position; }
-		DirectX::XMVECTOR GetRelativeRotation() const { return m_relativeTransform.rotation; }
+		Quaternion GetRelativeRotation() const { return m_relativeTransform.rotation; }
 		Float3 GetRelativeScale() const { return m_relativeTransform.scale; }
 
 		void SetRelativePosition(const Float3& pos) { m_relativeTransform.position = pos; MarkDirty(); }
-		void SetRelativeRotation(const DirectX::XMVECTOR& rot) { m_relativeTransform.rotation = rot; MarkDirty(); }
+		void SetRelativeRotation(const Quaternion& rot) { m_relativeTransform.rotation = rot; MarkDirty(); }
 		void SetRelativeScale(const Float3& scl) { m_relativeTransform.scale = scl; MarkDirty(); }
 	public:
 

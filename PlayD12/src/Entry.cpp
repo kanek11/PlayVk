@@ -224,11 +224,15 @@ void TestMath()
 
 	std::cout << "Math tests passed!" << std::endl;
 }
+ 
 
-
-
-
-int main(int argc, char** argv)
+//int WINAPI WinMain(
+//	HINSTANCE hInstance,      // Handle to the current instance
+//	HINSTANCE hPrevInstance,  // Always NULL, legacy
+//	LPSTR lpCmdLine,          // Command line arguments as a single string
+//	int nCmdShow              // Flag to control window visibility
+//)
+int main()
 {
 #if TESTMATH
 	TestMath();
@@ -236,18 +240,27 @@ int main(int argc, char** argv)
 
 
 #if RunApplication
-#if (!defined(DEBUG) && !defined(_DEBUG)) || defined(NDEBUG)
-	if (HWND consoleHwnd = ::GetConsoleWindow())
-	{
-		::ShowWindow(consoleHwnd, SW_HIDE);
-	}
-#endif
+
+
 
 	auto app = std::make_shared<GameApplication>();
 
 	try {
 		app->onInit();
+
+
 		app->onBeginGame();
+
+
+
+//#if (!defined(DEBUG) && !defined(_DEBUG)) || defined(NDEBUG)
+		//if (HWND consoleHwnd = ::GetConsoleWindow())
+		//{
+		//	::ShowWindow(consoleHwnd, SW_HIDE);
+		//}
+		//FreeConsole();
+//#endif
+
 		app->run();
 		app->onDestroy();
 	}

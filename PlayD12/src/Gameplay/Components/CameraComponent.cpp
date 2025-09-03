@@ -3,7 +3,7 @@
 
 #include "Application.h"
 
-using namespace DirectX;
+//using namespace DirectX;
 
 namespace Gameplay {
 
@@ -54,8 +54,8 @@ namespace Gameplay {
         //SetRelativePosition(Float3{ 0.0f, 2.0f, -5.0f });
         //SetRelativeRotation(DirectX::XMQuaternionRotationRollPitchYaw(MMath::ToRadians(20.0f), 0.0f, 0.0f));
 
-        LocalOffset = { 0.0f, 1.0f, -4.0f }; //Float3{ 0.0f, 4.0f, -5.0f }; //offset from parent
-        LocalRotationEuler = Float3{ MMath::ToRadians(0.0f), MMath::ToRadians(0.0f), 0.0f }; //Float3{ MMath::ToRadians(30.0f), 0.0f, 0.0f }; //pitch, yaw, roll 
+        LocalOffset = { -3.0f, 0.0f, -4.0f }; //Float3{ 0.0f, 4.0f, -5.0f }; //offset from parent
+        LocalRotationEuler = Float3{ MMath::ToRadians(-10.0f), MMath::ToRadians(10.0f), 0.0f }; //Float3{ MMath::ToRadians(30.0f), 0.0f, 0.0f }; //pitch, yaw, roll 
     }
 
 
@@ -71,7 +71,7 @@ namespace Gameplay {
         Float3 basePosition = m_parent->GetWorldPosition();
         //auto baseRotation = m_parent->GetWorldRotation(); 
 
-        auto desiredRot = XMQuaternionRotationRollPitchYaw(
+        auto desiredRot = QuaternionRotationRollPitchYaw(
             LocalRotationEuler.x(),
             LocalRotationEuler.y(),
             LocalRotationEuler.z());

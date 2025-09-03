@@ -16,15 +16,15 @@ constexpr float JUMP_SPEED = 6.0f;
 constexpr float NORMAL_MAXSPEED = 15.0f;
 constexpr float NORMAL_RATE_X = 10.0f;
 constexpr float NORMAL_RATE_Z = 5.0f;
- 
+
 constexpr float METAL_RATE_X = 5.0f;
-constexpr float METAL_RATE_Z = 5.0f;  
+constexpr float METAL_RATE_Z = 5.0f;
 
 
 static bool ActorIsNotTrigger(AActor* actor) {
 
 	if (auto shapeComp = actor->GetComponent<UShapeComponent>()) {
-		if(!shapeComp->IsTrigger())  return true;
+		if (!shapeComp->IsTrigger())  return true;
 	}
 	return false;
 }
@@ -85,7 +85,7 @@ void APlayer::DuringFormTransition(float nt, float startSize)
 
 void APlayer::RequestTransitForm(EPlayerForm targetForm)
 {
-	if (currForm == targetForm) return; 
+	if (currForm == targetForm) return;
 	if (this->bDisableTransition) return;
 
 	assert(playerForms.contains(targetForm));
@@ -206,7 +206,7 @@ APlayer::APlayer() : APawn()
 	this->shapeComponent = this->CreateComponentAsSubObject<UShapeComponent>();
 
 	//Mesh::SetSphere(this, 2.0f); 
-	 
+
 
 	auto& rb = shapeComponent->rigidBody;
 	rb->simulatePhysics = true;
@@ -377,7 +377,7 @@ void APlayer::OnRegister()
 			};
 
 		form.onEnter = [this]() {
-			this->RootComponent->SetRelativeRotation(DirectX::XMQuaternionIdentity());
+			this->RootComponent->SetRelativeRotation(QuaternionIdentity());
 			this->RootComponent->UpdateWorldTransform();
 			};
 
@@ -406,14 +406,14 @@ void APlayer::UploadPlayerState()
 {
 	//=========== 
 	auto gameState = GetWorld()->GetGameState<AGameState>();
-	gameState->SetPlayerState(this->playerState); 
+	gameState->SetPlayerState(this->playerState);
 
 	EDGrounded.Update(bGroundedThisFrame);
 	if (EDGrounded.risingEdge) {
 		std::cout << "ground event" << '\n';
 
-		if(gameState->startPlaying)
-		Anim::VibrateFor(0.3f, 0.3f, 0.2f);
+		if (gameState->startPlaying)
+			Anim::VibrateFor(0.3f, 0.3f, 0.2f);
 
 	}
 
@@ -429,13 +429,13 @@ void APlayer::UploadPlayerState()
 
 	playerState.currForm = this->currForm;
 
-	playerState.abilitiesRT = abilities;  
+	playerState.abilitiesRT = abilities;
 
 	auto& pos = this->RootComponent->GetWorldPosition();
 	//std::cout << "player pos:" << ToString(pos) << '\n';
-	if (!bToReset && !MMath::PointInAABB2D({-10.1f, 10.1f, 0.0f, MMath::FLOAT_MAX }, pos.x(), pos.z()))
+	if (!bToReset && !MMath::PointInAABB2D({ -10.5f, 10.5f, 0.0f, MMath::FLOAT_MAX }, pos.x(), pos.z()))
 	{
-		std::cout << "player out of bound, try respawn" << '\n';
+		//std::cout << "player out of bound, try respawn" << '\n';
 		//Anim::WaitFor(1.0f, [=]() {
 		//	gameState->shouldRespawn = true;
 		//	bToReset = true;
@@ -450,7 +450,7 @@ void APlayer::UploadPlayerState()
 
 void APlayer::TickPlayingPersistent(float delta)
 {
-	auto gameState = GetWorld()->GetGameState<AGameState>(); 
+	auto gameState = GetWorld()->GetGameState<AGameState>();
 	if (!gameState->startPlaying)  return;
 
 	auto inputSystem = GameApplication::GetInstance()->GetInputSystem();
@@ -459,19 +459,19 @@ void APlayer::TickPlayingPersistent(float delta)
 
 		//
 		if (inputSystem->GetAction(EAction::Normal))
-		{ 
+		{
 			RequestTransitForm(EPlayerForm::Normal);
 		}
 		else if (inputSystem->GetAction(EAction::Metal))
 		{
 			auto form = EPlayerForm::MetalBall;
-			auto& ability = abilities[form]; 
+			auto& ability = abilities[form];
 			if (ability.remaining > 1e-6f)
 			{
 				RequestTransitForm(form);
 			}
 
-			
+
 		}
 		else if (inputSystem->GetAction(EAction::Ice))
 		{
@@ -508,7 +508,7 @@ void APlayer::NormalStateBehavior(float delta)
 
 	if (bGroundedThisFrame)
 	{
-		if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
+		if (inputSystem->GetAction(EAction::Jump)) {
 			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, JUMP_SPEED, 0.0f));
 		}
 
@@ -559,7 +559,7 @@ void APlayer::CloneStateBehavior(float delta)
 
 	if (bGroundedThisFrame)
 	{
-		if (inputSystem->IsKeyJustPressed(KeyCode::Space)) {
+		if (inputSystem->GetAction(EAction::Jump)) {
 			shapeComponent->rigidBody->ApplyImpulse(Float3(0.0f, JUMP_SPEED, 0.0f));
 		}
 
@@ -572,7 +572,7 @@ void APlayer::CloneStateBehavior(float delta)
 			auto dir3D = MMath::Normalize(Float3(axisX, 0.0f, axisZ));
 
 			shapeComponent->rigidBody->ApplyForceRate(dir3D * NORMAL_RATE_Z * form.mass * delta);
-			
+
 		}
 		else {
 			float axisX = inputSystem->GetAxis(EAxis::MoveX);
@@ -648,7 +648,7 @@ void APlayer::OnOverlapItem(AActor* item)
 	if (auto itemActor = dynamic_cast<AItem*>(item)) {
 
 		if (!itemActor->bConsumed)
-			this->AddPayloadImmediate(itemActor->GetPlayload()); 
+			this->AddPayloadImmediate(itemActor->GetPlayload());
 
 		itemActor->bConsumed = true;
 	}
@@ -658,7 +658,7 @@ void APlayer::OnOverlapItem(AActor* item)
 
 void APlayer::AddPayloadImmediate(const FAbilityPayload& payload)
 {
-	if (!playerForms.contains(payload.formType))  
+	if (!playerForms.contains(payload.formType))
 		return;
 
 	auto& abilityRT = abilities[payload.formType];
@@ -667,7 +667,9 @@ void APlayer::AddPayloadImmediate(const FAbilityPayload& payload)
 
 void APlayer::RegisterPhysicsHooks()
 {
-	 
+
+
+
 	auto prePhysicsCb = [=]() {
 		this->bGroundedThisFrame = false;
 		//std::cout << "pre physics called" << '\n';
@@ -684,19 +686,25 @@ void APlayer::RegisterPhysicsHooks()
 
 			std::cout << "player: overlap with tag: " << other->tag << '\n';
 			this->OnOverlapItem(other);
-		}  
+		}
 		else if (other->tag == "floor") {
-			
+
 			bGroundedThisFrame = true;
 		}
 
 		else if (ActorIsNotTrigger(other)) {
-			auto scale = MMath::Normalize01(contact.penetration, 0.0f, 0.2f, 0.005f) * 1.0f; 
+
+			auto gameState = GetWorld()->GetGameState<AGameState>();
+			gameState->SetPlayerState(this->playerState);
+
+
+			auto scale = MMath::Normalize01(contact.penetration, 0.0f, 0.2f, 0.005f) * 1.0f;
 			scale *= this->shapeComponent->rigidBody->mass;
 
 			if (scale > 0.02f) {
 				//std::cout << "contact pen:" << contact.penetration << ",scale:" << scale << '\n'; 
-				scale = std::clamp(scale, 0.0f, 1.0f);
+				scale = std::clamp(scale, 0.0f, 0.8f);
+				if(gameState->startPlaying)
 				Anim::VibrateFor(scale, scale, 0.2f);
 			}
 		}

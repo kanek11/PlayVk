@@ -10,6 +10,8 @@
 
 //using namespace DirectX;
 
+using namespace MMath;
+
 /*
 design decision : a rigidbody is optional;
 if the collider holds a weak ref of rb,  it directly communicate to it, and nothing more;
@@ -60,7 +62,7 @@ struct RigidBody {
 	PhysicalMaterial material{ 0.0f, 0.0f };
 
 	bool simulateRotation{ false };
-	DirectX::XMVECTOR rotation{ DirectX::XMQuaternionIdentity() };
+	Quaternion rotation{ QuaternionIdentity() };
 	Float3 angularVelocity;
 	Float3 torque{};
 
@@ -71,8 +73,8 @@ struct RigidBody {
 	Float3x3 worldInertia;
 	Float3x3 invWorldInertia;
 
-	DirectX::XMVECTOR prevRot{ DirectX::XMQuaternionIdentity() };
-	DirectX::XMVECTOR predRot{ DirectX::XMQuaternionIdentity() };
+	Quaternion prevRot{ QuaternionIdentity() };
+	Quaternion predRot{ QuaternionIdentity() };
 
 
 	//bool isKenematic;  
@@ -95,17 +97,17 @@ struct RigidBody {
 		this->prevPos = position;
 	}
 
-	void SetRotation(const DirectX::XMVECTOR& rotation) {
+	void SetRotation(const Quaternion& rotation) {
 		this->rotation = rotation;
 		this->predRot = rotation;
 		this->prevRot = rotation;
 
 		//update rotation matrix:
-		this->RotationMatrix = MMath::QuaternionToRotationMatrix(rotation);
+		this->RotationMatrix = MatrixRotationQuaternion(rotation);
 	}
 
 	void ClearRotation() {
-		this->SetRotation(DirectX::XMQuaternionIdentity());
+		this->SetRotation(QuaternionIdentity());
 
 		angularVelocity *= 0.0f;
 	}
@@ -289,11 +291,11 @@ public:
 		return m_transformBuffer.GetReadBuffer();
 	}
 
-	void SetPosition(ActorId handle,Float3 position);
-	void SetRotation(ActorId handle,DirectX::XMVECTOR rotation);
+	void SetPosition(ActorId handle, Float3 position);
+	void SetRotation(ActorId handle, Quaternion rotation);
 
 	void ClearBufferSync() {
-		m_commandBuffer.Clear(); 
+		m_commandBuffer.Clear();
 	}
 
 private:

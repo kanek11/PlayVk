@@ -16,9 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="legacy\SamplerSample.hlsl" />
-    <FxCompile Include="shaders\Particle_VS.hlsl" />
-    <FxCompile Include="shaders\Particle_CS.hlsl" />
-    <FxCompile Include="shaders\Particle_PS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Window.h">
@@ -237,10 +234,10 @@
     <ClInclude Include="src\Math\GenericUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Math\Quaternion.h">
+    <ClInclude Include="src\render\Particles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\render\Particles.h">
+    <ClInclude Include="src\Math\Quat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

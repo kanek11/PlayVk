@@ -17,11 +17,9 @@ namespace Anim {
         return a + (b - a) * t;
     }
 
-    inline DirectX::XMVECTOR Slerp(const DirectX::XMVECTOR& qa, const DirectX::XMVECTOR& qb, float t) {
-        return DirectX::XMQuaternionSlerp(qa, qb, t);
-    }
-
-
+    //inline DirectX::XMVECTOR Slerp(const DirectX::XMVECTOR& qa, const DirectX::XMVECTOR& qb, float t) {
+    //    return DirectX::XMQuaternionSlerp(qa, qb, t);
+    //} 
 
     // normalized T -> value
     using FCurve = std::function<float(float)>;
@@ -148,12 +146,12 @@ namespace Anim {
 
     //rotate to:
     inline Tween* RotateTo(Gameplay::USceneComponent* comp,
-        const DirectX::XMVECTOR& target,
+        const Quaternion& target,
         float duration,
         FCurve ease = Easing::CubicInOut)
     {
         if (!comp) return nullptr;
-        DirectX::XMVECTOR start = comp->GetRelativeRotation();
+        auto start = comp->GetRelativeRotation();
         auto tw = std::make_unique<Tween>();
         tw->duration = duration;
         tw->ease = std::move(ease);

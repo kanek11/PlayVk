@@ -55,10 +55,8 @@ float4 PSMain(VSOutput input) : SV_Target0
     DirectionalLight light;
     light.direction = gLightDir;
     light.color = gLightColor;
-    light.intensity = gLightIntensity * 2;
+    light.intensity = gLightIntensity ;
     
-    float4 lightSpacePos = mul(gLightPVMatrix, float4(worldPos.xyz, 1.0f));
-    bool inShadow = isInShadow(lightSpacePos); 
     
     
     //lighting loop
@@ -96,9 +94,16 @@ float4 PSMain(VSOutput input) : SV_Target0
     //float3 ambient = albedo * ao; 
     float3 ambient = albedo * 0.2 * ao;
     float3 color = ambient;
-    if (!inShadow)
-        color += Lo; 
+    //if (!inShadow)  color += Lo; 
     
+    
+    float4 lightSpacePos = mul(gLightPVMatrix, float4(worldPos.xyz, 1.0f));
+    float shadowFactor = getShadowFactor(lightSpacePos);
+    //if (shadowFactor < 0.3f)  shadowFactor = 0.0f;
+    color += shadowFactor * Lo;
+    
+    //bool inShadow = isInShadow(lightSpacePos);
+    //if(inShadow)  color += Lo;
     //
     float3 diffuseIrradiance = IBL_Diffuse(N);
     float3 diffuseEnv = diffuseIrradiance * albedo; 
